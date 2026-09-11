@@ -1,0 +1,70 @@
+import { db, doc, setDoc } from "./firebase";
+import { 
+  INITIAL_PRODUCTS, 
+  INITIAL_ORDERS, 
+  INITIAL_NOTIFICATIONS, 
+  INITIAL_USERS, 
+  INITIAL_APP_CONFIG, 
+  INITIAL_BANNERS, 
+  INITIAL_SUPERSTORES 
+} from "./mock-data";
+
+export async function seedFirestoreDatabase(): Promise<{ success: boolean; message: string }> {
+  try {
+    // 1. Seed Products
+    for (const p of INITIAL_PRODUCTS) {
+      await setDoc(doc(db, "products", p.id), p, { merge: true });
+    }
+
+    // 2. Seed Orders
+    for (const o of INITIAL_ORDERS) {
+      await setDoc(doc(db, "orders", o.id.replace("#", "")), o, { merge: true });
+    }
+
+    // 3. Seed Notifications
+    for (const n of INITIAL_NOTIFICATIONS) {
+      await setDoc(doc(db, "notifications", n.id), n, { merge: true });
+    }
+
+    // 4. Seed Users
+    for (const u of INITIAL_USERS) {
+      await setDoc(doc(db, "users", u.id), u, { merge: true });
+    }
+
+    // 5. Seed Admins (Required for Security Authentication check!)
+    await setDoc(doc(db, "admins", "rita48050@gmail.com"), {
+      email: "rita48050@gmail.com",
+      role: "admin",
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    // 6. Seed App Config Settings (Strictly snake_case)
+    await setDoc(doc(db, "app_config", "global_settings"), {
+      min_order_amount: INITIAL_APP_CONFIG.minOrderAmount,
+      handling_fee: INITIAL_APP_CONFIG.handlingFee,
+      delivery_fee: INITIAL_APP_CONFIG.deliveryFee,
+      free_delivery_threshold: INITIAL_APP_CONFIG.freeDeliveryThreshold,
+      terms_and_conditions: INITIAL_APP_CONFIG.termsAndConditions,
+      privacy_policy: INITIAL_APP_CONFIG.privacyPolicy,
+      refund_policy: INITIAL_APP_CONFIG.refundPolicy,
+      shipping_policy: INITIAL_APP_CONFIG.shippingPolicy,
+      about_us: INITIAL_APP_CONFIG.aboutUs,
+      updatedAt: new Date().toISOString()
+    });
+
+    // 7. Seed Banners
+    for (const b of INITIAL_BANNERS) {
+      await setDoc(doc(db, "banners", b.id), b, { merge: true });
+    }
+
+    // 8. Seed Superstores
+    for (const s of INITIAL_SUPERSTORES) {
+      await setDoc(doc(db, "stores", s.id), s, { merge: true });
+    }
+
+    return { success: true, message: "Firestore successfully seeded with Magozi production schema & demo records!" };
+  } catch (error: any) {
+    console.error("Error seeding Firestore:", error);
+    return { success: false, message: error.message || "Failed to seed Firestore" };
+  }
+}
