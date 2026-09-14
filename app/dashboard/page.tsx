@@ -20,7 +20,8 @@ import {
   ArrowRight, 
   Truck,
   TrendingUp,
-  PackageCheck
+  PackageCheck,
+  Calendar
 } from "lucide-react";
 import { 
   ResponsiveContainer, 
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const [userCount, setUserCount] = useState<number>(0);
   const [productCount, setProductCount] = useState<number>(0);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [revenueTimeframe, setRevenueTimeframe] = useState<"today" | "7days" | "30days" | "365days" | "lifetime">("today");
 
   // Realtime Listeners on Cloud Firestore — 100% Real Data
   useEffect(() => {
@@ -69,7 +71,46 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Compute Strictly Real Metrics
+  const currentDateString = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
+  const isWithinTimeframe = (createdAtStr?: string, timeframe: "today" | "7days" | "30days" | "365days" | "lifetime" = "today") => {
+    if (timeframe === "lifetime") return true;
+    if (!createdAtStr) return false;
+    try {
+      const orderDate = new Date(createdAtStr);
+      if (isNaN(orderDate.getTime())) return false;
+      const now = new Date();
+      if (timeframe === "today") {
+        return (
+          orderDate.getDate() === now.getDate() &&
+          orderDate.getMonth() === now.getMonth() &&
+          orderDate.getFullYear() === now.getFullYear()
+        );
+      }
+      const diffInMs = now.getTime() - orderDate.getTime();
+      const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+      if (timeframe === "7days") return diffInDays <= 7;
+      if (timeframe === "30days") return diffInDays <= 30;
+      if (timeframe === "365days") return diffInDays <= 365;
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Compute Strictly Real Metrics based on timeframe
+  const filteredOrders = orders.filter((o) => isWithinTimeframe(o.createdAt, revenueTimeframe));
+  const timeframeRevenue = filteredOrders.reduce(
+    (sum, o) => sum + (o.status !== "CANCELLED" ? (Number(o.totalAmount) || 0) : 0),
+    0
+  );
+  const timeframeOrdersCount = filteredOrders.length;
+
   const totalRevenue = orders.reduce(
     (sum, o) => sum + (o.status !== "CANCELLED" ? (Number(o.totalAmount) || 0) : 0),
     0
@@ -160,19 +201,56 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Current Date & Day + Revenue Timeframe Filter */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-magozi-800 text-white shadow-sm">
+                <Calendar size={20} />
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Today's Date & Day</span>
+                <span className="text-base font-extrabold text-slate-900">{currentDateString}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-bold text-slate-500 mr-1">Revenue Timeframe:</span>
+              {[
+                { id: "today", label: "Today" },
+                { id: "7days", label: "7 Days" },
+                { id: "30days", label: "30 Days" },
+                { id: "365days", label: "365 Days" },
+                { id: "lifetime", label: "Lifetime" },
+              ].map((tf) => (
+                <button
+                  key={tf.id}
+                  type="button"
+                  onClick={() => setRevenueTimeframe(tf.id as any)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${
+                    revenueTimeframe === tf.id
+                      ? "bg-magozi-800 text-white border-magozi-800 shadow-sm"
+                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  {tf.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Strictly Real Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <MetricCard
-              title="Total Revenue"
-              value={formatCurrency(totalRevenue)}
-              subtitle="Calculated from active Firestore orders"
+              title={`Total Revenue (${revenueTimeframe.toUpperCase()})`}
+              value={formatCurrency(timeframeRevenue)}
+              subtitle={`${timeframeOrdersCount} order(s) • ${revenueTimeframe === "today" ? "Today" : revenueTimeframe}`}
               icon={IndianRupee}
               color="green"
             />
             <MetricCard
-              title="Total Orders"
-              value={totalOrdersCount}
-              subtitle="Real orders in `orders` collection"
+              title={`Total Orders (${revenueTimeframe.toUpperCase()})`}
+              value={timeframeOrdersCount}
+              subtitle={`Lifetime: ${totalOrdersCount} orders`}
               icon={ShoppingBag}
               color="blue"
             />

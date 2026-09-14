@@ -65,9 +65,11 @@ export default function Sidebar() {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-3 overflow-hidden"
             >
-              <div className="w-10 h-10 rounded-xl bg-magozi-800 flex items-center justify-center text-white shadow-lg shadow-magozi-800/30 flex-shrink-0 font-bold text-xl">
-                M
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Magozi Logo" 
+                className="w-10 h-10 rounded-xl object-contain bg-white/10 p-0.5 shadow-lg shadow-magozi-800/30 flex-shrink-0" 
+              />
               {(!collapsed || mobileOpen) && (
                 <div className="flex flex-col">
                   <span className="font-extrabold text-lg tracking-tight text-white flex items-center gap-1">

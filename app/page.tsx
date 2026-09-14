@@ -23,9 +23,11 @@ export default function LoginPage() {
       <div className="max-w-md w-full relative z-10">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-magozi-800 text-white shadow-xl shadow-magozi-800/30 font-black text-3xl mb-4 border border-magozi-600/30">
-            M
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="Magozi Logo" 
+            className="w-20 h-20 object-contain rounded-2xl bg-slate-900 border border-slate-700/50 p-1 shadow-2xl mx-auto mb-4" 
+          />
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Magozi <span className="text-magozi-400">Admin</span>
           </h1>

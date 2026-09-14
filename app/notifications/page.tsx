@@ -5,13 +5,14 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { PushNotification } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
-import { db, collection, onSnapshot, doc, setDoc } from "@/lib/firebase";
+import { db, collection, onSnapshot, doc, setDoc, deleteDoc } from "@/lib/firebase";
 import { 
   BellRing, 
   Send, 
   Users, 
   CheckCircle2, 
-  Sparkles
+  Sparkles,
+  Trash2
 } from "lucide-react";
 
 export default function NotificationsPage() {
@@ -21,23 +22,6 @@ export default function NotificationsPage() {
   const [targetAudience, setTargetAudience] = useState<"All Users" | "Active Buyers">("All Users");
   const [sending, setSending] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  // Firestore Listener for Notifications
-  useEffect(() => {
-    try {
-      const unsubscribe = onSnapshot(collection(db, "notifications"), (snapshot) => {
-        const list: PushNotification[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as PushNotification));
-        setNotifications(list);
-      }, (err) => console.warn("Notifications listener warning:", err));
-      return () => unsubscribe();
-    } catch (e) {
-      console.warn("Firestore notifications listener error", e);
-    }
-  }, []);
-
   const [fcmKey, setFcmKey] = useState("");
   const [showFcmKeyInput, setShowFcmKeyInput] = useState(false);
 
@@ -64,6 +48,15 @@ export default function NotificationsPage() {
       console.warn("Firestore notifications listener error", e);
     }
   }, []);
+
+  const handleDeleteNotification = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this notification record?")) return;
+    try {
+      await deleteDoc(doc(db, "notifications", id));
+    } catch (err) {
+      console.error("Error deleting notification:", err);
+    }
+  };
 
   const handleSaveFcmKey = (e: React.FormEvent) => {
     e.preventDefault();
@@ -293,10 +286,18 @@ export default function NotificationsPage() {
                           </div>
                         </div>
 
-                        <div className="text-right flex-shrink-0">
+                        <div className="text-right flex-shrink-0 flex items-center gap-2">
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
                             {n.reachCount} Users Reached
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteNotification(n.id)}
+                            title="Delete notification log"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
                     ))
