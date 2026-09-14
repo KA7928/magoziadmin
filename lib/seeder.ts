@@ -52,12 +52,21 @@ export async function seedFirestoreDatabase(): Promise<{ success: boolean; messa
       updatedAt: new Date().toISOString()
     });
 
-    // 7. Seed Banners
+    // 7. Seed Support Page Settings
+    await setDoc(doc(db, "app_config", "supportpage"), {
+      phone: "+91 98765 43210",
+      email: "support@magozi.com",
+      whatsapp: "https://wa.me/919876543210",
+      telegram: "https://t.me/magozisupport",
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    // 8. Seed Banners
     for (const b of INITIAL_BANNERS) {
       await setDoc(doc(db, "banners", b.id), b, { merge: true });
     }
 
-    // 8. Seed Superstores
+    // 9. Seed Superstores
     for (const s of INITIAL_SUPERSTORES) {
       await setDoc(doc(db, "stores", s.id), s, { merge: true });
     }

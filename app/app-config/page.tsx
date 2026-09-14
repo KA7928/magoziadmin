@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import { AppConfigSettings } from "@/lib/types";
-import { INITIAL_APP_CONFIG } from "@/lib/mock-data";
+import { AppConfigSettings, SupportConfigSettings } from "@/lib/types";
+import { INITIAL_APP_CONFIG, INITIAL_SUPPORT_CONFIG } from "@/lib/mock-data";
 import { db, doc, onSnapshot, setDoc } from "@/lib/firebase";
 import { 
   Save, 
@@ -15,12 +15,18 @@ import {
   Truck, 
   HelpCircle,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Headphones,
+  Phone,
+  Mail,
+  MessageSquare,
+  Send
 } from "lucide-react";
 
 export default function AppConfigPage() {
   const [config, setConfig] = useState<AppConfigSettings>(INITIAL_APP_CONFIG);
-  const [activeTab, setActiveTab] = useState<"charges" | "terms" | "privacy" | "refund" | "shipping" | "about">("charges");
+  const [supportConfig, setSupportConfig] = useState<SupportConfigSettings>(INITIAL_SUPPORT_CONFIG);
+  const [activeTab, setActiveTab] = useState<"charges" | "terms" | "privacy" | "refund" | "shipping" | "about" | "support">("charges");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,15 +59,38 @@ export default function AppConfigPage() {
     }
   }, []);
 
-  // Save to Cloud Firestore document `app_config/global_settings`
+  // Realtime Cloud Firestore Listener for app_config/supportpage
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(doc(db, "app_config", "supportpage"), (snap) => {
+        if (snap.exists()) {
+          const d = snap.data();
+          setSupportConfig({
+            phone: d.phone || d.support_phone || INITIAL_SUPPORT_CONFIG.phone,
+            email: d.email || d.support_email || INITIAL_SUPPORT_CONFIG.email,
+            whatsapp: d.whatsapp || d.whatsapp_link || INITIAL_SUPPORT_CONFIG.whatsapp,
+            telegram: d.telegram || d.telegram_link || INITIAL_SUPPORT_CONFIG.telegram,
+          });
+        }
+      }, (err) => {
+        console.warn("Firestore app_config/supportpage listener warning:", err);
+      });
+
+      return () => unsub();
+    } catch (e) {
+      console.warn("Error subscribing to app_config/supportpage in Firestore:", e);
+    }
+  }, []);
+
+  // Save to Cloud Firestore documents `app_config/global_settings` & `app_config/supportpage`
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setSaveMessage(null);
     setErrorMessage(null);
 
-    // Strictly snake_case payload to avoid duplicate camelCase fields in Firestore
-    const payload = {
+    // Strictly snake_case payload for global_settings
+    const globalPayload = {
       min_order_amount: Number(config.minOrderAmount) || 0,
       handling_fee: Number(config.handlingFee) || 0,
       delivery_fee: Number(config.deliveryFee) || 0,
@@ -76,11 +105,21 @@ export default function AppConfigPage() {
       updatedAt: new Date().toISOString()
     };
 
+    // Support Page payload for `app_config/supportpage`
+    const supportPayload = {
+      phone: supportConfig.phone || "",
+      email: supportConfig.email || "",
+      whatsapp: supportConfig.whatsapp || "",
+      telegram: supportConfig.telegram || "",
+      updatedAt: new Date().toISOString()
+    };
+
     try {
-      // Overwrite document so any previous duplicate camelCase keys are removed
-      await setDoc(doc(db, "app_config", "global_settings"), payload);
+      await setDoc(doc(db, "app_config", "global_settings"), globalPayload);
+      await setDoc(doc(db, "app_config", "supportpage"), supportPayload);
+
       setSaving(false);
-      setSaveMessage("Successfully saved strictly snake_case fields to Cloud Firestore `app_config/global_settings`!");
+      setSaveMessage("Successfully saved App Settings & Support Page config to Cloud Firestore (`app_config/supportpage`)!");
       setTimeout(() => setSaveMessage(null), 5000);
     } catch (err: any) {
       console.error("Error saving app config to Firestore:", err);
@@ -194,6 +233,18 @@ export default function AppConfigPage() {
             >
               <HelpCircle size={15} />
               <span>About Us Info</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("support")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                activeTab === "support"
+                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <Headphones size={15} />
+              <span>Support Page Details</span>
             </button>
           </div>
 
@@ -361,6 +412,95 @@ export default function AppConfigPage() {
                   onChange={(e) => setConfig({ ...config, aboutUs: e.target.value })}
                   className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed"
                 />
+              </div>
+            )}
+
+            {/* Support Page Editor */}
+            {activeTab === "support" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                    <Headphones className="text-magozi-800" size={22} />
+                    <span>Customer Support & Help Desk Settings</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Configures contact channels for the Android App support screen. Writes directly to Cloud Firestore document <code className="font-mono font-bold text-slate-700">app_config/supportpage</code>
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Phone Number Field */}
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase flex items-center gap-2">
+                      <Phone size={14} className="text-magozi-800" />
+                      <span>Support Phone Number</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={supportConfig.phone}
+                      onChange={(e) => setSupportConfig({ ...supportConfig, phone: e.target.value })}
+                      placeholder="+91 98765 43210"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      Saved to Firestore <code className="font-mono font-bold text-slate-700">phone</code> field
+                    </p>
+                  </div>
+
+                  {/* Email Address Field */}
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase flex items-center gap-2">
+                      <Mail size={14} className="text-magozi-800" />
+                      <span>Support Email Address</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={supportConfig.email}
+                      onChange={(e) => setSupportConfig({ ...supportConfig, email: e.target.value })}
+                      placeholder="support@magozi.com"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      Saved to Firestore <code className="font-mono font-bold text-slate-700">email</code> field
+                    </p>
+                  </div>
+
+                  {/* WhatsApp Link Field */}
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase flex items-center gap-2">
+                      <MessageSquare size={14} className="text-emerald-600" />
+                      <span>WhatsApp Support Link</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={supportConfig.whatsapp}
+                      onChange={(e) => setSupportConfig({ ...supportConfig, whatsapp: e.target.value })}
+                      placeholder="https://wa.me/919876543210"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      Saved to Firestore <code className="font-mono font-bold text-slate-700">whatsapp</code> field for WhatsApp link
+                    </p>
+                  </div>
+
+                  {/* Telegram Link Field */}
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase flex items-center gap-2">
+                      <Send size={14} className="text-sky-600" />
+                      <span>Telegram Support Channel Link</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={supportConfig.telegram}
+                      onChange={(e) => setSupportConfig({ ...supportConfig, telegram: e.target.value })}
+                      placeholder="https://t.me/magozisupport"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      Saved to Firestore <code className="font-mono font-bold text-slate-700">telegram</code> field for Telegram link
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 

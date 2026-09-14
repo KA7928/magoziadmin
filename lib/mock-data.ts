@@ -208,6 +208,13 @@ Your privacy is paramount at Magozi.
 Magozi is India's leading hyper-local grocery & food delivery platform committed to freshness, transparency, and speed. From farm-fresh Alphonso mangoes to daily organic milk, we deliver everything in minutes.`
 };
 
+export const INITIAL_SUPPORT_CONFIG = {
+  phone: "+91 98765 43210",
+  email: "support@magozi.com",
+  whatsapp: "https://wa.me/919876543210",
+  telegram: "https://t.me/magozisupport"
+};
+
 export const INITIAL_BANNERS: Banner[] = [
   {
     id: "ban-001",

@@ -110,6 +110,13 @@ export interface AppConfigSettings {
   aboutUs: string;
 }
 
+export interface SupportConfigSettings {
+  phone: string;
+  email: string;
+  whatsapp: string;
+  telegram: string;
+}
+
 export interface Banner {
   id: string;
   title: string;
