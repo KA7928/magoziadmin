@@ -124,11 +124,13 @@ export default function ProductsPage() {
                   className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                 >
                   <option value="ALL">All Categories ({products.length})</option>
-                  {(Object.keys(CATEGORY_LABELS) as ProductCategory[]).map((cat) => (
-                    <option key={cat} value={cat}>
-                      {CATEGORY_LABELS[cat]}
-                    </option>
-                  ))}
+                  {(Object.keys(CATEGORY_LABELS) as ProductCategory[])
+                    .filter((cat) => cat !== "none" && cat !== "cart_page")
+                    .map((cat) => (
+                      <option key={cat} value={cat}>
+                        {CATEGORY_LABELS[cat]}
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>

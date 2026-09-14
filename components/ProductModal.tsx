@@ -166,11 +166,13 @@ export default function ProductModal({ isOpen, onClose, onSave, product }: Produ
                 onChange={(e) => setCategory(e.target.value as ProductCategory)}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
               >
-                {(Object.keys(CATEGORY_LABELS) as ProductCategory[]).map((cat) => (
-                  <option key={cat} value={cat}>
-                    {CATEGORY_LABELS[cat]} ({cat})
-                  </option>
-                ))}
+                {(Object.keys(CATEGORY_LABELS) as ProductCategory[])
+                  .filter((cat) => cat !== "none" && cat !== "cart_page")
+                  .map((cat) => (
+                    <option key={cat} value={cat}>
+                      {CATEGORY_LABELS[cat]} ({cat})
+                    </option>
+                  ))}
               </select>
             </div>
 
