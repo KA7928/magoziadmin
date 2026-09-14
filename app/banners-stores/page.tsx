@@ -211,25 +211,23 @@ export default function BannersStoresPage() {
                 </h4>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Banner Title</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Banner Title (Optional)</label>
                   <input
                     type="text"
-                    required
                     value={bannerTitle}
                     onChange={(e) => setBannerTitle(e.target.value)}
-                    placeholder="e.g. Fresh Summer Alphonso Mangoes 🥭"
+                    placeholder="e.g. Fresh Summer Alphonso Mangoes 🥭 (Optional)"
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Subtitle / Tagline</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Subtitle / Tagline (Optional)</label>
                   <input
                     type="text"
-                    required
                     value={bannerSubtitle}
                     onChange={(e) => setBannerSubtitle(e.target.value)}
-                    placeholder="e.g. Flat 30% OFF today!"
+                    placeholder="e.g. Flat 30% OFF today! (Optional)"
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
                   />
                 </div>
@@ -349,8 +347,10 @@ export default function BannersStoresPage() {
                             {b.active ? "ACTIVE" : "INACTIVE"}
                           </span>
                         </div>
-                        <h4 className="font-extrabold text-slate-900 text-base mt-1">{b.title}</h4>
-                        <p className="text-xs text-slate-500">{b.subtitle}</p>
+                        <h4 className="font-extrabold text-slate-900 text-base mt-1">
+                          {b.title ? b.title : <span className="text-slate-400 italic text-sm">(No Title - Image Only)</span>}
+                        </h4>
+                        {b.subtitle && <p className="text-xs text-slate-500">{b.subtitle}</p>}
                         <p className="text-[11px] text-magozi-800 font-semibold mt-1">
                           Links to: {CATEGORY_LABELS[b.targetCategoryId]}
                         </p>
@@ -360,8 +360,8 @@ export default function BannersStoresPage() {
                         <button
                           onClick={() => {
                             setEditingBannerId(b.id);
-                            setBannerTitle(b.title);
-                            setBannerSubtitle(b.subtitle);
+                            setBannerTitle(b.title || "");
+                            setBannerSubtitle(b.subtitle || "");
                             setBannerCategory(b.targetCategoryId);
                             setBannerPriority(b.priority);
                             setBannerActive(b.active);

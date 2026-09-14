@@ -121,8 +121,8 @@ export interface SupportConfigSettings {
 
 export interface Banner {
   id: string;
-  title: string;
-  subtitle: string;
+  title?: string;
+  subtitle?: string;
   imageUrl: string;
   targetCategoryId: ProductCategory;
   priority: number;
