@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { Banner, Superstore, ProductCategory, CATEGORY_LABELS } from "@/lib/types";
-import { db, storage, collection, onSnapshot, doc, setDoc, deleteDoc, ref, uploadBytes, getDownloadURL } from "@/lib/firebase";
+import { db, storage, collection, onSnapshot, doc, setDoc, deleteDoc, ref, uploadBytes, getDownloadURL, deleteObject } from "@/lib/firebase";
 import { 
   ImageIcon, 
   Store, 
@@ -125,8 +125,20 @@ export default function BannersStoresPage() {
     setEditingBannerId(null);
   };
 
-  const handleDeleteBanner = async (id: string) => {
-    await deleteDoc(doc(db, "banners", id));
+  const handleDeleteBanner = async (banner: Banner) => {
+    try {
+      if (banner.imageUrl && banner.imageUrl.includes("firebasestorage.googleapis.com")) {
+        try {
+          const imageRef = ref(storage, banner.imageUrl);
+          await deleteObject(imageRef);
+        } catch (storageErr) {
+          console.warn("Failed to delete banner image from Firebase Storage:", storageErr);
+        }
+      }
+      await deleteDoc(doc(db, "banners", banner.id));
+    } catch (err) {
+      console.error("Error deleting banner:", err);
+    }
   };
 
   const handleSaveStore = async (e: React.FormEvent) => {
@@ -176,8 +188,20 @@ export default function BannersStoresPage() {
     setEditingStoreId(null);
   };
 
-  const handleDeleteStore = async (id: string) => {
-    await deleteDoc(doc(db, "stores", id));
+  const handleDeleteStore = async (store: Superstore) => {
+    try {
+      if (store.imageUrl && store.imageUrl.includes("firebasestorage.googleapis.com")) {
+        try {
+          const imageRef = ref(storage, store.imageUrl);
+          await deleteObject(imageRef);
+        } catch (storageErr) {
+          console.warn("Failed to delete store image from Firebase Storage:", storageErr);
+        }
+      }
+      await deleteDoc(doc(db, "stores", store.id));
+    } catch (err) {
+      console.error("Error deleting store branch:", err);
+    }
   };
 
   return (
@@ -372,7 +396,7 @@ export default function BannersStoresPage() {
                           <Edit3 size={16} />
                         </button>
                         <button
-                          onClick={() => handleDeleteBanner(b.id)}
+                          onClick={() => handleDeleteBanner(b)}
                           className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
                         >
                           <Trash2 size={16} />
@@ -571,7 +595,7 @@ export default function BannersStoresPage() {
                           Edit Branch
                         </button>
                         <button
-                          onClick={() => handleDeleteStore(s.id)}
+                          onClick={() => handleDeleteStore(s)}
                           className="p-1.5 rounded-xl text-rose-600 hover:bg-rose-50"
                         >
                           <Trash2 size={16} />

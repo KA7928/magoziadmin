@@ -26,7 +26,7 @@ import {
   serverTimestamp,
   Firestore 
 } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL, FirebaseStorage } from "firebase/storage";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, FirebaseStorage } from "firebase/storage";
 
 export function getFirebaseConfig() {
   // Always prefer explicit environment variables from .env.local
@@ -100,6 +100,7 @@ export {
   serverTimestamp,
   ref,
   uploadBytes,
-  getDownloadURL
+  getDownloadURL,
+  deleteObject
 };
 export type { FirebaseUser };
