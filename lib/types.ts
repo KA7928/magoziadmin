@@ -4,7 +4,8 @@ export type ProductCategory =
   | 'cat_dairy' 
   | 'cat_bakery' 
   | 'cat_meals' 
-  | 'cat_snacks';
+  | 'cat_snacks'
+  | 'cart_page';
 
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   cat_fruits: 'Fresh Fruits',
@@ -13,6 +14,7 @@ export const CATEGORY_LABELS: Record<ProductCategory, string> = {
   cat_bakery: 'Bakery & Bread',
   cat_meals: 'Ready Meals & Instant',
   cat_snacks: 'Snacks & Beverages',
+  cart_page: '🛒 Open Cart Page / Checkout',
 };
 
 export interface Product {

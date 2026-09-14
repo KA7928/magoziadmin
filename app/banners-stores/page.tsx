@@ -4,14 +4,16 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { Banner, Superstore, ProductCategory, CATEGORY_LABELS } from "@/lib/types";
-import { db, collection, onSnapshot, doc, setDoc, deleteDoc } from "@/lib/firebase";
+import { db, storage, collection, onSnapshot, doc, setDoc, deleteDoc, ref, uploadBytes, getDownloadURL } from "@/lib/firebase";
 import { 
   ImageIcon, 
   Store, 
   Trash2, 
   Edit3, 
   Star, 
-  MapPin
+  MapPin,
+  Upload,
+  RefreshCw
 } from "lucide-react";
 
 export default function BannersStoresPage() {
@@ -25,6 +27,8 @@ export default function BannersStoresPage() {
   const [bannerPriority, setBannerPriority] = useState<number>(1);
   const [bannerActive, setBannerActive] = useState<boolean>(true);
   const [bannerImage, setBannerImage] = useState<string>("https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=1200&q=80");
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [uploadingBanner, setUploadingBanner] = useState<boolean>(false);
   const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
 
   // Store Form State
@@ -34,6 +38,8 @@ export default function BannersStoresPage() {
   const [storeDistance, setStoreDistance] = useState<number>(1.2);
   const [storeAddress, setStoreAddress] = useState("");
   const [storeImage, setStoreImage] = useState<string>("https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=600&q=80");
+  const [storeFile, setStoreFile] = useState<File | null>(null);
+  const [uploadingStore, setUploadingStore] = useState<boolean>(false);
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
 
   // Firestore Listeners
@@ -56,9 +62,38 @@ export default function BannersStoresPage() {
     }
   }, []);
 
+  const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setBannerFile(file);
+      setBannerImage(URL.createObjectURL(file));
+    }
+  };
+
+  const handleStoreFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setStoreFile(file);
+      setStoreImage(URL.createObjectURL(file));
+    }
+  };
+
   const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUploadingBanner(true);
     const id = editingBannerId || `ban_${Date.now()}`;
+    let finalImageUrl = bannerImage;
+
+    if (bannerFile) {
+      try {
+        const storageRef = ref(storage, `banners/${id}_${Date.now()}.jpg`);
+        await uploadBytes(storageRef, bannerFile);
+        finalImageUrl = await getDownloadURL(storageRef);
+      } catch (uploadErr) {
+        console.warn("Firebase Storage banner upload fallback to preview URL:", uploadErr);
+      }
+    }
+
     const newBanner: Banner = {
       id,
       title: bannerTitle,
@@ -66,7 +101,7 @@ export default function BannersStoresPage() {
       targetCategoryId: bannerCategory,
       priority: Number(bannerPriority),
       active: bannerActive,
-      imageUrl: bannerImage,
+      imageUrl: finalImageUrl,
     };
 
     try {
@@ -74,6 +109,8 @@ export default function BannersStoresPage() {
       resetBannerForm();
     } catch (err) {
       console.error("Error saving banner:", err);
+    } finally {
+      setUploadingBanner(false);
     }
   };
 
@@ -84,6 +121,7 @@ export default function BannersStoresPage() {
     setBannerPriority(1);
     setBannerActive(true);
     setBannerImage("https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=1200&q=80");
+    setBannerFile(null);
     setEditingBannerId(null);
   };
 
@@ -93,7 +131,20 @@ export default function BannersStoresPage() {
 
   const handleSaveStore = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUploadingStore(true);
     const id = editingStoreId || `store_${Date.now()}`;
+    let finalImageUrl = storeImage;
+
+    if (storeFile) {
+      try {
+        const storageRef = ref(storage, `stores/${id}_${Date.now()}.jpg`);
+        await uploadBytes(storageRef, storeFile);
+        finalImageUrl = await getDownloadURL(storageRef);
+      } catch (uploadErr) {
+        console.warn("Firebase Storage store upload fallback to preview URL:", uploadErr);
+      }
+    }
+
     const newStore: Superstore = {
       id,
       branchName: storeName,
@@ -101,7 +152,7 @@ export default function BannersStoresPage() {
       rating: Number(storeRating),
       distanceKm: Number(storeDistance),
       fullAddress: storeAddress,
-      imageUrl: storeImage,
+      imageUrl: finalImageUrl,
     };
 
     try {
@@ -109,6 +160,8 @@ export default function BannersStoresPage() {
       resetStoreForm();
     } catch (err) {
       console.error("Error saving store:", err);
+    } finally {
+      setUploadingStore(false);
     }
   };
 
@@ -119,6 +172,7 @@ export default function BannersStoresPage() {
     setStoreDistance(1.2);
     setStoreAddress("");
     setStoreImage("https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=600&q=80");
+    setStoreFile(null);
     setEditingStoreId(null);
   };
 
@@ -207,15 +261,32 @@ export default function BannersStoresPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Banner Image URL</label>
-                  <input
-                    type="url"
-                    required
-                    value={bannerImage}
-                    onChange={(e) => setBannerImage(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
-                  />
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Banner Photo (Firebase Storage Upload or URL)
+                  </label>
+                  <div className="space-y-2">
+                    {bannerImage && (
+                      <div className="w-full h-24 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 relative">
+                        <img src={bannerImage} alt="Banner Preview" className="w-full h-full object-cover" />
+                        <span className="absolute top-1 right-1 px-2 py-0.5 rounded text-[9px] font-extrabold bg-slate-900/80 text-white backdrop-blur-xs">
+                          Preview
+                        </span>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerFileChange}
+                      className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-magozi-50 file:text-magozi-800 hover:file:bg-magozi-100 cursor-pointer"
+                    />
+                    <input
+                      type="url"
+                      value={bannerImage}
+                      onChange={(e) => setBannerImage(e.target.value)}
+                      placeholder="Or paste direct image URL https://..."
+                      className="w-full px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
@@ -245,9 +316,17 @@ export default function BannersStoresPage() {
                   )}
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20"
+                    disabled={uploadingBanner}
+                    className="flex-1 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    {editingBannerId ? "Update Banner" : "Save Banner"}
+                    {uploadingBanner ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Uploading Photo...</span>
+                      </>
+                    ) : (
+                      <span>{editingBannerId ? "Update Banner" : "Save Banner"}</span>
+                    )}
                   </button>
                 </div>
               </form>
@@ -393,15 +472,32 @@ export default function BannersStoresPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Store Image URL</label>
-                  <input
-                    type="url"
-                    required
-                    value={storeImage}
-                    onChange={(e) => setStoreImage(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
-                  />
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    Store Photo (Firebase Storage Upload or URL)
+                  </label>
+                  <div className="space-y-2">
+                    {storeImage && (
+                      <div className="w-full h-24 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 relative">
+                        <img src={storeImage} alt="Store Preview" className="w-full h-full object-cover" />
+                        <span className="absolute top-1 right-1 px-2 py-0.5 rounded text-[9px] font-extrabold bg-slate-900/80 text-white backdrop-blur-xs">
+                          Preview
+                        </span>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleStoreFileChange}
+                      className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-magozi-50 file:text-magozi-800 hover:file:bg-magozi-100 cursor-pointer"
+                    />
+                    <input
+                      type="url"
+                      value={storeImage}
+                      onChange={(e) => setStoreImage(e.target.value)}
+                      placeholder="Or paste direct image URL https://..."
+                      className="w-full px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="flex gap-2 pt-2">
@@ -416,9 +512,17 @@ export default function BannersStoresPage() {
                   )}
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20"
+                    disabled={uploadingStore}
+                    className="flex-1 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    {editingStoreId ? "Update Store" : "Save Store Branch"}
+                    {uploadingStore ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Uploading Photo...</span>
+                      </>
+                    ) : (
+                      <span>{editingStoreId ? "Update Store" : "Save Store Branch"}</span>
+                    )}
                   </button>
                 </div>
               </form>
