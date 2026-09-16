@@ -54,15 +54,8 @@ export async function seedFirestoreDatabase(): Promise<{ success: boolean; messa
       updatedAt: new Date().toISOString()
     }, { merge: true });
 
-    // Seed App Orders Config (in seconds)
+    // Seed App Orders Config inside app_config collection (in seconds)
     await setDoc(doc(db, "app_config", "orders"), {
-      cancelOrderTimer: INITIAL_APP_CONFIG.cancelOrderTimer,
-      cancel_order_timer: INITIAL_APP_CONFIG.cancelOrderTimer,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-
-    // Seed Orders collection config document (in seconds)
-    await setDoc(doc(db, "orders", "config"), {
       cancelOrderTimer: INITIAL_APP_CONFIG.cancelOrderTimer,
       cancel_order_timer: INITIAL_APP_CONFIG.cancelOrderTimer,
       updatedAt: new Date().toISOString()

@@ -132,11 +132,10 @@ export default function AppConfigPage() {
     try {
       await setDoc(doc(db, "app_config", "global_settings"), globalPayload, { merge: true });
       await setDoc(doc(db, "app_config", "orders"), ordersConfigPayload, { merge: true });
-      await setDoc(doc(db, "orders", "config"), ordersConfigPayload, { merge: true });
       await setDoc(doc(db, "app_config", "supportpage"), supportPayload, { merge: true });
 
       setSaving(false);
-      setSaveMessage(`Successfully updated cancelOrderTimer (${cancelTimerValInSeconds} seconds) in Cloud Firestore!`);
+      setSaveMessage(`Successfully updated cancelOrderTimer (${cancelTimerValInSeconds} seconds) in Cloud Firestore (\`app_config\` collection)!`);
       setTimeout(() => setSaveMessage(null), 5000);
     } catch (err: any) {
       console.error("Error saving app config to Firestore:", err);
@@ -468,14 +467,13 @@ export default function AppConfigPage() {
 
                       <div className="mt-6 space-y-2 border-t border-slate-800 pt-4 text-[11px] text-slate-300 font-mono">
                         <div><strong className="text-slate-400">Field:</strong> cancelOrderTimer (in seconds)</div>
-                        <div><strong className="text-slate-400">Doc 1:</strong> app_config/global_settings</div>
-                        <div><strong className="text-slate-400">Doc 2:</strong> app_config/orders</div>
-                        <div><strong className="text-slate-400">Doc 3:</strong> orders/config</div>
+                        <div><strong className="text-slate-400">Target 1:</strong> app_config/global_settings</div>
+                        <div><strong className="text-slate-400">Target 2:</strong> app_config/orders</div>
                       </div>
                     </div>
 
                     <p className="text-[11px] text-slate-400 italic">
-                      Writes seconds value directly to Firestore collections upon clicking Save & Deploy below.
+                      Saves seconds value directly to `app_config` collection upon clicking Save & Deploy below.
                     </p>
                   </div>
                 </div>
