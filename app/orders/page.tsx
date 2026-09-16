@@ -232,6 +232,37 @@ export default function OrdersPage() {
     }
   };
 
+  const handleCancelSingleOrder = async (orderId: string) => {
+    if (!confirm(`Are you sure you want to 1-Click CANCEL order ${orderId}?`)) return;
+    await handleUpdateOrderStatus(orderId, "CANCELLED");
+  };
+
+  const handleCancelAllActiveOrders = async () => {
+    const activeOrders = orders.filter((o) => o.status !== "CANCELLED");
+    if (activeOrders.length === 0) {
+      alert("No active orders available to cancel.");
+      return;
+    }
+    if (!confirm(`Are you sure you want to CANCEL all ${activeOrders.length} active order(s)? This will update their status to CANCELLED in Cloud Firestore.`)) {
+      return;
+    }
+    try {
+      for (const ord of activeOrders) {
+        const cleanId = ord.id.replace("#", "");
+        await updateDoc(doc(db, "orders", cleanId), {
+          status: "CANCELLED",
+          orderStatus: "CANCELLED",
+          order_status: "CANCELLED",
+          deliveryStatus: "CANCELLED",
+          updatedAt: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.error("Error cancelling all active orders in Firestore:", err);
+    }
+  };
+
   const handleDeleteOrder = async (orderId: string) => {
     if (!confirm(`Are you sure you want to delete order ${orderId} from Firestore?`)) return;
     const cleanId = orderId.replace("#", "");
@@ -318,15 +349,26 @@ export default function OrdersPage() {
                 })}
               </div>
 
-              <div className="relative w-full md:w-80">
-                <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by Order ID (#MAG...), Phone, or Name..."
-                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
-                />
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <button
+                  onClick={handleCancelAllActiveOrders}
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition flex-shrink-0"
+                  title="1-Click Cancel All Active Orders in Firestore"
+                >
+                  <XCircle size={15} />
+                  <span>Cancel All Active ({orders.filter((o) => o.status !== "CANCELLED").length})</span>
+                </button>
+
+                <div className="relative w-full md:w-72">
+                  <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by Order ID (#MAG...), Phone, or Name..."
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -458,7 +500,23 @@ export default function OrdersPage() {
                           </select>
                         </td>
 
-                        <td className="py-4 px-5 text-right flex items-center justify-end gap-1">
+                        <td className="py-4 px-5 text-right flex items-center justify-end gap-1.5">
+                          {ord.status !== "CANCELLED" ? (
+                            <button
+                              onClick={() => handleCancelSingleOrder(ord.id)}
+                              className="px-2.5 py-1.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 border border-rose-200 text-[11px] font-extrabold transition flex items-center gap-1 shadow-xs"
+                              title="1-Click Cancel Order"
+                            >
+                              <XCircle size={14} />
+                              <span>Cancel Order</span>
+                            </button>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-500 border border-slate-200 text-[10px] font-extrabold flex items-center gap-1">
+                              <XCircle size={12} />
+                              <span>Cancelled</span>
+                            </span>
+                          )}
+
                           <button
                             onClick={() => handleTogglePinOrder(ord.id, ord.isPinned)}
                             className={`p-2 rounded-xl transition ${
