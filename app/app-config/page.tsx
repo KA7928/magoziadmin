@@ -20,13 +20,15 @@ import {
   Phone,
   Mail,
   MessageSquare,
-  Send
+  Send,
+  Clock,
+  Timer
 } from "lucide-react";
 
 export default function AppConfigPage() {
   const [config, setConfig] = useState<AppConfigSettings>(INITIAL_APP_CONFIG);
   const [supportConfig, setSupportConfig] = useState<SupportConfigSettings>(INITIAL_SUPPORT_CONFIG);
-  const [activeTab, setActiveTab] = useState<"charges" | "terms" | "privacy" | "refund" | "shipping" | "about" | "support">("charges");
+  const [activeTab, setActiveTab] = useState<"charges" | "canceltimer" | "terms" | "privacy" | "refund" | "shipping" | "about" | "support">("charges");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -42,6 +44,7 @@ export default function AppConfigPage() {
             handlingFee: d.handlingFee ?? d.handling_fee ?? 10,
             deliveryFee: d.deliveryFee ?? d.delivery_fee ?? 40,
             freeDeliveryThreshold: d.freeDeliveryThreshold ?? d.free_delivery_threshold ?? 300,
+            cancelOrderTimer: d.cancelOrderTimer ?? d.cancel_order_timer ?? 300,
             termsAndConditions: d.termsAndConditions || d.terms_and_conditions || INITIAL_APP_CONFIG.termsAndConditions,
             privacyPolicy: d.privacyPolicy || d.privacy_policy || INITIAL_APP_CONFIG.privacyPolicy,
             refundPolicy: d.refundPolicy || d.refund_policy || INITIAL_APP_CONFIG.refundPolicy,
@@ -82,19 +85,24 @@ export default function AppConfigPage() {
     }
   }, []);
 
-  // Save to Cloud Firestore documents `app_config/global_settings` & `app_config/supportpage`
+  // Save to Cloud Firestore documents `app_config/global_settings`, `app_config/orders`, `orders/config` & `app_config/supportpage`
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setSaveMessage(null);
     setErrorMessage(null);
 
-    // Strictly snake_case payload for global_settings
+    const cancelTimerValInSeconds = Number(config.cancelOrderTimer) >= 0 ? Number(config.cancelOrderTimer) : 300;
+
+    // Payload for global_settings (cancelOrderTimer stored in SECONDS)
     const globalPayload = {
       min_order_amount: Number(config.minOrderAmount) || 0,
       handling_fee: Number(config.handlingFee) || 0,
       delivery_fee: Number(config.deliveryFee) || 0,
       free_delivery_threshold: Number(config.freeDeliveryThreshold) || 0,
+
+      cancelOrderTimer: cancelTimerValInSeconds,
+      cancel_order_timer: cancelTimerValInSeconds,
 
       terms_and_conditions: config.termsAndConditions || "",
       privacy_policy: config.privacyPolicy || "",
@@ -102,6 +110,13 @@ export default function AppConfigPage() {
       shipping_policy: config.shippingPolicy || "",
       about_us: config.aboutUs || "",
 
+      updatedAt: new Date().toISOString()
+    };
+
+    // Payload for `app_config/orders` (cancelOrderTimer in SECONDS)
+    const ordersConfigPayload = {
+      cancelOrderTimer: cancelTimerValInSeconds,
+      cancel_order_timer: cancelTimerValInSeconds,
       updatedAt: new Date().toISOString()
     };
 
@@ -115,11 +130,13 @@ export default function AppConfigPage() {
     };
 
     try {
-      await setDoc(doc(db, "app_config", "global_settings"), globalPayload);
-      await setDoc(doc(db, "app_config", "supportpage"), supportPayload);
+      await setDoc(doc(db, "app_config", "global_settings"), globalPayload, { merge: true });
+      await setDoc(doc(db, "app_config", "orders"), ordersConfigPayload, { merge: true });
+      await setDoc(doc(db, "orders", "config"), ordersConfigPayload, { merge: true });
+      await setDoc(doc(db, "app_config", "supportpage"), supportPayload, { merge: true });
 
       setSaving(false);
-      setSaveMessage("Successfully saved App Settings & Support Page config to Cloud Firestore (`app_config/supportpage`)!");
+      setSaveMessage(`Successfully updated cancelOrderTimer (${cancelTimerValInSeconds} seconds) in Cloud Firestore!`);
       setTimeout(() => setSaveMessage(null), 5000);
     } catch (err: any) {
       console.error("Error saving app config to Firestore:", err);
@@ -173,6 +190,18 @@ export default function AppConfigPage() {
             >
               <IndianRupee size={15} />
               <span>In-App Delivery & Cart Charges</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("canceltimer")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                activeTab === "canceltimer"
+                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <Clock size={15} />
+              <span>Order Cancel Timer (Seconds)</span>
             </button>
 
             <button
@@ -319,6 +348,134 @@ export default function AppConfigPage() {
                     />
                     <p className="text-[11px] font-bold text-emerald-600">
                       Standard delivery fee becomes ₹0 for orders above ₹{config.freeDeliveryThreshold}!
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-2 sm:col-span-2">
+                    <label className="block text-xs font-bold text-slate-800 uppercase flex items-center gap-2">
+                      <Clock size={16} className="text-amber-700" />
+                      <span>Order Cancel Timer (In Seconds)</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        max={7200}
+                        value={config.cancelOrderTimer}
+                        onChange={(e) => setConfig({ ...config, cancelOrderTimer: Number(e.target.value) })}
+                        className="w-full max-w-xs px-4 py-2.5 rounded-xl border border-slate-200 font-extrabold text-amber-900 text-base focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                      />
+                      <span className="text-xs font-bold text-slate-700">Seconds</span>
+                      <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200">
+                        = {(config.cancelOrderTimer / 60).toFixed(1)} Mins
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 font-medium">
+                      Cancellation window in seconds. Writes to Firestore <code className="font-mono text-slate-800 font-bold">cancelOrderTimer</code>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Order Cancel Timer Editor */}
+            {activeTab === "canceltimer" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                    <Clock className="text-amber-600" size={22} />
+                    <span>App Order Cancellation Timer Settings (In Seconds)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Configures the maximum time window (in seconds) a customer has to cancel their placed order from the mobile app. Updates Firestore field <code className="font-mono font-bold text-slate-700">cancelOrderTimer</code>.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 p-6 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-4">
+                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <Timer size={16} className="text-amber-700" />
+                      <span>Order Cancel Time Limit (Seconds)</span>
+                    </label>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        max={7200}
+                        value={config.cancelOrderTimer}
+                        onChange={(e) => setConfig({ ...config, cancelOrderTimer: Number(e.target.value) })}
+                        className="w-full max-w-xs px-4 py-3 rounded-xl border border-amber-300 font-black text-slate-900 text-xl focus:ring-2 focus:ring-magozi-800 outline-none bg-white shadow-inner"
+                      />
+                      <span className="text-sm font-extrabold text-slate-700">Seconds</span>
+                      <span className="text-xs font-bold text-amber-900 bg-amber-200/80 px-3 py-1.5 rounded-xl border border-amber-300">
+                        = {(config.cancelOrderTimer / 60).toFixed(1)} Minutes
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Customers will see a countdown timer during checkout & order details. Once this time window (in seconds) elapses, the cancel order button automatically disables.
+                    </p>
+
+                    <div>
+                      <span className="block text-xs font-bold text-slate-700 uppercase mb-2">Quick Presets (Seconds):</span>
+                      <div className="flex items-center flex-wrap gap-2">
+                        {[
+                          { sec: 30, label: "30s" },
+                          { sec: 60, label: "60s (1m)" },
+                          { sec: 120, label: "120s (2m)" },
+                          { sec: 300, label: "300s (5m)" },
+                          { sec: 600, label: "600s (10m)" },
+                          { sec: 900, label: "900s (15m)" },
+                          { sec: 0, label: "0s (Disabled)" },
+                        ].map((preset) => (
+                          <button
+                            key={preset.sec}
+                            type="button"
+                            onClick={() => setConfig({ ...config, cancelOrderTimer: preset.sec })}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${
+                              config.cancelOrderTimer === preset.sec
+                                ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6 rounded-2xl bg-slate-900 text-white space-y-4 flex flex-col justify-between shadow-lg">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-extrabold uppercase text-amber-400">Live Status Preview</span>
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                          Realtime Sync
+                        </span>
+                      </div>
+
+                      <div className="mt-4 space-y-2">
+                        <div className="text-3xl font-black text-white">
+                          {config.cancelOrderTimer > 0 ? `${config.cancelOrderTimer} Seconds` : "Disabled"}
+                        </div>
+                        <div className="text-xs text-slate-400 font-mono">
+                          = {(config.cancelOrderTimer / 60).toFixed(1)} minutes
+                        </div>
+                      </div>
+
+                      <div className="mt-6 space-y-2 border-t border-slate-800 pt-4 text-[11px] text-slate-300 font-mono">
+                        <div><strong className="text-slate-400">Field:</strong> cancelOrderTimer (in seconds)</div>
+                        <div><strong className="text-slate-400">Doc 1:</strong> app_config/global_settings</div>
+                        <div><strong className="text-slate-400">Doc 2:</strong> app_config/orders</div>
+                        <div><strong className="text-slate-400">Doc 3:</strong> orders/config</div>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 italic">
+                      Writes seconds value directly to Firestore collections upon clicking Save & Deploy below.
                     </p>
                   </div>
                 </div>

@@ -107,6 +107,7 @@ export interface AppConfigSettings {
   handlingFee: number;
   deliveryFee: number;
   freeDeliveryThreshold: number;
+  cancelOrderTimer: number; // Order cancel window limit (in seconds)
   termsAndConditions: string;
   privacyPolicy: string;
   refundPolicy: string;

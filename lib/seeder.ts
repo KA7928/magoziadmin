@@ -38,19 +38,35 @@ export async function seedFirestoreDatabase(): Promise<{ success: boolean; messa
       updatedAt: new Date().toISOString()
     }, { merge: true });
 
-    // 6. Seed App Config Settings (Strictly snake_case)
+    // 6. Seed App Config Settings (Strictly snake_case & camelCase)
     await setDoc(doc(db, "app_config", "global_settings"), {
       min_order_amount: INITIAL_APP_CONFIG.minOrderAmount,
       handling_fee: INITIAL_APP_CONFIG.handlingFee,
       delivery_fee: INITIAL_APP_CONFIG.deliveryFee,
       free_delivery_threshold: INITIAL_APP_CONFIG.freeDeliveryThreshold,
+      cancelOrderTimer: INITIAL_APP_CONFIG.cancelOrderTimer,
+      cancel_order_timer: INITIAL_APP_CONFIG.cancelOrderTimer,
       terms_and_conditions: INITIAL_APP_CONFIG.termsAndConditions,
       privacy_policy: INITIAL_APP_CONFIG.privacyPolicy,
       refund_policy: INITIAL_APP_CONFIG.refundPolicy,
       shipping_policy: INITIAL_APP_CONFIG.shippingPolicy,
       about_us: INITIAL_APP_CONFIG.aboutUs,
       updatedAt: new Date().toISOString()
-    });
+    }, { merge: true });
+
+    // Seed App Orders Config (in seconds)
+    await setDoc(doc(db, "app_config", "orders"), {
+      cancelOrderTimer: INITIAL_APP_CONFIG.cancelOrderTimer,
+      cancel_order_timer: INITIAL_APP_CONFIG.cancelOrderTimer,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    // Seed Orders collection config document (in seconds)
+    await setDoc(doc(db, "orders", "config"), {
+      cancelOrderTimer: INITIAL_APP_CONFIG.cancelOrderTimer,
+      cancel_order_timer: INITIAL_APP_CONFIG.cancelOrderTimer,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
 
     // 7. Seed Support Page Settings
     await setDoc(doc(db, "app_config", "supportpage"), {

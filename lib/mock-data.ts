@@ -180,6 +180,7 @@ export const INITIAL_APP_CONFIG: AppConfigSettings = {
   handlingFee: 10,
   deliveryFee: 40,
   freeDeliveryThreshold: 300,
+  cancelOrderTimer: 300,
   termsAndConditions: `# Magozi Terms & Conditions
 
 Welcome to **Magozi Grocery & Food Delivery**. By using our service, you agree to comply with the following terms:
