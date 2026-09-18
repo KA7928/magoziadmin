@@ -54,7 +54,9 @@ export default function OrdersPage() {
   useEffect(() => {
     try {
       const unsubscribe = onSnapshot(collection(db, "orders"), (snapshot) => {
-        const list: Order[] = snapshot.docs.map((docSnap) => {
+        const list: Order[] = snapshot.docs
+          .filter((docSnap) => docSnap.id !== "user_orders" && !docSnap.id.toLowerCase().includes("config"))
+          .map((docSnap) => {
           const d = docSnap.data();
           const rawId = docSnap.id;
           const formattedId = rawId.startsWith("#") ? rawId : `#${rawId}`;
@@ -270,22 +272,45 @@ export default function OrdersPage() {
       // 1. Delete order doc from 'orders' collection
       await deleteDoc(doc(db, "orders", cleanId));
 
-      // 2. Remove order from 'orders/user_orders' doc 'user_order_list' array if present
+      // 2. Update 'orders/user_orders' doc: remove from user_order_list and clear latestOrder if matching
       try {
         const userOrdersRef = doc(db, "orders", "user_orders");
         const userOrdersSnap = await getDoc(userOrdersRef);
         if (userOrdersSnap.exists()) {
           const data = userOrdersSnap.data();
+          let updatedList: any[] = [];
           if (Array.isArray(data.user_order_list)) {
-            const updatedList = data.user_order_list.filter((item: any) => {
+            updatedList = data.user_order_list.filter((item: any) => {
               const itemId = typeof item === "string" ? item : (item.id || item.orderId || item.order_id);
               return itemId !== orderId && itemId !== cleanId && itemId !== `#${cleanId}`;
             });
-            await updateDoc(userOrdersRef, { user_order_list: updatedList });
           }
+          const isLatest = data.latestOrderId === cleanId || data.latestOrderId === orderId || data.latestOrderId === `#${cleanId}`;
+          await updateDoc(userOrdersRef, { 
+            user_order_list: updatedList,
+            latestOrder: isLatest ? null : (data.latestOrder || null),
+            latestOrderId: isLatest ? "" : (data.latestOrderId || ""),
+          });
         }
       } catch (e) {
         console.warn("Could not sync user_orders doc during single delete:", e);
+      }
+
+      // 3. Remove order from users collection pastOrders
+      try {
+        const usersSnap = await getDocs(collection(db, "users"));
+        for (const uDoc of usersSnap.docs) {
+          const uData = uDoc.data();
+          if (Array.isArray(uData.pastOrders)) {
+            const filteredPast = uData.pastOrders.filter((po: any) => {
+              const poId = typeof po === "string" ? po : (po.id || po.orderId || po.order_id);
+              return poId !== orderId && poId !== cleanId && poId !== `#${cleanId}`;
+            });
+            await updateDoc(doc(db, "users", uDoc.id), { pastOrders: filteredPast });
+          }
+        }
+      } catch (e) {
+        console.warn("Could not sync users collection pastOrders during single delete:", e);
       }
     } catch (err) {
       console.error("Error deleting order from Firestore:", err);
@@ -293,43 +318,51 @@ export default function OrdersPage() {
   };
 
   const handleDeleteAllOrderHistory = async () => {
-    if (orders.length === 0) {
-      alert("No orders available to delete.");
-      return;
-    }
-
     const confirmed = confirm(
-      `⚠️ PERMANENT DELETION WARNING ⚠️\n\nAre you sure you want to DELETE ALL ${orders.length} ORDER(S) FROM HISTORY?\n\nThis action will permanently delete all order documents from Cloud Firestore 'orders' collection AND clear the 'user_order_list' inside the 'user_orders' document.`
+      `⚠️ PERMANENT DELETION WARNING ⚠️\n\nAre you sure you want to DELETE ALL ORDER HISTORY?\n\nThis action will permanently delete all order documents from Cloud Firestore 'orders' collection, delete the 'user_orders' document ('user_order_list' & 'latestOrder'), and wipe past order history for all app users.`
     );
     if (!confirmed) return;
 
     try {
-      // 1. Delete all individual order documents from 'orders' collection
-      for (const ord of orders) {
-        const cleanId = ord.id.replace("#", "");
-        if (cleanId !== "user_orders") {
-          await deleteDoc(doc(db, "orders", cleanId));
-        }
+      // 1. Delete all order documents in 'orders' collection
+      const ordersSnap = await getDocs(collection(db, "orders"));
+      for (const orderDoc of ordersSnap.docs) {
+        await deleteDoc(doc(db, "orders", orderDoc.id));
       }
 
-      // 2. Clear user_order_list in 'orders/user_orders' document
+      // 2. Also ensure 'orders/user_orders' doc is completely deleted
       try {
-        await setDoc(doc(db, "orders", "user_orders"), { user_order_list: [] }, { merge: true });
+        await deleteDoc(doc(db, "orders", "user_orders"));
       } catch (e) {
-        console.warn("Error resetting user_orders doc:", e);
+        console.warn("Error deleting user_orders doc:", e);
       }
 
-      // 3. Clear any user_orders root collection documents if present
+      // 3. Reset pastOrders & activeOrder on all user documents in 'users' collection
+      try {
+        const usersSnap = await getDocs(collection(db, "users"));
+        for (const userDoc of usersSnap.docs) {
+          await updateDoc(doc(db, "users", userDoc.id), {
+            pastOrders: [],
+            activeOrder: {},
+            updatedAt: Date.now(),
+          });
+        }
+      } catch (e) {
+        console.warn("Error resetting users collection pastOrders:", e);
+      }
+
+      // 4. Clear root 'user_orders' collection if present
       try {
         const rootUserOrdersSnap = await getDocs(collection(db, "user_orders"));
         for (const userDoc of rootUserOrdersSnap.docs) {
-          await setDoc(doc(db, "user_orders", userDoc.id), { user_order_list: [] }, { merge: true });
+          await deleteDoc(doc(db, "user_orders", userDoc.id));
         }
       } catch (e) {
-        // ignore if non-existent
+        // ignore
       }
 
-      alert("✅ All order history deleted successfully and user_order_list cleared in Cloud Firestore!");
+      setOrders([]);
+      alert("✅ All past orders, user_order_list, and user order history deleted completely from Cloud Firestore!");
     } catch (err) {
       console.error("Error deleting all order history from Firestore:", err);
       alert("Error deleting order history: " + (err as Error).message);
