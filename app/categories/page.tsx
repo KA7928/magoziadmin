@@ -14,21 +14,10 @@ import {
   Plus, 
   ExternalLink,
   Tag,
-  CheckCircle2,
-  XCircle,
-  Sparkles,
   Search,
-  RefreshCw
+  RefreshCw,
+  CheckCircle2
 } from "lucide-react";
-
-const DEFAULT_CATEGORIES: CategoryItem[] = [
-  { id: "cat_fruits", name: "Fresh Fruits", imageUrl: "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=600&q=80", priority: 1, isActive: true },
-  { id: "cat_veggies", name: "Vegetables & Herbs", imageUrl: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80", priority: 2, isActive: true },
-  { id: "cat_dairy", name: "Dairy & Milk", imageUrl: "https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=600&q=80", priority: 3, isActive: true },
-  { id: "cat_bakery", name: "Bakery & Bread", imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80", priority: 4, isActive: true },
-  { id: "cat_meals", name: "Ready Meals & Instant", imageUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80", priority: 5, isActive: true },
-  { id: "cat_snacks", name: "Snacks & Beverages", imageUrl: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=600&q=80", priority: 6, isActive: true },
-];
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -45,24 +34,29 @@ export default function CategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Firestore Realtime Sync for `categories` collection
+  // Firestore Realtime Sync for `categories` collection & `products` collection categories
   useEffect(() => {
     try {
-      const unsub = onSnapshot(collection(db, "categories"), (snap) => {
-        const firestoreCategoriesMap = new Map<string, CategoryItem>();
+      const categoryMap = new Map<string, CategoryItem>();
 
-        // 1. Load defaults
-        DEFAULT_CATEGORIES.forEach((c) => firestoreCategoriesMap.set(c.id, c));
+      const updateList = () => {
+        const list = Array.from(categoryMap.values()).sort((a, b) => (a.priority || 0) - (b.priority || 0));
+        setCategories(list);
+      };
 
-        // 2. Override / append from Firestore
+      // 1. Listen to `categories` collection in Cloud Firestore (Pure Realtime)
+      const unsubCategories = onSnapshot(collection(db, "categories"), (snap) => {
         snap.docs.forEach((d) => {
           const data = d.data();
-          const id = d.id || data.id;
+          const id = d.id || data.id || data.categoryId;
           if (id) {
-            firestoreCategoriesMap.set(id, {
+            const name = data.name || data.title || data.label || CATEGORY_LABELS[id] || id.replace("cat_", "").replace(/_/g, " ").toUpperCase();
+            const imageUrl = data.imageUrl || data.image || data.iconUrl || data.icon || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80";
+            
+            categoryMap.set(id, {
               id,
-              name: data.name || data.title || data.label || CATEGORY_LABELS[id] || id,
-              imageUrl: data.imageUrl || data.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+              name,
+              imageUrl,
               priority: Number(data.priority ?? 1),
               isActive: data.isActive ?? data.active ?? true,
               createdAt: data.createdAt,
@@ -70,12 +64,31 @@ export default function CategoriesPage() {
             });
           }
         });
-
-        const list = Array.from(firestoreCategoriesMap.values()).sort((a, b) => (a.priority || 0) - (b.priority || 0));
-        setCategories(list);
+        updateList();
       }, (err) => console.warn("Categories listener warning:", err));
 
-      return () => unsub();
+      // 2. Listen to `products` collection to discover any product categories not yet in `categories` collection
+      const unsubProducts = onSnapshot(collection(db, "products"), (snap) => {
+        snap.docs.forEach((d) => {
+          const prodCategory = d.data().category;
+          if (prodCategory && typeof prodCategory === "string" && !categoryMap.has(prodCategory)) {
+            const formattedName = CATEGORY_LABELS[prodCategory] || prodCategory.replace("cat_", "").replace(/_/g, " ").toUpperCase();
+            categoryMap.set(prodCategory, {
+              id: prodCategory,
+              name: formattedName,
+              imageUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+              priority: categoryMap.size + 1,
+              isActive: true,
+            });
+          }
+        });
+        updateList();
+      }, (err) => console.warn("Products categories listener warning:", err));
+
+      return () => {
+        unsubCategories();
+        unsubProducts();
+      };
     } catch (e) {
       console.warn("Firestore categories connection warning", e);
     }
@@ -102,27 +115,35 @@ export default function CategoriesPage() {
     try {
       let finalImageUrl = catImageUrl;
 
-      // 1. Upload new image to Firebase Storage if a file was selected
+      // 1. Upload new image file to Firebase Storage if selected
       if (imageFile) {
         const storageRef = ref(storage, `categories/${finalCatId}_${Date.now()}`);
         await uploadBytes(storageRef, imageFile);
         finalImageUrl = await getDownloadURL(storageRef);
       }
 
-      // 2. Save / Update document in Firestore `categories` collection with `imageUrl` field
+      // 2. Save / Update document in Firestore `categories` collection
+      // Multi-field sync: writes imageUrl, image, iconUrl, icon, name, title, label, active, isActive
       const categoryDocData = {
         id: finalCatId,
         name: catName.trim(),
+        title: catName.trim(),
+        label: catName.trim(),
         imageUrl: finalImageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+        image: finalImageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+        iconUrl: finalImageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+        icon: finalImageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
         priority: Number(catPriority) || 1,
         isActive: Boolean(catActive),
+        active: Boolean(catActive),
+        lastUpdated: Date.now(),
         updatedAt: new Date().toISOString(),
         ...(editingId ? {} : { createdAt: new Date().toISOString() })
       };
 
       await setDoc(doc(db, "categories", finalCatId), categoryDocData, { merge: true });
 
-      // Reset form
+      // Reset form modal
       setModalOpen(false);
       setEditingId(null);
       setCatName("");
@@ -358,7 +379,7 @@ export default function CategoriesPage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Category Image (Upload to Firebase Storage `"imageUrl"`)
+                  Category Image (Upload to Firebase Storage)
                 </label>
                 <div className="space-y-3">
                   {catImageUrl && (
