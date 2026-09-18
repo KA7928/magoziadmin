@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import OrderDetailModal from "@/components/OrderDetailModal";
 import { Order, OrderStatus } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { db, collection, onSnapshot, doc, updateDoc, deleteDoc } from "@/lib/firebase";
+import { db, collection, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDoc, getDocs } from "@/lib/firebase";
 import { 
   PackageCheck, 
   Search, 
@@ -264,12 +264,75 @@ export default function OrdersPage() {
   };
 
   const handleDeleteOrder = async (orderId: string) => {
-    if (!confirm(`Are you sure you want to delete order ${orderId} from Firestore?`)) return;
+    if (!confirm(`Are you sure you want to PERMANENTLY delete order ${orderId} from Cloud Firestore?`)) return;
     const cleanId = orderId.replace("#", "");
     try {
+      // 1. Delete order doc from 'orders' collection
       await deleteDoc(doc(db, "orders", cleanId));
+
+      // 2. Remove order from 'orders/user_orders' doc 'user_order_list' array if present
+      try {
+        const userOrdersRef = doc(db, "orders", "user_orders");
+        const userOrdersSnap = await getDoc(userOrdersRef);
+        if (userOrdersSnap.exists()) {
+          const data = userOrdersSnap.data();
+          if (Array.isArray(data.user_order_list)) {
+            const updatedList = data.user_order_list.filter((item: any) => {
+              const itemId = typeof item === "string" ? item : (item.id || item.orderId || item.order_id);
+              return itemId !== orderId && itemId !== cleanId && itemId !== `#${cleanId}`;
+            });
+            await updateDoc(userOrdersRef, { user_order_list: updatedList });
+          }
+        }
+      } catch (e) {
+        console.warn("Could not sync user_orders doc during single delete:", e);
+      }
     } catch (err) {
       console.error("Error deleting order from Firestore:", err);
+    }
+  };
+
+  const handleDeleteAllOrderHistory = async () => {
+    if (orders.length === 0) {
+      alert("No orders available to delete.");
+      return;
+    }
+
+    const confirmed = confirm(
+      `⚠️ PERMANENT DELETION WARNING ⚠️\n\nAre you sure you want to DELETE ALL ${orders.length} ORDER(S) FROM HISTORY?\n\nThis action will permanently delete all order documents from Cloud Firestore 'orders' collection AND clear the 'user_order_list' inside the 'user_orders' document.`
+    );
+    if (!confirmed) return;
+
+    try {
+      // 1. Delete all individual order documents from 'orders' collection
+      for (const ord of orders) {
+        const cleanId = ord.id.replace("#", "");
+        if (cleanId !== "user_orders") {
+          await deleteDoc(doc(db, "orders", cleanId));
+        }
+      }
+
+      // 2. Clear user_order_list in 'orders/user_orders' document
+      try {
+        await setDoc(doc(db, "orders", "user_orders"), { user_order_list: [] }, { merge: true });
+      } catch (e) {
+        console.warn("Error resetting user_orders doc:", e);
+      }
+
+      // 3. Clear any user_orders root collection documents if present
+      try {
+        const rootUserOrdersSnap = await getDocs(collection(db, "user_orders"));
+        for (const userDoc of rootUserOrdersSnap.docs) {
+          await setDoc(doc(db, "user_orders", userDoc.id), { user_order_list: [] }, { merge: true });
+        }
+      } catch (e) {
+        // ignore if non-existent
+      }
+
+      alert("✅ All order history deleted successfully and user_order_list cleared in Cloud Firestore!");
+    } catch (err) {
+      console.error("Error deleting all order history from Firestore:", err);
+      alert("Error deleting order history: " + (err as Error).message);
     }
   };
 
@@ -349,14 +412,23 @@ export default function OrdersPage() {
                 })}
               </div>
 
-              <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="flex items-center flex-wrap gap-2 w-full md:w-auto">
                 <button
                   onClick={handleCancelAllActiveOrders}
-                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition flex-shrink-0"
+                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition flex-shrink-0"
                   title="1-Click Cancel All Active Orders in Firestore"
                 >
                   <XCircle size={15} />
                   <span>Cancel All Active ({orders.filter((o) => o.status !== "CANCELLED").length})</span>
+                </button>
+
+                <button
+                  onClick={handleDeleteAllOrderHistory}
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-sm flex items-center gap-1.5 transition flex-shrink-0"
+                  title="Permanently Delete All Order History from Firestore and clear user_order_list"
+                >
+                  <Trash2 size={15} />
+                  <span>Delete All History ({orders.length})</span>
                 </button>
 
                 <div className="relative w-full md:w-72">
