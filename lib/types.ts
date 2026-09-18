@@ -142,3 +142,14 @@ export interface Superstore {
   fullAddress: string;
   imageUrl: string;
 }
+
+export interface CategoryItem {
+  id: string;
+  name: string;
+  imageUrl: string;
+  priority?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

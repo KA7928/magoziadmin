@@ -12,6 +12,7 @@ import {
   Sliders, 
   Image as ImageIcon, 
   Store,
+  Layers,
   LogOut, 
   ChevronLeft, 
   ChevronRight, 
@@ -25,6 +26,7 @@ import { db, collection, onSnapshot } from "@/lib/firebase";
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Products", href: "/products", icon: ShoppingBag },
+  { name: "Categories", href: "/categories", icon: Layers },
   { name: "Orders", href: "/orders", icon: PackageCheck, badge: "Live" },
   { name: "Push Notifications", href: "/notifications", icon: BellRing },
   { name: "Users & Roles", href: "/users", icon: Users },
