@@ -20,6 +20,7 @@ import {
   X
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { db, collection, onSnapshot } from "@/lib/firebase";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -36,12 +37,28 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [placedOrdersCount, setPlacedOrdersCount] = useState<number>(0);
   const { logout, adminEmail } = useAuth();
 
   useEffect(() => {
     const handleToggle = () => setMobileOpen((prev) => !prev);
     window.addEventListener("toggle-mobile-menu", handleToggle);
     return () => window.removeEventListener("toggle-mobile-menu", handleToggle);
+  }, []);
+
+  // Firestore Realtime Listener for Placed Orders Count
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(collection(db, "orders"), (snapshot) => {
+        const count = snapshot.docs.filter(
+          (doc) => doc.data().status === "PLACED"
+        ).length;
+        setPlacedOrdersCount(count);
+      }, (err) => console.warn("Sidebar orders count warning:", err));
+      return () => unsub();
+    } catch (e) {
+      console.warn("Sidebar orders listener error", e);
+    }
   }, []);
 
   return (
@@ -117,12 +134,27 @@ export default function Sidebar() {
                   } ${collapsed && !mobileOpen ? "justify-center" : ""}`}
                   title={collapsed && !mobileOpen ? item.name : undefined}
                 >
-                  <Icon size={20} className={isActive ? "text-magozi-100" : "text-slate-400"} />
+                  <div className="relative flex items-center justify-center">
+                    <Icon size={20} className={isActive ? "text-magozi-100" : "text-slate-400"} />
+                    {collapsed && !mobileOpen && item.name === "Orders" && placedOrdersCount > 0 && (
+                      <span className="absolute -top-2 -right-2 flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-black text-white bg-rose-600 rounded-full border-2 border-slate-900 animate-pulse shadow-sm shadow-rose-600/50">
+                        {placedOrdersCount}
+                      </span>
+                    )}
+                  </div>
                   {(!collapsed || mobileOpen) && <span className="flex-1 truncate">{item.name}</span>}
-                  {(!collapsed || mobileOpen) && item.badge && (
-                    <span className="px-2 py-0.5 text-[10px] uppercase font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                      {item.badge}
-                    </span>
+                  {(!collapsed || mobileOpen) && (
+                    item.name === "Orders" && placedOrdersCount > 0 ? (
+                      <span className="flex items-center justify-center min-w-[22px] h-5 px-1.5 text-[11px] font-extrabold text-white bg-rose-600 rounded-full animate-pulse shadow-sm shadow-rose-600/40">
+                        {placedOrdersCount}
+                      </span>
+                    ) : (
+                      item.badge && (
+                        <span className="px-2 py-0.5 text-[10px] uppercase font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          {item.badge}
+                        </span>
+                      )
+                    )
                   )}
                 </Link>
               );

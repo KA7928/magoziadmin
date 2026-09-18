@@ -120,20 +120,155 @@ export default function DashboardPage() {
     ["PLACED", "PACKING", "OUT_FOR_DELIVERY"].includes(o.status)
   );
 
-  // Calculate real daily sales trends from actual Firestore orders
-  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const realChartData = weekDays.map((day, idx) => {
-    const dayOrders = orders.filter((o) => {
-      if (!o.createdAt) return false;
-      try {
-        return new Date(o.createdAt).getDay() === idx;
-      } catch {
-        return false;
+  // Dynamically compute real-time chart data based on revenueTimeframe
+  const getChartData = () => {
+    const now = new Date();
+
+    if (revenueTimeframe === "today") {
+      const timeSlots = [
+        { label: "12 AM", startHour: 0, endHour: 3 },
+        { label: "3 AM", startHour: 3, endHour: 6 },
+        { label: "6 AM", startHour: 6, endHour: 9 },
+        { label: "9 AM", startHour: 9, endHour: 12 },
+        { label: "12 PM", startHour: 12, endHour: 15 },
+        { label: "3 PM", startHour: 15, endHour: 18 },
+        { label: "6 PM", startHour: 18, endHour: 21 },
+        { label: "9 PM", startHour: 21, endHour: 24 },
+      ];
+
+      const todayOrders = orders.filter((o) => {
+        if (!o.createdAt) return false;
+        try {
+          const d = new Date(o.createdAt);
+          return (
+            d.getDate() === now.getDate() &&
+            d.getMonth() === now.getMonth() &&
+            d.getFullYear() === now.getFullYear()
+          );
+        } catch {
+          return false;
+        }
+      });
+
+      return timeSlots.map((slot) => {
+        const slotOrders = todayOrders.filter((o) => {
+          try {
+            const hour = new Date(o.createdAt!).getHours();
+            return hour >= slot.startHour && hour < slot.endHour;
+          } catch {
+            return false;
+          }
+        });
+        const revenue = slotOrders.reduce(
+          (sum, o) => sum + (o.status !== "CANCELLED" ? (Number(o.totalAmount) || 0) : 0),
+          0
+        );
+        return {
+          day: slot.label,
+          revenue,
+          orders: slotOrders.length,
+        };
+      });
+    } else if (revenueTimeframe === "7days") {
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const isToday = i === 0;
+        const dayLabel = isToday
+          ? "Today"
+          : d.toLocaleDateString("en-US", { weekday: "short" });
+
+        const dayOrders = orders.filter((o) => {
+          if (!o.createdAt) return false;
+          try {
+            const od = new Date(o.createdAt);
+            return (
+              od.getDate() === d.getDate() &&
+              od.getMonth() === d.getMonth() &&
+              od.getFullYear() === d.getFullYear()
+            );
+          } catch {
+            return false;
+          }
+        });
+
+        const revenue = dayOrders.reduce(
+          (sum, o) => sum + (o.status !== "CANCELLED" ? (Number(o.totalAmount) || 0) : 0),
+          0
+        );
+        days.push({
+          day: dayLabel,
+          revenue,
+          orders: dayOrders.length,
+        });
       }
-    });
-    const revenue = dayOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
-    return { day, revenue, orders: dayOrders.length };
-  });
+      return days;
+    } else if (revenueTimeframe === "30days") {
+      const periods = [];
+      for (let i = 29; i >= 0; i -= 5) {
+        const dEnd = new Date();
+        dEnd.setDate(now.getDate() - Math.max(0, i - 4));
+        const dStart = new Date();
+        dStart.setDate(now.getDate() - i);
+
+        const dayLabel = `${dStart.getDate()}/${dStart.getMonth() + 1}`;
+
+        const periodOrders = orders.filter((o) => {
+          if (!o.createdAt) return false;
+          try {
+            const od = new Date(o.createdAt);
+            return od >= dStart && od <= dEnd;
+          } catch {
+            return false;
+          }
+        });
+
+        const revenue = periodOrders.reduce(
+          (sum, o) => sum + (o.status !== "CANCELLED" ? (Number(o.totalAmount) || 0) : 0),
+          0
+        );
+        periods.push({
+          day: dayLabel,
+          revenue,
+          orders: periodOrders.length,
+        });
+      }
+      return periods;
+    } else {
+      const months = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthLabel = d.toLocaleDateString("en-US", { month: "short" });
+
+        const monthOrders = orders.filter((o) => {
+          if (!o.createdAt) return false;
+          try {
+            const od = new Date(o.createdAt);
+            return (
+              od.getMonth() === d.getMonth() &&
+              od.getFullYear() === d.getFullYear()
+            );
+          } catch {
+            return false;
+          }
+        });
+
+        const revenue = monthOrders.reduce(
+          (sum, o) => sum + (o.status !== "CANCELLED" ? (Number(o.totalAmount) || 0) : 0),
+          0
+        );
+        months.push({
+          day: monthLabel,
+          revenue,
+          orders: monthOrders.length,
+        });
+      }
+      return months;
+    }
+  };
+
+  const realChartData = getChartData();
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     const cleanId = orderId.replace("#", "");
@@ -276,7 +411,11 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-lg font-extrabold text-slate-900">Real Sales Revenue (INR ₹)</h3>
-                  <p className="text-xs text-slate-500">Weekly breakdown of actual customer orders in Firestore</p>
+                  <p className="text-xs text-slate-500">
+                    {revenueTimeframe === "today"
+                      ? "Hourly breakdown of Today's customer orders in Cloud Firestore"
+                      : `${revenueTimeframe.toUpperCase()} breakdown of actual customer orders in Firestore`}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
                   <TrendingUp size={14} />
@@ -316,7 +455,9 @@ export default function DashboardPage() {
             <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
               <div>
                 <h3 className="text-lg font-extrabold text-slate-900">Real Orders Volume</h3>
-                <p className="text-xs text-slate-500">Order count by day of week</p>
+                <p className="text-xs text-slate-500">
+                  {revenueTimeframe === "today" ? "Today's hourly order volume" : `Order count by ${revenueTimeframe}`}
+                </p>
 
                 <div className="h-60 w-full mt-4">
                   <ResponsiveContainer width="100%" height="100%">
