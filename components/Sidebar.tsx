@@ -11,6 +11,7 @@ import {
   Users, 
   Sliders, 
   Image as ImageIcon, 
+  Store,
   LogOut, 
   ChevronLeft, 
   ChevronRight, 
@@ -27,7 +28,8 @@ const NAV_ITEMS = [
   { name: "Push Notifications", href: "/notifications", icon: BellRing },
   { name: "Users & Roles", href: "/users", icon: Users },
   { name: "App Charges & Config", href: "/app-config", icon: Sliders },
-  { name: "Banners & Stores", href: "/banners-stores", icon: ImageIcon },
+  { name: "Banners Management", href: "/banners", icon: ImageIcon },
+  { name: "Superstores", href: "/stores", icon: Store },
 ];
 
 export default function Sidebar() {

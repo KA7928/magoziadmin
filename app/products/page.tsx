@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import ProductModal from "@/components/ProductModal";
@@ -10,7 +11,6 @@ import { db, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "@
 import { 
   Plus, 
   Search, 
-  Filter, 
   Edit3, 
   Trash2, 
   CheckCircle2, 
@@ -18,13 +18,24 @@ import {
   AlertTriangle
 } from "lucide-react";
 
-export default function ProductsPage() {
+function ProductsContent() {
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [syncedCategories, setSyncedCategories] = useState<{ id: string; label: string }[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+
+  // Sync category param from URL on initial load / change
+  useEffect(() => {
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [categoryParam]);
 
   // Firestore Realtime Listener for Products — 100% Real Data
   useEffect(() => {
@@ -39,6 +50,58 @@ export default function ProductsPage() {
       return () => unsubscribe();
     } catch (e) {
       console.warn("Firestore connection warning", e);
+    }
+  }, []);
+
+  // Firestore Category Sync (categories collection + products collection + base CATEGORY_LABELS)
+  useEffect(() => {
+    try {
+      const categoryMap = new Map<string, string>();
+      Object.keys(CATEGORY_LABELS).forEach((key) => {
+        categoryMap.set(key, CATEGORY_LABELS[key]);
+      });
+
+      const updateList = () => {
+        const list: { id: string; label: string }[] = [];
+        categoryMap.forEach((label, id) => {
+          if (id !== "none" && id !== "cart_page") {
+            list.push({ id, label });
+          }
+        });
+        setSyncedCategories(list);
+      };
+
+      const unsubCategories = onSnapshot(collection(db, "categories"), (snap) => {
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          const catId = d.id || data.id || data.categoryId;
+          const catName = data.name || data.title || data.label || catId;
+          if (catId) {
+            categoryMap.set(catId, catName);
+          }
+        });
+        updateList();
+      }, (err) => console.warn("Categories listener error", err));
+
+      const unsubProductsCat = onSnapshot(collection(db, "products"), (snap) => {
+        snap.docs.forEach((d) => {
+          const prodCategory = d.data().category;
+          if (prodCategory && typeof prodCategory === "string" && !categoryMap.has(prodCategory)) {
+            const formatted = CATEGORY_LABELS[prodCategory] || prodCategory.replace("cat_", "").replace("_", " ").toUpperCase();
+            categoryMap.set(prodCategory, formatted);
+          }
+        });
+        updateList();
+      }, (err) => console.warn("Products categories listener error", err));
+
+      updateList();
+
+      return () => {
+        unsubCategories();
+        unsubProductsCat();
+      };
+    } catch (e) {
+      console.warn("Categories sync error", e);
     }
   }, []);
 
@@ -93,6 +156,11 @@ export default function ProductsPage() {
     return matchesSearch && matchesCategory;
   });
 
+  const getCategoryLabel = (catId: string) => {
+    const found = syncedCategories.find((c) => c.id === catId);
+    return found ? found.label : (CATEGORY_LABELS[catId] || catId);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
       <Sidebar />
@@ -124,13 +192,11 @@ export default function ProductsPage() {
                   className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                 >
                   <option value="ALL">All Categories ({products.length})</option>
-                  {(Object.keys(CATEGORY_LABELS) as ProductCategory[])
-                    .filter((cat) => cat !== "none" && cat !== "cart_page")
-                    .map((cat) => (
-                      <option key={cat} value={cat}>
-                        {CATEGORY_LABELS[cat]}
-                      </option>
-                    ))}
+                  {syncedCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -186,7 +252,7 @@ export default function ProductsPage() {
 
                         <td className="py-3.5 px-5">
                           <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">
-                            {CATEGORY_LABELS[p.category] || p.category}
+                            {getCategoryLabel(p.category)}
                           </span>
                         </td>
 
@@ -303,5 +369,19 @@ export default function ProductsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-500 font-medium text-sm animate-pulse">
+          Loading product catalog...
+        </div>
+      </div>
+    }>
+      <ProductsContent />
+    </Suspense>
   );
 }

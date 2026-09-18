@@ -1,0 +1,427 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Sidebar from "@/components/Sidebar";
+import Header from "@/components/Header";
+import { Banner, ProductCategory, CATEGORY_LABELS } from "@/lib/types";
+import { db, storage, collection, onSnapshot, doc, setDoc, deleteDoc, ref, uploadBytes, getDownloadURL, deleteObject } from "@/lib/firebase";
+import Link from "next/link";
+import { 
+  ImageIcon, 
+  Trash2, 
+  Edit3, 
+  Upload, 
+  RefreshCw,
+  ExternalLink,
+  Tag,
+  Layers,
+  Sparkles
+} from "lucide-react";
+
+export default function BannersPage() {
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [syncedCategories, setSyncedCategories] = useState<{ id: string; label: string }[]>([]);
+
+  // Banner Form State
+  const [bannerTitle, setBannerTitle] = useState("");
+  const [bannerSubtitle, setBannerSubtitle] = useState("");
+  const [bannerCategory, setBannerCategory] = useState<ProductCategory>("cat_fruits");
+  const [bannerPriority, setBannerPriority] = useState<number>(1);
+  const [bannerActive, setBannerActive] = useState<boolean>(true);
+  const [bannerImage, setBannerImage] = useState<string>("https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=1200&q=80");
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [uploadingBanner, setUploadingBanner] = useState<boolean>(false);
+  const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
+
+  // Firestore Listener for Banners
+  useEffect(() => {
+    try {
+      const unsubBanners = onSnapshot(collection(db, "banners"), (snap) => {
+        setBanners(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Banner)));
+      });
+      return () => unsubBanners();
+    } catch (e) {
+      console.warn("Firestore banners listener error", e);
+    }
+  }, []);
+
+  // Firestore Sync for Categories (Subscribes to `categories` AND `products` collections)
+  useEffect(() => {
+    try {
+      // 1. Base static categories
+      const baseCategoryMap = new Map<string, string>();
+      Object.keys(CATEGORY_LABELS).forEach((key) => {
+        baseCategoryMap.set(key, CATEGORY_LABELS[key]);
+      });
+
+      // 2. Listen to `categories` collection in Firestore
+      const unsubCategoriesDoc = onSnapshot(collection(db, "categories"), (snap) => {
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          const catId = d.id || data.id || data.categoryId;
+          const catName = data.name || data.title || data.label || catId;
+          if (catId) {
+            baseCategoryMap.set(catId, catName);
+          }
+        });
+        updateSyncedCategoriesList(baseCategoryMap);
+      }, (err) => console.warn("Categories listener warning:", err));
+
+      // 3. Listen to `products` collection in Firestore to extract all unique product categories
+      const unsubProductsCat = onSnapshot(collection(db, "products"), (snap) => {
+        snap.docs.forEach((d) => {
+          const prodCategory = d.data().category;
+          if (prodCategory && typeof prodCategory === "string" && !baseCategoryMap.has(prodCategory)) {
+            const formattedLabel = CATEGORY_LABELS[prodCategory] || prodCategory.replace("cat_", "").replace("_", " ").toUpperCase();
+            baseCategoryMap.set(prodCategory, formattedLabel);
+          }
+        });
+        updateSyncedCategoriesList(baseCategoryMap);
+      }, (err) => console.warn("Products categories extraction warning:", err));
+
+      const updateSyncedCategoriesList = (map: Map<string, string>) => {
+        const list: { id: string; label: string }[] = [];
+        map.forEach((label, id) => {
+          list.push({ id, label });
+        });
+        setSyncedCategories(list);
+      };
+
+      return () => {
+        unsubCategoriesDoc();
+        unsubProductsCat();
+      };
+    } catch (e) {
+      console.warn("Categories sync error:", e);
+    }
+  }, []);
+
+  const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setBannerFile(file);
+      setBannerImage(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSaveBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploadingBanner(true);
+    const id = editingBannerId || `ban_${Date.now()}`;
+    let finalImageUrl = bannerImage;
+
+    if (bannerFile) {
+      try {
+        const storageRef = ref(storage, `banners/${id}_${Date.now()}.jpg`);
+        await uploadBytes(storageRef, bannerFile);
+        finalImageUrl = await getDownloadURL(storageRef);
+      } catch (uploadErr) {
+        console.warn("Firebase Storage banner upload fallback to preview URL:", uploadErr);
+      }
+    }
+
+    const newBanner: Banner = {
+      id,
+      title: bannerTitle,
+      subtitle: bannerSubtitle,
+      targetCategoryId: bannerCategory,
+      priority: Number(bannerPriority),
+      active: bannerActive,
+      imageUrl: finalImageUrl,
+    };
+
+    try {
+      await setDoc(doc(db, "banners", id), newBanner, { merge: true });
+      resetBannerForm();
+    } catch (err) {
+      console.error("Error saving banner:", err);
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const resetBannerForm = () => {
+    setBannerTitle("");
+    setBannerSubtitle("");
+    setBannerCategory("cat_fruits");
+    setBannerPriority(1);
+    setBannerActive(true);
+    setBannerImage("https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=1200&q=80");
+    setBannerFile(null);
+    setEditingBannerId(null);
+  };
+
+  const handleDeleteBanner = async (banner: Banner) => {
+    if (!confirm("Are you sure you want to delete this banner?")) return;
+    try {
+      if (banner.imageUrl && banner.imageUrl.includes("firebasestorage.googleapis.com")) {
+        try {
+          const imageRef = ref(storage, banner.imageUrl);
+          await deleteObject(imageRef);
+        } catch (storageErr) {
+          console.warn("Failed to delete banner image from Firebase Storage:", storageErr);
+        }
+      }
+      await deleteDoc(doc(db, "banners", banner.id));
+    } catch (err) {
+      console.error("Error deleting banner:", err);
+    }
+  };
+
+  const getCategoryLabel = (catId: string) => {
+    const found = syncedCategories.find((c) => c.id === catId);
+    return found ? found.label : CATEGORY_LABELS[catId] || catId;
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex">
+      <Sidebar />
+
+      <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
+        <Header
+          title="Homepage Swiping Banners Management"
+          subtitle="Configure promotional offer carousels and sync live category link redirections to Cloud Firestore"
+        />
+
+        <div className="p-3 md:p-6 space-y-6">
+          {/* Header Action Bar */}
+          <div className="p-4 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-magozi-800 text-white shadow-md shadow-magozi-800/20">
+                <ImageIcon size={22} />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">Promotional Carousel Banners</h3>
+                <p className="text-xs text-slate-500">
+                  {banners.length} total banners configured in Firestore <code className="font-mono text-slate-700 font-bold">banners</code> collection
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200">
+              <Sparkles size={16} className="text-emerald-600" />
+              <span>Synced with {syncedCategories.length} Firestore Categories</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Banner Form */}
+            <form onSubmit={handleSaveBanner} className="lg:col-span-1 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+              <h4 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                <Tag size={18} className="text-magozi-800" />
+                <span>{editingBannerId ? "Edit Banner" : "Add New Swiping Banner"}</span>
+              </h4>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Banner Title (Optional)</label>
+                <input
+                  type="text"
+                  value={bannerTitle}
+                  onChange={(e) => setBannerTitle(e.target.value)}
+                  placeholder="e.g. Fresh Summer Alphonso Mangoes 🥭 (Optional)"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Subtitle / Tagline (Optional)</label>
+                <input
+                  type="text"
+                  value={bannerSubtitle}
+                  onChange={(e) => setBannerSubtitle(e.target.value)}
+                  placeholder="e.g. Flat 30% OFF today! (Optional)"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center justify-between">
+                    <span>Category Link *</span>
+                  </label>
+                  <select
+                    value={bannerCategory}
+                    onChange={(e) => setBannerCategory(e.target.value as ProductCategory)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                  >
+                    {syncedCategories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Priority Order *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={bannerPriority}
+                    onChange={(e) => setBannerPriority(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Banner Photo (Firebase Storage Upload or URL) *
+                </label>
+                <div className="space-y-2">
+                  {bannerImage && (
+                    <div className="w-full h-28 rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 relative">
+                      <img src={bannerImage} alt="Banner Preview" className="w-full h-full object-cover" />
+                      <span className="absolute top-2 right-2 px-2.5 py-1 rounded-lg text-[9px] font-extrabold bg-slate-900/80 text-white backdrop-blur-xs">
+                        Live Preview
+                      </span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerFileChange}
+                    className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-magozi-50 file:text-magozi-800 hover:file:bg-magozi-100 cursor-pointer"
+                  />
+                  <input
+                    type="url"
+                    value={bannerImage}
+                    onChange={(e) => setBannerImage(e.target.value)}
+                    placeholder="Or paste direct image URL https://..."
+                    className="w-full px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="text-xs font-bold text-slate-700">Active Status</span>
+                <button
+                  type="button"
+                  onClick={() => setBannerActive(!bannerActive)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    bannerActive ? "bg-magozi-800" : "bg-slate-300"
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    bannerActive ? "translate-x-6" : "translate-x-1"
+                  }`} />
+                </button>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                {editingBannerId && (
+                  <button
+                    type="button"
+                    onClick={resetBannerForm}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={uploadingBanner}
+                  className="flex-1 py-3 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {uploadingBanner ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Uploading Photo...</span>
+                    </>
+                  ) : (
+                    <span>{editingBannerId ? "Update Banner" : "Save Banner to Firestore"}</span>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* Banner List Cards */}
+            <div className="lg:col-span-2 space-y-4">
+              {banners.length > 0 ? (
+                banners.map((b) => (
+                  <div key={b.id} className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-5 hover:border-slate-300 transition">
+                    <div className="w-full sm:w-48 h-32 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
+                      <img src={b.imageUrl} alt={b.title || "Banner"} className="w-full h-full object-cover" />
+                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-900/80 text-white backdrop-blur-xs">
+                        Priority #{b.priority}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                          b.active ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-slate-100 text-slate-500 border border-slate-200"
+                        }`}>
+                          {b.active ? "ACTIVE" : "INACTIVE"}
+                        </span>
+
+                        <span className="text-[11px] text-slate-400 font-mono">ID: {b.id}</span>
+                      </div>
+
+                      <h4 className="font-extrabold text-slate-900 text-base leading-snug">
+                        {b.title ? b.title : <span className="text-slate-400 italic text-sm">(No Title - Image Only)</span>}
+                      </h4>
+                      {b.subtitle && <p className="text-xs text-slate-500 leading-relaxed">{b.subtitle}</p>}
+
+                      <div className="pt-2 flex items-center flex-wrap gap-2">
+                        <span className="text-xs font-bold text-magozi-800 bg-magozi-50 px-3 py-1 rounded-xl border border-magozi-100 flex items-center gap-1.5">
+                          <Layers size={13} />
+                          <span>Linked Category: {getCategoryLabel(b.targetCategoryId)}</span>
+                        </span>
+
+                        {/* Redirection Link to Category Page */}
+                        {b.targetCategoryId !== "none" && (
+                          <Link
+                            href={
+                              b.targetCategoryId === "cart_page"
+                                ? "/products"
+                                : `/products?category=${encodeURIComponent(b.targetCategoryId)}`
+                            }
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition"
+                            title="Click to redirect and view products under this category"
+                          >
+                            <span>🔗 Open Category Page</span>
+                            <ExternalLink size={13} />
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex sm:flex-col gap-2 flex-shrink-0 self-end sm:self-center">
+                      <button
+                        onClick={() => {
+                          setEditingBannerId(b.id);
+                          setBannerTitle(b.title || "");
+                          setBannerSubtitle(b.subtitle || "");
+                          setBannerCategory(b.targetCategoryId);
+                          setBannerPriority(b.priority);
+                          setBannerActive(b.active);
+                          setBannerImage(b.imageUrl);
+                        }}
+                        className="p-2.5 rounded-xl text-slate-600 hover:text-magozi-800 hover:bg-magozi-50 border border-slate-200 transition"
+                        title="Edit Banner"
+                      >
+                        <Edit3 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBanner(b)}
+                        className="p-2.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition"
+                        title="Delete Banner"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-12 bg-white rounded-3xl border border-slate-200/80 text-center text-slate-400 italic">
+                  No promotional banners created in Firestore <code className="font-mono text-slate-600 font-bold">banners</code> collection yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

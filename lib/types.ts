@@ -6,9 +6,10 @@ export type ProductCategory =
   | 'cat_bakery' 
   | 'cat_meals' 
   | 'cat_snacks'
-  | 'cart_page';
+  | 'cart_page'
+  | (string & {});
 
-export const CATEGORY_LABELS: Record<ProductCategory, string> = {
+export const CATEGORY_LABELS: Record<string, string> = {
   none: '🚫 None (No Redirection)',
   cat_fruits: 'Fresh Fruits',
   cat_veggies: 'Vegetables & Herbs',
