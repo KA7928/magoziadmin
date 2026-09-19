@@ -135,12 +135,26 @@ export interface Banner {
 
 export interface Superstore {
   id: string;
-  branchName: string;
-  openStatus: 'OPEN' | 'CLOSED';
-  rating: number;
-  distanceKm: number;
-  fullAddress: string;
+  name?: string;
+  branchName?: string;
+  isOpen?: boolean;
+  openStatus?: 'OPEN' | 'CLOSED' | string;
+  rating?: string | number;
+  location?: string;
+  fullAddress?: string;
+  address?: string;
+  contactNumber?: string;
+  phone?: string;
+  description?: string;
+  openCloseTime?: string;
+  vegType?: string;
+  emoji?: string;
   imageUrl: string;
+  image?: string;
+  photoUrl?: string;
+  distanceKm?: string | number;
+  lastUpdated?: number;
+  updatedAt?: string;
 }
 
 export interface CategoryItem {
