@@ -31,7 +31,7 @@ export default function StoresPage() {
   const [storeName, setStoreName] = useState("");
   const [storeId, setStoreId] = useState("");
   const [storeEmoji, setStoreEmoji] = useState("🏪");
-  const [storeVegType, setStoreVegType] = useState("🌱 Pure Veg");
+  const [storeVegType, setStoreVegType] = useState("Pure Veg");
   const [storeOpenStatus, setStoreOpenStatus] = useState<boolean>(true);
   const [storeRating, setStoreRating] = useState("4.9 ★ (1.5k+)");
   const [storeHours, setStoreHours] = useState("07:00 AM - 11:00 PM (Open Now)");
@@ -58,6 +58,14 @@ export default function StoresPage() {
           const imageUrl = data.imageUrl || data.image || data.photoUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80";
           const logoUrl = data.logoUrl || data.logo || data.storeLogo || "";
 
+          // Normalize vegType to strictly "Pure Veg" or "Veg & Non-Veg"
+          let vegType = "Pure Veg";
+          if (data.vegType) {
+            if (String(data.vegType).includes("Non-Veg") || String(data.vegType).includes("Non Veg")) {
+              vegType = "Veg & Non-Veg";
+            }
+          }
+
           // Normalize isOpen
           let isOpen = true;
           if (data.isOpen !== undefined) {
@@ -80,7 +88,7 @@ export default function StoresPage() {
             phone: data.phone || data.contactNumber || "N/A",
             description: data.description || "Official Magozi local dark store fulfillment hub delivering in 8-10 minutes.",
             openCloseTime: data.openCloseTime || "07:00 AM - 11:00 PM",
-            vegType: data.vegType || "🌱 Pure Veg",
+            vegType,
             emoji: data.emoji || "🏪",
             imageUrl,
             image: imageUrl,
@@ -182,7 +190,7 @@ export default function StoresPage() {
       phone: storeContact.trim() || "+91 9288585939",
       description: storeDescription.trim() || "Official Magozi local dark store fulfillment hub delivering in 8-10 minutes.",
       openCloseTime: storeHours.trim() || "07:00 AM - 11:00 PM (Open Now)",
-      vegType: storeVegType || "🌱 Pure Veg",
+      vegType: storeVegType || "Pure Veg",
       emoji: storeEmoji || "🏪",
       imageUrl: finalImageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
       image: finalImageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
@@ -211,7 +219,7 @@ export default function StoresPage() {
     setStoreName("");
     setStoreId("");
     setStoreEmoji("🏪");
-    setStoreVegType("🌱 Pure Veg");
+    setStoreVegType("Pure Veg");
     setStoreOpenStatus(true);
     setStoreRating("4.9 ★ (1.5k+)");
     setStoreHours("07:00 AM - 11:00 PM (Open Now)");
@@ -230,7 +238,13 @@ export default function StoresPage() {
     setStoreId(store.id);
     setStoreName(store.name || store.branchName || "");
     setStoreEmoji(store.emoji || "🏪");
-    setStoreVegType(store.vegType || "🌱 Pure Veg");
+    let editVegType = "Pure Veg";
+    if (store.vegType) {
+      if (String(store.vegType).includes("Non-Veg") || String(store.vegType).includes("Non Veg")) {
+        editVegType = "Veg & Non-Veg";
+      }
+    }
+    setStoreVegType(editVegType);
     setStoreOpenStatus(store.isOpen ?? true);
     setStoreRating(String(store.rating || "4.8 ★"));
     setStoreHours(store.openCloseTime || "07:00 AM - 11:00 PM");
@@ -568,9 +582,8 @@ export default function StoresPage() {
                     onChange={(e) => setStoreVegType(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                   >
-                    <option value="🌱 Pure Veg">🌱 Pure Veg</option>
-                    <option value="🍖 Veg & Non-Veg">🍖 Veg & Non-Veg</option>
-                    <option value="🥐 Bakery & Desserts">🥐 Bakery & Desserts</option>
+                    <option value="Pure Veg">Pure Veg</option>
+                    <option value="Veg & Non-Veg">Veg & Non-Veg</option>
                   </select>
                 </div>
 
