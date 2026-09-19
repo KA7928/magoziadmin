@@ -152,6 +152,9 @@ export interface Superstore {
   imageUrl: string;
   image?: string;
   photoUrl?: string;
+  logoUrl?: string;
+  logo?: string;
+  storeLogo?: string;
   distanceKm?: string | number;
   lastUpdated?: number;
   updatedAt?: string;

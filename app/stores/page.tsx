@@ -40,6 +40,8 @@ export default function StoresPage() {
   const [storeDescription, setStoreDescription] = useState("");
   const [storeImage, setStoreImage] = useState("");
   const [storeFile, setStoreFile] = useState<File | null>(null);
+  const [storeLogoImage, setStoreLogoImage] = useState("");
+  const [storeLogoFile, setStoreLogoFile] = useState<File | null>(null);
   const [uploadingStore, setUploadingStore] = useState<boolean>(false);
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -54,7 +56,8 @@ export default function StoresPage() {
           const name = data.name || data.branchName || "Magozi Store Branch";
           const location = data.location || data.fullAddress || data.address || "Main Market, Gurgaon";
           const imageUrl = data.imageUrl || data.image || data.photoUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80";
-          
+          const logoUrl = data.logoUrl || data.logo || data.storeLogo || "";
+
           // Normalize isOpen
           let isOpen = true;
           if (data.isOpen !== undefined) {
@@ -82,6 +85,9 @@ export default function StoresPage() {
             imageUrl,
             image: imageUrl,
             photoUrl: imageUrl,
+            logoUrl,
+            logo: logoUrl,
+            storeLogo: logoUrl,
             lastUpdated: data.lastUpdated,
             updatedAt: data.updatedAt,
           } as Superstore;
@@ -101,6 +107,14 @@ export default function StoresPage() {
       const file = e.target.files[0];
       setStoreFile(file);
       setStoreImage(URL.createObjectURL(file));
+    }
+  };
+
+  const handleStoreLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setStoreLogoFile(file);
+      setStoreLogoImage(URL.createObjectURL(file));
     }
   };
 
@@ -129,19 +143,31 @@ export default function StoresPage() {
     setUploadingStore(true);
     const id = editingStoreId || storeId.trim().toLowerCase().replace(/\s+/g, "_") || `st_${Date.now()}`;
     let finalImageUrl = storeImage;
+    let finalLogoUrl = storeLogoImage;
 
     // 1. Upload photo to Firebase Storage if selected
     if (storeFile) {
       try {
-        const storageRef = ref(storage, `stores/${id}_${Date.now()}.jpg`);
+        const storageRef = ref(storage, `stores/photo_${id}_${Date.now()}.jpg`);
         await uploadBytes(storageRef, storeFile);
         finalImageUrl = await getDownloadURL(storageRef);
       } catch (uploadErr) {
-        console.warn("Firebase Storage store upload fallback:", uploadErr);
+        console.warn("Firebase Storage store photo upload fallback:", uploadErr);
       }
     }
 
-    // 2. Save document to Firestore `stores` collection with multi-field sync
+    // 2. Upload logo to Firebase Storage if selected
+    if (storeLogoFile) {
+      try {
+        const logoStorageRef = ref(storage, `stores/logo_${id}_${Date.now()}.jpg`);
+        await uploadBytes(logoStorageRef, storeLogoFile);
+        finalLogoUrl = await getDownloadURL(logoStorageRef);
+      } catch (logoErr) {
+        console.warn("Firebase Storage store logo upload fallback:", logoErr);
+      }
+    }
+
+    // 3. Save document to Firestore `stores` collection with multi-field sync
     const newStoreData = {
       id,
       name: storeName.trim(),
@@ -161,6 +187,9 @@ export default function StoresPage() {
       imageUrl: finalImageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
       image: finalImageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
       photoUrl: finalImageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+      logoUrl: finalLogoUrl || "",
+      logo: finalLogoUrl || "",
+      storeLogo: finalLogoUrl || "",
       lastUpdated: Date.now(),
       updatedAt: new Date().toISOString(),
       ...(editingStoreId ? {} : { createdAt: new Date().toISOString() })
@@ -191,6 +220,8 @@ export default function StoresPage() {
     setStoreDescription("");
     setStoreImage("");
     setStoreFile(null);
+    setStoreLogoImage("");
+    setStoreLogoFile(null);
     setEditingStoreId(null);
   };
 
@@ -208,6 +239,8 @@ export default function StoresPage() {
     setStoreDescription(store.description || "");
     setStoreImage(store.imageUrl);
     setStoreFile(null);
+    setStoreLogoImage(store.logoUrl || store.logo || store.storeLogo || "");
+    setStoreLogoFile(null);
     setModalOpen(true);
   };
 
@@ -220,6 +253,14 @@ export default function StoresPage() {
           await deleteObject(imageRef);
         } catch (storageErr) {
           console.warn("Failed to delete store image from Firebase Storage:", storageErr);
+        }
+      }
+      if (store.logoUrl && store.logoUrl.includes("firebasestorage.googleapis.com")) {
+        try {
+          const logoRef = ref(storage, store.logoUrl);
+          await deleteObject(logoRef);
+        } catch (storageErr) {
+          console.warn("Failed to delete store logo from Firebase Storage:", storageErr);
         }
       }
       await deleteDoc(doc(db, "stores", store.id));
@@ -320,9 +361,15 @@ export default function StoresPage() {
                       </div>
 
                       <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
-                        <span className="bg-slate-900/80 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-sm font-bold">
-                          {store.emoji || "🏪"}
-                        </span>
+                        {store.logoUrl ? (
+                          <div className="w-9 h-9 rounded-xl border-2 border-white shadow-md overflow-hidden bg-white flex-shrink-0 flex items-center justify-center p-0.5">
+                            <img src={store.logoUrl} alt={store.name} className="w-full h-full object-contain" />
+                          </div>
+                        ) : (
+                          <span className="bg-slate-900/80 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-sm font-bold">
+                            {store.emoji || "🏪"}
+                          </span>
+                        )}
                         {store.vegType && (
                           <span className="bg-slate-900/80 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-bold">
                             {store.vegType}
@@ -334,9 +381,16 @@ export default function StoresPage() {
                     {/* Store Info */}
                     <div className="p-5 space-y-3">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-extrabold text-slate-900 text-lg leading-snug">{store.name}</h3>
-                          <span className="text-[11px] font-mono font-bold text-slate-400">ID: {store.id}</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {store.logoUrl && (
+                            <div className="w-9 h-9 rounded-xl border border-slate-200 overflow-hidden bg-white flex-shrink-0 flex items-center justify-center p-0.5 shadow-sm">
+                              <img src={store.logoUrl} alt="Store Logo" className="w-full h-full object-contain" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <h3 className="font-extrabold text-slate-900 text-base leading-snug truncate">{store.name}</h3>
+                            <span className="text-[11px] font-mono font-bold text-slate-400">ID: {store.id}</span>
+                          </div>
                         </div>
                         <div className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200 flex-shrink-0">
                           <Star size={14} className="fill-amber-500 text-amber-500" />
@@ -603,29 +657,67 @@ export default function StoresPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Store Photo (Upload to Firebase Storage `"imageUrl"`)
-                </label>
-                <div className="space-y-3">
-                  {storeImage && (
-                    <div className="relative h-36 w-full rounded-2xl border border-slate-200 overflow-hidden bg-slate-100">
-                      <img src={storeImage} alt="Preview" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-
-                  <label className="flex items-center justify-center gap-2 w-full p-3 rounded-xl border-2 border-dashed border-slate-300 hover:border-magozi-800 cursor-pointer bg-slate-50 hover:bg-magozi-50/50 transition">
-                    <Upload size={18} className="text-magozi-800" />
-                    <span className="text-xs font-bold text-slate-700">
-                      {storeFile ? storeFile.name : "Choose Store Photo File from Computer"}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleStoreFileChange}
-                      className="hidden"
-                    />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                {/* Store Cover Photo */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Store Cover Photo (`imageUrl`)
                   </label>
+                  <div className="space-y-2">
+                    {storeImage ? (
+                      <div className="relative h-28 w-full rounded-2xl border border-slate-200 overflow-hidden bg-slate-100">
+                        <img src={storeImage} alt="Cover Preview" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="h-28 w-full rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400 text-xs font-semibold">
+                        No Cover Selected
+                      </div>
+                    )}
+
+                    <label className="flex items-center justify-center gap-1.5 w-full p-2.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-magozi-800 cursor-pointer bg-slate-50 hover:bg-magozi-50/50 transition">
+                      <Upload size={15} className="text-magozi-800" />
+                      <span className="text-[11px] font-bold text-slate-700 truncate">
+                        {storeFile ? storeFile.name : "Upload Cover Photo"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleStoreFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Store Logo */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Store Logo (`logoUrl`)
+                  </label>
+                  <div className="space-y-2">
+                    {storeLogoImage ? (
+                      <div className="relative h-28 w-full rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center p-2">
+                        <img src={storeLogoImage} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
+                      </div>
+                    ) : (
+                      <div className="h-28 w-full rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400 text-xs font-semibold">
+                        No Logo Selected
+                      </div>
+                    )}
+
+                    <label className="flex items-center justify-center gap-1.5 w-full p-2.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-magozi-800 cursor-pointer bg-slate-50 hover:bg-magozi-50/50 transition">
+                      <Upload size={15} className="text-magozi-800" />
+                      <span className="text-[11px] font-bold text-slate-700 truncate">
+                        {storeLogoFile ? storeLogoFile.name : "Upload Store Logo"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleStoreLogoFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 
