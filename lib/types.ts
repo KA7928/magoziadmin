@@ -150,6 +150,9 @@ export interface Superstore {
   branchName?: string;
   isOpen?: boolean;
   openStatus?: 'OPEN' | 'CLOSED' | string;
+  openTime?: string;
+  closeTime?: string;
+  autoTimingEnabled?: boolean;
   rating?: string | number;
   location?: string;
   fullAddress?: string;

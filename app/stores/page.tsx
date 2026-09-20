@@ -6,6 +6,13 @@ import Header from "@/components/Header";
 import { Superstore } from "@/lib/types";
 import { db, storage, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, ref, uploadBytes, getDownloadURL, deleteObject } from "@/lib/firebase";
 import { 
+  isCurrentTimeWithinOperatingHours, 
+  convertTo24HourInput, 
+  convert24To12Hour, 
+  extractTimeTokens, 
+  formatMinutesTo12Hour 
+} from "@/lib/time-utils";
+import { 
   Store, 
   Trash2, 
   Edit3, 
@@ -20,7 +27,9 @@ import {
   CheckCircle2,
   XCircle,
   Search,
-  Sparkles
+  Sparkles,
+  Zap,
+  Lock
 } from "lucide-react";
 
 export default function StoresPage() {
@@ -33,8 +42,10 @@ export default function StoresPage() {
   const [storeEmoji, setStoreEmoji] = useState("🏪");
   const [storeVegType, setStoreVegType] = useState("Pure Veg");
   const [storeOpenStatus, setStoreOpenStatus] = useState<boolean>(true);
+  const [storeOpenTime, setStoreOpenTime] = useState<string>("07:00 AM");
+  const [storeCloseTime, setStoreCloseTime] = useState<string>("11:00 PM");
+  const [storeAutoTimingEnabled, setStoreAutoTimingEnabled] = useState<boolean>(true);
   const [storeRating, setStoreRating] = useState("4.9 ★ (1.5k+)");
-  const [storeHours, setStoreHours] = useState("07:00 AM - 11:00 PM (Open Now)");
   const [storeLocation, setStoreLocation] = useState("");
   const [storeContact, setStoreContact] = useState("");
   const [storeDescription, setStoreDescription] = useState("");
@@ -46,7 +57,7 @@ export default function StoresPage() {
   const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Firestore Realtime Sync for `stores` collection — 100% Real Data
+  // Firestore Realtime Sync for `stores` collection
   useEffect(() => {
     try {
       const unsubStores = onSnapshot(collection(db, "stores"), (snap) => {
@@ -58,7 +69,7 @@ export default function StoresPage() {
           const imageUrl = data.imageUrl || data.image || data.photoUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80";
           const logoUrl = data.logoUrl || data.logo || data.storeLogo || "";
 
-          // Normalize vegType to strictly "Pure Veg" or "Veg & Non-Veg"
+          // Normalize vegType
           let vegType = "Pure Veg";
           if (data.vegType) {
             if (String(data.vegType).includes("Non-Veg") || String(data.vegType).includes("Non Veg")) {
@@ -74,12 +85,23 @@ export default function StoresPage() {
             isOpen = String(data.openStatus).toUpperCase() === "OPEN";
           }
 
+          // Extract / Normalize openTime, closeTime, and autoTimingEnabled
+          const rawHoursStr = data.openCloseTime || "07:00 AM - 11:00 PM";
+          const tokens = extractTimeTokens(rawHoursStr);
+          const openTime = data.openTime || (tokens.length > 0 ? formatMinutesTo12Hour(tokens[0].totalMinutes) : "07:00 AM");
+          const closeTime = data.closeTime || (tokens.length > 1 ? formatMinutesTo12Hour(tokens[tokens.length - 1].totalMinutes) : "11:00 PM");
+          const autoTimingEnabled = data.autoTimingEnabled !== undefined ? Boolean(data.autoTimingEnabled) : true;
+
           return {
             id,
             name,
             branchName: name,
             isOpen,
             openStatus: isOpen ? "OPEN" : "CLOSED",
+            openTime,
+            closeTime,
+            autoTimingEnabled,
+            openCloseTime: `${openTime} - ${closeTime}`,
             rating: data.rating || "4.8 ★",
             location,
             fullAddress: location,
@@ -87,7 +109,6 @@ export default function StoresPage() {
             contactNumber: data.contactNumber || data.phone || "N/A",
             phone: data.phone || data.contactNumber || "N/A",
             description: data.description || "Official Magozi local dark store fulfillment hub delivering in 8-10 minutes.",
-            openCloseTime: data.openCloseTime || "07:00 AM - 11:00 PM",
             vegType,
             emoji: data.emoji || "🏪",
             imageUrl,
@@ -110,6 +131,39 @@ export default function StoresPage() {
     }
   }, []);
 
+  // Automatic Realtime Scheduler Loop for Stores (Runs every 10 seconds)
+  useEffect(() => {
+    if (stores.length === 0) return;
+
+    const checkStoreAutoTiming = async () => {
+      const now = new Date();
+      for (const store of stores) {
+        if (store.autoTimingEnabled !== false) {
+          const oTime = store.openTime || "07:00 AM";
+          const cTime = store.closeTime || "11:00 PM";
+          const expectedIsOpen = isCurrentTimeWithinOperatingHours(oTime, cTime, now);
+
+          if (store.isOpen !== expectedIsOpen) {
+            try {
+              await updateDoc(doc(db, "stores", store.id), {
+                isOpen: expectedIsOpen,
+                openStatus: expectedIsOpen ? "OPEN" : "CLOSED",
+                lastUpdated: Date.now(),
+                updatedAt: now.toISOString(),
+              });
+            } catch (err) {
+              console.error(`Auto-scheduler error updating store ${store.id}:`, err);
+            }
+          }
+        }
+      }
+    };
+
+    checkStoreAutoTiming();
+    const interval = setInterval(checkStoreAutoTiming, 10000);
+    return () => clearInterval(interval);
+  }, [stores]);
+
   const handleStoreFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -126,6 +180,7 @@ export default function StoresPage() {
     }
   };
 
+  // Manual Store Open / Closed Status Toggle
   const handleToggleStoreOpenStatus = async (store: Superstore) => {
     const newOpenState = !store.isOpen;
     const newStatusStr = newOpenState ? "OPEN" : "CLOSED";
@@ -138,6 +193,31 @@ export default function StoresPage() {
       });
     } catch (err) {
       console.error("Error toggling store open status in Firestore:", err);
+    }
+  };
+
+  // Auto Scheduler Quick Toggle on Store Card
+  const handleToggleStoreAutoTiming = async (store: Superstore) => {
+    const newAutoTiming = !(store.autoTimingEnabled ?? true);
+    try {
+      const payload: any = {
+        autoTimingEnabled: newAutoTiming,
+        lastUpdated: Date.now(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // If enabling auto timing, immediately evaluate current operating hours
+      if (newAutoTiming) {
+        const oTime = store.openTime || "07:00 AM";
+        const cTime = store.closeTime || "11:00 PM";
+        const shouldBeOpen = isCurrentTimeWithinOperatingHours(oTime, cTime);
+        payload.isOpen = shouldBeOpen;
+        payload.openStatus = shouldBeOpen ? "OPEN" : "CLOSED";
+      }
+
+      await updateDoc(doc(db, "stores", store.id), payload);
+    } catch (err) {
+      console.error("Error toggling store auto timing in Firestore:", err);
     }
   };
 
@@ -175,13 +255,26 @@ export default function StoresPage() {
       }
     }
 
-    // 3. Save document to Firestore `stores` collection with multi-field sync
+    const cleanOpenTime = storeOpenTime.trim() || "07:00 AM";
+    const cleanCloseTime = storeCloseTime.trim() || "11:00 PM";
+    const cleanOpenCloseTime = `${cleanOpenTime} - ${cleanCloseTime}`;
+
+    let calculatedIsOpen = storeOpenStatus;
+    if (storeAutoTimingEnabled) {
+      calculatedIsOpen = isCurrentTimeWithinOperatingHours(cleanOpenTime, cleanCloseTime);
+    }
+
+    // 3. Save document to Firestore `stores` collection
     const newStoreData = {
       id,
       name: storeName.trim(),
       branchName: storeName.trim(),
-      isOpen: Boolean(storeOpenStatus),
-      openStatus: storeOpenStatus ? "OPEN" : "CLOSED",
+      isOpen: Boolean(calculatedIsOpen),
+      openStatus: calculatedIsOpen ? "OPEN" : "CLOSED",
+      openTime: cleanOpenTime,
+      closeTime: cleanCloseTime,
+      autoTimingEnabled: Boolean(storeAutoTimingEnabled),
+      openCloseTime: cleanOpenCloseTime,
       rating: storeRating.trim() || "4.8 ★ (1.2k+)",
       location: storeLocation.trim() || "Main Market, Gurgaon",
       fullAddress: storeLocation.trim() || "Main Market, Gurgaon",
@@ -189,7 +282,6 @@ export default function StoresPage() {
       contactNumber: storeContact.trim() || "+91 9288585939",
       phone: storeContact.trim() || "+91 9288585939",
       description: storeDescription.trim() || "Official Magozi local dark store fulfillment hub delivering in 8-10 minutes.",
-      openCloseTime: storeHours.trim() || "07:00 AM - 11:00 PM (Open Now)",
       vegType: storeVegType || "Pure Veg",
       emoji: storeEmoji || "🏪",
       imageUrl: finalImageUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
@@ -221,8 +313,10 @@ export default function StoresPage() {
     setStoreEmoji("🏪");
     setStoreVegType("Pure Veg");
     setStoreOpenStatus(true);
+    setStoreOpenTime("07:00 AM");
+    setStoreCloseTime("11:00 PM");
+    setStoreAutoTimingEnabled(true);
     setStoreRating("4.9 ★ (1.5k+)");
-    setStoreHours("07:00 AM - 11:00 PM (Open Now)");
     setStoreLocation("");
     setStoreContact("");
     setStoreDescription("");
@@ -246,8 +340,10 @@ export default function StoresPage() {
     }
     setStoreVegType(editVegType);
     setStoreOpenStatus(store.isOpen ?? true);
+    setStoreOpenTime(store.openTime || "07:00 AM");
+    setStoreCloseTime(store.closeTime || "11:00 PM");
+    setStoreAutoTimingEnabled(store.autoTimingEnabled !== undefined ? Boolean(store.autoTimingEnabled) : true);
     setStoreRating(String(store.rating || "4.8 ★"));
-    setStoreHours(store.openCloseTime || "07:00 AM - 11:00 PM");
     setStoreLocation(store.location || store.fullAddress || "");
     setStoreContact(store.contactNumber || store.phone || "");
     setStoreDescription(store.description || "");
@@ -297,7 +393,7 @@ export default function StoresPage() {
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
         <Header
           title="Superstores & Dark Store Hubs"
-          subtitle="Realtime Cloud Firestore collection `stores` — Photo Upload & Live Status Sync"
+          subtitle="Realtime Store Open/Close Operating Hours & Auto-Scheduler Sync in Firestore `stores`"
         />
 
         <div className="p-3 md:p-6 space-y-6">
@@ -350,6 +446,35 @@ export default function StoresPage() {
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                       />
                       <div className="absolute top-3 right-3 flex items-center gap-2">
+                        {/* Auto Scheduler Indicator Pill */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStoreAutoTiming(store)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase shadow-md transition flex items-center gap-1 cursor-pointer ${
+                            store.autoTimingEnabled !== false
+                              ? "bg-amber-500 hover:bg-amber-600 text-white"
+                              : "bg-slate-700 hover:bg-slate-800 text-slate-100"
+                          }`}
+                          title={
+                            store.autoTimingEnabled !== false
+                              ? "Auto Scheduler is ON — Click to switch to Manual"
+                              : "Auto Scheduler is OFF (Manual Mode) — Click to turn ON Auto Scheduler"
+                          }
+                        >
+                          {store.autoTimingEnabled !== false ? (
+                            <>
+                              <Zap size={11} className="fill-amber-200 text-amber-200 animate-pulse" />
+                              <span>AUTO ON</span>
+                            </>
+                          ) : (
+                            <>
+                              <Lock size={11} />
+                              <span>MANUAL</span>
+                            </>
+                          )}
+                        </button>
+
+                        {/* Open / Closed Status Pill */}
                         <button
                           type="button"
                           onClick={() => handleToggleStoreOpenStatus(store)}
@@ -358,7 +483,7 @@ export default function StoresPage() {
                               ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                               : "bg-rose-600 hover:bg-rose-700 text-white"
                           }`}
-                          title="Click to toggle Store Open / Closed state in Firestore"
+                          title="Click to toggle Store Open / Closed status in Firestore"
                         >
                           {store.isOpen ? (
                             <>
@@ -368,7 +493,7 @@ export default function StoresPage() {
                           ) : (
                             <>
                               <XCircle size={12} />
-                              <span>STORE CLOSED</span>
+                              <span>CLOSED</span>
                             </>
                           )}
                         </button>
@@ -416,7 +541,7 @@ export default function StoresPage() {
                         {store.description}
                       </p>
 
-                      <div className="space-y-1.5 pt-1 text-xs text-slate-600 font-medium">
+                      <div className="space-y-2 pt-1 text-xs text-slate-600 font-medium">
                         <div className="flex items-start gap-2">
                           <MapPin size={15} className="text-magozi-800 flex-shrink-0 mt-0.5" />
                           <a
@@ -431,15 +556,29 @@ export default function StoresPage() {
                           </a>
                         </div>
 
-                        {store.openCloseTime && (
-                          <div className="flex items-center gap-2">
-                            <Clock size={15} className="text-slate-400 flex-shrink-0" />
-                            <span className="text-[11px] text-slate-500 font-semibold">{store.openCloseTime}</span>
+                        {/* Store Open & Close Timings */}
+                        <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-200/80 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-slate-700">
+                              <Clock size={14} className="text-magozi-800" />
+                              <span>Store Operating Hours</span>
+                            </div>
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
+                              store.autoTimingEnabled !== false
+                                ? "bg-amber-100 text-amber-900 border border-amber-300"
+                                : "bg-slate-200 text-slate-700 border border-slate-300"
+                            }`}>
+                              {store.autoTimingEnabled !== false ? "⚡ Auto Scheduler" : "🔒 Manual Mode"}
+                            </span>
                           </div>
-                        )}
+                          <div className="text-[11px] font-mono font-bold text-slate-800 flex items-center justify-between pt-0.5">
+                            <span>Open: <strong className="text-emerald-700">{store.openTime || "07:00 AM"}</strong></span>
+                            <span>Close: <strong className="text-rose-700">{store.closeTime || "11:00 PM"}</strong></span>
+                          </div>
+                        </div>
 
                         {store.contactNumber && store.contactNumber !== "N/A" && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 pt-0.5">
                             <Phone size={15} className="text-slate-400 flex-shrink-0" />
                             <a href={`tel:${store.contactNumber}`} className="text-[11px] text-slate-500 font-mono font-bold hover:text-slate-900">
                               {store.contactNumber}
@@ -452,7 +591,8 @@ export default function StoresPage() {
 
                   {/* Card Bottom Action Controls */}
                   <div className="p-5 pt-0 space-y-2">
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                      {/* Manual Open/Closed Toggle Button */}
                       <button
                         type="button"
                         onClick={() => handleToggleStoreOpenStatus(store)}
@@ -475,11 +615,26 @@ export default function StoresPage() {
                         )}
                       </button>
 
+                      {/* Auto Scheduler Toggle Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStoreAutoTiming(store)}
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border ${
+                          store.autoTimingEnabled !== false
+                            ? "bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-300"
+                            : "bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300"
+                        }`}
+                        title="Toggle Auto Timing for this store"
+                      >
+                        <Sparkles size={13} className="text-amber-600" />
+                        <span>Auto: {store.autoTimingEnabled !== false ? "ON" : "OFF"}</span>
+                      </button>
+
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleEditStore(store)}
                           className="p-2 rounded-xl text-slate-500 hover:text-magozi-800 hover:bg-magozi-50 border border-slate-200 transition"
-                          title="Edit Store Branch Details & Photo"
+                          title="Edit Store Branch Details & Timing"
                         >
                           <Edit3 size={16} />
                         </button>
@@ -572,6 +727,91 @@ export default function StoresPage() {
                 </div>
               </div>
 
+              {/* Store Open/Close Timing & Auto-Scheduler Section */}
+              <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 space-y-3 shadow-inner">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Clock size={16} className="text-magozi-800" />
+                    <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">
+                      Store Timing & Auto Scheduler
+                    </span>
+                  </div>
+                  
+                  {/* Auto Scheduler Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setStoreAutoTimingEnabled(!storeAutoTimingEnabled)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm border ${
+                      storeAutoTimingEnabled
+                        ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-600"
+                        : "bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300"
+                    }`}
+                  >
+                    <Sparkles size={14} />
+                    <span>{storeAutoTimingEnabled ? "⚡ Auto Scheduler ON" : "🔒 Auto Scheduler OFF"}</span>
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                  {storeAutoTimingEnabled
+                    ? "When Auto Scheduler is ON, this store will automatically open and close according to set Operating Hours."
+                    : "When Auto Scheduler is OFF, you can manually open or close this store at any time without automatic overrides."}
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Store Open Time
+                    </label>
+                    <input
+                      type="time"
+                      value={convertTo24HourInput(storeOpenTime)}
+                      onChange={(e) => setStoreOpenTime(convert24To12Hour(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-bold bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                    />
+                    <span className="text-[10px] font-bold text-emerald-700 mt-1 block">
+                      Formatted: {storeOpenTime}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      Store Close Time
+                    </label>
+                    <input
+                      type="time"
+                      value={convertTo24HourInput(storeCloseTime)}
+                      onChange={(e) => setStoreCloseTime(convert24To12Hour(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-bold bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                    />
+                    <span className="text-[10px] font-bold text-rose-700 mt-1 block">
+                      Formatted: {storeCloseTime}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Manual Open Status Switch */}
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700">
+                      Store Open Status
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {storeAutoTimingEnabled ? "(Controlled automatically by timings)" : "(Manual override active)"}
+                    </span>
+                  </div>
+                  <select
+                    value={storeOpenStatus ? "open" : "closed"}
+                    onChange={(e) => setStoreOpenStatus(e.target.value === "open")}
+                    disabled={storeAutoTimingEnabled}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer disabled:opacity-60 disabled:bg-slate-100"
+                  >
+                    <option value="open">OPEN NOW</option>
+                    <option value="closed">STORE CLOSED</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -589,22 +829,6 @@ export default function StoresPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Store Open Status
-                  </label>
-                  <select
-                    value={storeOpenStatus ? "open" : "closed"}
-                    onChange={(e) => setStoreOpenStatus(e.target.value === "open")}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
-                  >
-                    <option value="open">OPEN NOW (Active)</option>
-                    <option value="closed">CLOSED (Inactive)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Rating Label
                   </label>
                   <input
@@ -615,19 +839,19 @@ export default function StoresPage() {
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none"
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Contact Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={storeContact}
-                    onChange={(e) => setStoreContact(e.target.value)}
-                    placeholder="+91 9288585939"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Contact Phone Number
+                </label>
+                <input
+                  type="text"
+                  value={storeContact}
+                  onChange={(e) => setStoreContact(e.target.value)}
+                  placeholder="+91 9288585939"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
+                />
               </div>
 
               <div>
@@ -640,19 +864,6 @@ export default function StoresPage() {
                   value={storeLocation}
                   onChange={(e) => setStoreLocation(e.target.value)}
                   placeholder="Sector 14, MG Road, Cyber City, Gurgaon, 122001"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Operating Hours Timing
-                </label>
-                <input
-                  type="text"
-                  value={storeHours}
-                  onChange={(e) => setStoreHours(e.target.value)}
-                  placeholder="06:00 AM - 11:30 PM (Open Now)"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
@@ -750,7 +961,7 @@ export default function StoresPage() {
                   {uploadingStore ? (
                     <>
                       <RefreshCw size={14} className="animate-spin" />
-                      <span>Uploading Photo & Saving...</span>
+                      <span>Saving Store...</span>
                     </>
                   ) : (
                     <span>{editingStoreId ? "Update Store Branch" : "Save Store Branch"}</span>
