@@ -180,6 +180,7 @@ export interface CategoryItem {
   imageUrl: string;
   priority?: number;
   isActive?: boolean;
+  subCategories?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
