@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import { AppConfigSettings, SupportConfigSettings } from "@/lib/types";
-import { INITIAL_APP_CONFIG, INITIAL_SUPPORT_CONFIG } from "@/lib/mock-data";
+import { AppConfigSettings, SupportConfigSettings, AppOpenCloseSettings } from "@/lib/types";
+import { INITIAL_APP_CONFIG, INITIAL_SUPPORT_CONFIG, INITIAL_APP_OPEN_CLOSE } from "@/lib/mock-data";
 import { db, doc, onSnapshot, setDoc } from "@/lib/firebase";
 import { 
   Save, 
@@ -22,13 +22,16 @@ import {
   MessageSquare,
   Send,
   Clock,
-  Timer
+  Timer,
+  Store,
+  XCircle
 } from "lucide-react";
 
 export default function AppConfigPage() {
   const [config, setConfig] = useState<AppConfigSettings>(INITIAL_APP_CONFIG);
   const [supportConfig, setSupportConfig] = useState<SupportConfigSettings>(INITIAL_SUPPORT_CONFIG);
-  const [activeTab, setActiveTab] = useState<"charges" | "canceltimer" | "terms" | "privacy" | "refund" | "shipping" | "about" | "support">("charges");
+  const [appOpenClose, setAppOpenClose] = useState<AppOpenCloseSettings>(INITIAL_APP_OPEN_CLOSE);
+  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "terms" | "privacy" | "refund" | "shipping" | "about" | "support">("charges");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -59,6 +62,41 @@ export default function AppConfigPage() {
       return () => unsub();
     } catch (e) {
       console.warn("Error subscribing to app_config in Firestore:", e);
+    }
+  }, []);
+
+  // Realtime Cloud Firestore Listener for app_config/app_open_close
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(doc(db, "app_config", "app_open_close"), (snap) => {
+        if (snap.exists()) {
+          const d = snap.data();
+          let isOpen = true;
+          if (d.isStoreOpen !== undefined) {
+            isOpen = Boolean(d.isStoreOpen);
+          } else if (d.is_store_open !== undefined) {
+            isOpen = Boolean(d.is_store_open);
+          } else if (d.isOpen !== undefined) {
+            isOpen = Boolean(d.isOpen);
+          } else if (d.status || d.openStatus) {
+            isOpen = String(d.status || d.openStatus).toUpperCase() === "OPEN";
+          }
+
+          setAppOpenClose({
+            isStoreOpen: isOpen,
+            openTime: d.openTime || INITIAL_APP_OPEN_CLOSE.openTime,
+            closeTime: d.closeTime || INITIAL_APP_OPEN_CLOSE.closeTime,
+            openingHours: d.openingHours || d.openCloseTiming || INITIAL_APP_OPEN_CLOSE.openingHours,
+            closedMessage: d.closedMessage || INITIAL_APP_OPEN_CLOSE.closedMessage,
+          });
+        }
+      }, (err) => {
+        console.warn("Firestore app_config/app_open_close listener warning:", err);
+      });
+
+      return () => unsub();
+    } catch (e) {
+      console.warn("Error subscribing to app_config/app_open_close in Firestore:", e);
     }
   }, []);
 
@@ -129,13 +167,30 @@ export default function AppConfigPage() {
       updatedAt: new Date().toISOString()
     };
 
+    // App Open/Close payload for `app_config/app_open_close`
+    const openClosePayload = {
+      isStoreOpen: Boolean(appOpenClose.isStoreOpen),
+      is_store_open: Boolean(appOpenClose.isStoreOpen),
+      isOpen: Boolean(appOpenClose.isStoreOpen),
+      status: appOpenClose.isStoreOpen ? "OPEN" : "CLOSED",
+      openStatus: appOpenClose.isStoreOpen ? "OPEN" : "CLOSED",
+      openTime: appOpenClose.openTime.trim() || "06:00 AM",
+      closeTime: appOpenClose.closeTime.trim() || "11:30 PM",
+      openingHours: appOpenClose.openingHours.trim() || `${appOpenClose.openTime.trim()} - ${appOpenClose.closeTime.trim()}`,
+      openCloseTiming: appOpenClose.openingHours.trim() || `${appOpenClose.openTime.trim()} - ${appOpenClose.closeTime.trim()}`,
+      closedMessage: appOpenClose.closedMessage.trim() || "We are currently closed for orders.",
+      updatedAt: new Date().toISOString(),
+      lastUpdated: Date.now(),
+    };
+
     try {
       await setDoc(doc(db, "app_config", "global_settings"), globalPayload, { merge: true });
       await setDoc(doc(db, "app_config", "orders"), ordersConfigPayload, { merge: true });
       await setDoc(doc(db, "app_config", "supportpage"), supportPayload, { merge: true });
+      await setDoc(doc(db, "app_config", "app_open_close"), openClosePayload, { merge: true });
 
       setSaving(false);
-      setSaveMessage(`Successfully updated cancelOrderTimer (${cancelTimerValInSeconds} seconds) in Cloud Firestore (\`app_config\` collection)!`);
+      setSaveMessage(`Successfully saved all app configuration & App Open/Close settings (isStoreOpen = ${appOpenClose.isStoreOpen}) to Cloud Firestore!`);
       setTimeout(() => setSaveMessage(null), 5000);
     } catch (err: any) {
       console.error("Error saving app config to Firestore:", err);
@@ -145,6 +200,39 @@ export default function AppConfigPage() {
       } else {
         setErrorMessage(err.message || "Failed to save configuration to Cloud Firestore.");
       }
+    }
+  };
+
+  const handleToggleAppOpenStatus = async (newOpenState: boolean) => {
+    setSaving(true);
+    setSaveMessage(null);
+    setErrorMessage(null);
+    try {
+      setAppOpenClose((prev) => ({ ...prev, isStoreOpen: newOpenState }));
+
+      const payload = {
+        isStoreOpen: Boolean(newOpenState),
+        is_store_open: Boolean(newOpenState),
+        isOpen: Boolean(newOpenState),
+        status: newOpenState ? "OPEN" : "CLOSED",
+        openStatus: newOpenState ? "OPEN" : "CLOSED",
+        openTime: appOpenClose.openTime.trim() || "06:00 AM",
+        closeTime: appOpenClose.closeTime.trim() || "11:30 PM",
+        openingHours: appOpenClose.openingHours.trim() || `${appOpenClose.openTime.trim()} - ${appOpenClose.closeTime.trim()}`,
+        openCloseTiming: appOpenClose.openingHours.trim() || `${appOpenClose.openTime.trim()} - ${appOpenClose.closeTime.trim()}`,
+        closedMessage: appOpenClose.closedMessage.trim() || "We are currently closed for orders.",
+        updatedAt: new Date().toISOString(),
+        lastUpdated: Date.now(),
+      };
+
+      await setDoc(doc(db, "app_config", "app_open_close"), payload, { merge: true });
+      setSaveMessage(`App status set to ${newOpenState ? "OPEN (isStoreOpen = true)" : "CLOSED (isStoreOpen = false)"} in Cloud Firestore (\`app_config/app_open_close\`)!`);
+      setTimeout(() => setSaveMessage(null), 4000);
+    } catch (err: any) {
+      console.error("Error toggling app open status:", err);
+      setErrorMessage(err.message || "Failed to update app open status in Cloud Firestore.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -189,6 +277,18 @@ export default function AppConfigPage() {
             >
               <IndianRupee size={15} />
               <span>In-App Delivery & Cart Charges</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("openclose")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                activeTab === "openclose"
+                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <Store size={15} />
+              <span>App Open / Close Status & Timing</span>
             </button>
 
             <button
@@ -277,6 +377,151 @@ export default function AppConfigPage() {
           </div>
 
           <form onSubmit={handleSaveConfig} className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-6">
+            {/* App Open / Close Status & Timing Section */}
+            {activeTab === "openclose" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
+                    <Store className="text-magozi-800" size={22} />
+                    <span>App Open / Close Status & Operating Hours</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Syncs live app availability with Cloud Firestore collection <code className="font-mono font-bold text-slate-700">app_config</code> — document <code className="font-mono font-bold text-slate-700">app_open_close</code>.
+                  </p>
+                </div>
+
+                {/* Live Status Card & 1-Click Toggle */}
+                <div className={`p-6 rounded-3xl border-2 transition flex flex-col md:flex-row items-center justify-between gap-4 ${
+                  appOpenClose.isStoreOpen
+                    ? "bg-emerald-50/80 border-emerald-300"
+                    : "bg-rose-50/80 border-rose-300"
+                }`}>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg flex-shrink-0 ${
+                      appOpenClose.isStoreOpen ? "bg-emerald-600 shadow-emerald-600/30" : "bg-rose-600 shadow-rose-600/30"
+                    }`}>
+                      {appOpenClose.isStoreOpen ? <CheckCircle2 size={30} /> : <XCircle size={30} />}
+                    </div>
+                    <div>
+                      <div className="flex items-center flex-wrap gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase shadow-sm ${
+                          appOpenClose.isStoreOpen ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"
+                        }`}>
+                          {appOpenClose.isStoreOpen ? "APP IS OPEN NOW" : "APP IS CLOSED"}
+                        </span>
+                        <span className="text-xs font-mono font-extrabold text-slate-700">
+                          (isStoreOpen = {String(appOpenClose.isStoreOpen)})
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 font-medium mt-1">
+                        {appOpenClose.isStoreOpen
+                          ? `App is OPEN and accepting orders (${appOpenClose.openingHours}).`
+                          : `App is CLOSED. Checkout is disabled for users.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleAppOpenStatus(!appOpenClose.isStoreOpen)}
+                    className={`px-5 py-3 rounded-2xl text-xs font-extrabold shadow-md transition flex items-center justify-center gap-2 cursor-pointer ${
+                      appOpenClose.isStoreOpen
+                        ? "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20"
+                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                    }`}
+                  >
+                    {appOpenClose.isStoreOpen ? (
+                      <>
+                        <XCircle size={16} />
+                        <span>Close App (isStoreOpen = false)</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>Open App (isStoreOpen = true)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Operating Hours & Notice Form Inputs */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                      App Opening Time (`openTime`)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={appOpenClose.openTime}
+                      onChange={(e) => {
+                        const newOpen = e.target.value;
+                        setAppOpenClose({
+                          ...appOpenClose,
+                          openTime: newOpen,
+                          openingHours: `${newOpen} - ${appOpenClose.closeTime}`,
+                        });
+                      }}
+                      placeholder="e.g. 06:00 AM"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none"
+                    />
+                    <p className="text-[11px] text-slate-500">Opening time displayed on mobile app.</p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                      App Closing Time (`closeTime`)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={appOpenClose.closeTime}
+                      onChange={(e) => {
+                        const newClose = e.target.value;
+                        setAppOpenClose({
+                          ...appOpenClose,
+                          closeTime: newClose,
+                          openingHours: `${appOpenClose.openTime} - ${newClose}`,
+                        });
+                      }}
+                      placeholder="e.g. 11:30 PM"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none"
+                    />
+                    <p className="text-[11px] text-slate-500">Closing time after which app stops taking orders.</p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                      Full Operating Hours Display Text (`openingHours` / `openCloseTiming`)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={appOpenClose.openingHours}
+                      onChange={(e) => setAppOpenClose({ ...appOpenClose, openingHours: e.target.value })}
+                      placeholder="e.g. 06:00 AM - 11:30 PM (Daily)"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none"
+                    />
+                    <p className="text-[11px] text-slate-500">Combined store operating hours string synced to Android App.</p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                      App Closed Notice Message (`closedMessage`)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={appOpenClose.closedMessage}
+                      onChange={(e) => setAppOpenClose({ ...appOpenClose, closedMessage: e.target.value })}
+                      placeholder="e.g. We are currently closed for online orders. Our operating hours are 06:00 AM to 11:30 PM."
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-semibold text-slate-900 text-xs focus:ring-2 focus:ring-magozi-800 outline-none resize-none"
+                    />
+                    <p className="text-[11px] text-slate-500">Notice displayed to users in mobile app when app status is CLOSED.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Delivery Charges Section */}
             {activeTab === "charges" && (
               <div className="space-y-6">

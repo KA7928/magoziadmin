@@ -123,6 +123,15 @@ export interface SupportConfigSettings {
   telegram: string;
 }
 
+export interface AppOpenCloseSettings {
+  isStoreOpen: boolean;
+  openTime: string;
+  closeTime: string;
+  openingHours: string;
+  closedMessage: string;
+  updatedAt?: string;
+}
+
 export interface Banner {
   id: string;
   title?: string;

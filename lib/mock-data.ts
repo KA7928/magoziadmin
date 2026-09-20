@@ -216,6 +216,14 @@ export const INITIAL_SUPPORT_CONFIG = {
   telegram: "https://t.me/magozisupport"
 };
 
+export const INITIAL_APP_OPEN_CLOSE = {
+  isStoreOpen: true,
+  openTime: "06:00 AM",
+  closeTime: "11:30 PM",
+  openingHours: "06:00 AM - 11:30 PM",
+  closedMessage: "We are currently closed for orders. Operating hours are 06:00 AM - 11:30 PM.",
+};
+
 export const INITIAL_BANNERS: Banner[] = [
   {
     id: "ban-001",
