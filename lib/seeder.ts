@@ -1,4 +1,4 @@
-import { db, doc, setDoc } from "./firebase";
+import { db, doc, setDoc, getDoc } from "./firebase";
 import { 
   INITIAL_PRODUCTS, 
   INITIAL_ORDERS, 
@@ -70,21 +70,21 @@ export async function seedFirestoreDatabase(): Promise<{ success: boolean; messa
       updatedAt: new Date().toISOString()
     }, { merge: true });
 
-    // 7b. Seed App Open/Close Settings (app_config/app_open_close)
-    await setDoc(doc(db, "app_config", "app_open_close"), {
-      isStoreOpen: true,
-      is_store_open: true,
-      isOpen: true,
-      status: "OPEN",
-      openStatus: "OPEN",
-      openTime: "06:00 AM",
-      closeTime: "11:30 PM",
-      openingHours: "06:00 AM - 11:30 PM",
-      openCloseTiming: "06:00 AM - 11:30 PM",
-      closedMessage: "We are currently closed for orders. Operating hours are 06:00 AM - 11:30 PM.",
-      updatedAt: new Date().toISOString(),
-      lastUpdated: Date.now()
-    }, { merge: true });
+    // 7b. Seed App Open/Close Settings (app_config/app_open_close) ONLY if document does not exist
+    const openCloseRef = doc(db, "app_config", "app_open_close");
+    const openCloseSnap = await getDoc(openCloseRef);
+    if (!openCloseSnap.exists()) {
+      await setDoc(openCloseRef, {
+        isStoreOpen: true,
+        openTime: "06:00 AM",
+        closeTime: "11:30 PM",
+        openingHours: "06:00 AM - 11:30 PM",
+        closedMessage: "We are currently closed for orders. Operating hours are 06:00 AM - 11:30 PM.",
+        autoTimingEnabled: true,
+        updatedAt: new Date().toISOString(),
+        lastUpdated: Date.now()
+      });
+    }
 
     // 8. Seed Banners
     for (const b of INITIAL_BANNERS) {

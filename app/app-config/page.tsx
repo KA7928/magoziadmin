@@ -5,7 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import { AppConfigSettings, SupportConfigSettings, AppOpenCloseSettings } from "@/lib/types";
 import { INITIAL_APP_CONFIG, INITIAL_SUPPORT_CONFIG, INITIAL_APP_OPEN_CLOSE } from "@/lib/mock-data";
-import { db, doc, onSnapshot, setDoc } from "@/lib/firebase";
+import { db, doc, onSnapshot, setDoc, collection, getDocs } from "@/lib/firebase";
 import { 
   isCurrentTimeWithinOperatingHours, 
   convertTo24HourInput, 
@@ -35,15 +35,161 @@ import {
   ToggleRight
 } from "lucide-react";
 
+const getInitialAppOpenClose = (): AppOpenCloseSettings => {
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("magozi_app_open_close");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.openTime && parsed.closeTime) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load app open close from localStorage", e);
+    }
+  }
+  return INITIAL_APP_OPEN_CLOSE;
+};
+
 export default function AppConfigPage() {
   const [config, setConfig] = useState<AppConfigSettings>(INITIAL_APP_CONFIG);
   const [supportConfig, setSupportConfig] = useState<SupportConfigSettings>(INITIAL_SUPPORT_CONFIG);
-  const [appOpenClose, setAppOpenClose] = useState<AppOpenCloseSettings>(INITIAL_APP_OPEN_CLOSE);
+  const [appOpenClose, setAppOpenClose] = useState<AppOpenCloseSettings>(getInitialAppOpenClose);
+  const [isFirestoreLoaded, setIsFirestoreLoaded] = useState(false);
+
+  // Local form input states to prevent input cursor jumping while typing
+  const [openTimeInput, setOpenTimeInput] = useState<string>(appOpenClose.openTime || "06:00 AM");
+  const [closeTimeInput, setCloseTimeInput] = useState<string>(appOpenClose.closeTime || "11:30 PM");
+  const [openingHoursInput, setOpeningHoursInput] = useState<string>(appOpenClose.openingHours || "06:00 AM - 11:30 PM");
+  const [closedMessageInput, setClosedMessageInput] = useState<string>(appOpenClose.closedMessage || "We are currently closed for orders.");
+
   const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "terms" | "privacy" | "refund" | "shipping" | "about" | "support">("charges");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentTimeStr, setCurrentTimeStr] = useState<string>("");
+
+  // Sync client-side localStorage on initial client mount to guarantee immediate persistence across restarts
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("magozi_app_open_close");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.openTime && parsed.closeTime) {
+            setAppOpenClose(parsed);
+            setOpenTimeInput(parsed.openTime);
+            setCloseTimeInput(parsed.closeTime);
+            if (parsed.openingHours) setOpeningHoursInput(parsed.openingHours);
+            if (parsed.closedMessage) setClosedMessageInput(parsed.closedMessage);
+          }
+        }
+      } catch (e) {}
+    }
+  }, []);
+
+  // Function to persist App Open/Close settings to Firestore using ONLY clean single fields (no duplicate field aliases)
+  const saveAppOpenCloseToFirestore = async (override: Partial<{
+    isStoreOpen: boolean;
+    openTime: string;
+    closeTime: string;
+    openingHours: string;
+    closedMessage: string;
+    autoTimingEnabled: boolean;
+  }> = {}) => {
+    const openT = (override.openTime ?? openTimeInput ?? appOpenClose.openTime).trim() || "06:00 AM";
+    const closeT = (override.closeTime ?? closeTimeInput ?? appOpenClose.closeTime).trim() || "11:30 PM";
+    const opHours = (override.openingHours ?? openingHoursInput ?? appOpenClose.openingHours).trim() || `${openT} - ${closeT}`;
+    const closedMsg = (override.closedMessage ?? closedMessageInput ?? appOpenClose.closedMessage).trim() || "We are currently closed for orders.";
+    
+    const isAuto = override.autoTimingEnabled ?? appOpenClose.autoTimingEnabled ?? true;
+    
+    let finalIsOpen: boolean;
+    if (override.isStoreOpen !== undefined) {
+      finalIsOpen = Boolean(override.isStoreOpen);
+    } else if (isAuto) {
+      finalIsOpen = isCurrentTimeWithinOperatingHours(openT, closeT);
+    } else {
+      finalIsOpen = Boolean(appOpenClose.isStoreOpen);
+    }
+
+    const statusStr = finalIsOpen ? "OPEN" : "CLOSED";
+
+    const updatedState: AppOpenCloseSettings = {
+      isStoreOpen: finalIsOpen,
+      openTime: openT,
+      closeTime: closeT,
+      openingHours: opHours,
+      closedMessage: closedMsg,
+      autoTimingEnabled: isAuto,
+      auto_timing_enabled: isAuto,
+    };
+
+    setAppOpenClose(updatedState);
+    setOpenTimeInput(openT);
+    setCloseTimeInput(closeT);
+    setOpeningHoursInput(opHours);
+    setClosedMessageInput(closedMsg);
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("magozi_app_open_close", JSON.stringify(updatedState));
+      } catch (e) {}
+    }
+
+    // 1. Write ONLY the exact required fields to `app_config/app_open_close` (merge: false ensures no old duplicate aliases remain)
+    const openClosePayload = {
+      isStoreOpen: finalIsOpen,
+      openTime: openT,
+      closeTime: closeT,
+      openingHours: opHours,
+      closedMessage: closedMsg,
+      autoTimingEnabled: isAuto,
+      updatedAt: new Date().toISOString(),
+      lastUpdated: Date.now(),
+    };
+
+    // 2. Write to `app_config/global_settings`
+    const globalPayload = {
+      isStoreOpen: finalIsOpen,
+      openTime: openT,
+      closeTime: closeT,
+      openingHours: opHours,
+      closedMessage: closedMsg,
+      autoTimingEnabled: isAuto,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await setDoc(doc(db, "app_config", "app_open_close"), openClosePayload, { merge: false });
+    await setDoc(doc(db, "app_config", "global_settings"), globalPayload, { merge: true });
+
+    // 3. Sync to all documents in the `stores` collection
+    try {
+      const storesSnap = await getDocs(collection(db, "stores"));
+      if (!storesSnap.empty) {
+        const storePromises = storesSnap.docs.map((sDoc) =>
+          setDoc(
+            doc(db, "stores", sDoc.id),
+            {
+              isOpen: finalIsOpen,
+              isStoreOpen: finalIsOpen,
+              openStatus: statusStr,
+              openCloseTime: `${openT} - ${closeT} (${finalIsOpen ? "Open Now" : "Closed"})`,
+              updatedAt: new Date().toISOString(),
+              lastUpdated: Date.now(),
+            },
+            { merge: true }
+          )
+        );
+        await Promise.all(storePromises);
+      }
+    } catch (e) {
+      console.warn("Stores collection sync warning:", e);
+    }
+
+    return finalIsOpen;
+  };
 
   // Live Digital Clock
   useEffect(() => {
@@ -91,43 +237,57 @@ export default function AppConfigPage() {
       const unsub = onSnapshot(doc(db, "app_config", "app_open_close"), (snap) => {
         if (snap.exists()) {
           const d = snap.data();
-          let isOpen = true;
-          if (d.isStoreOpen !== undefined) {
-            isOpen = Boolean(d.isStoreOpen);
-          } else if (d.is_store_open !== undefined) {
-            isOpen = Boolean(d.is_store_open);
-          } else if (d.isOpen !== undefined) {
-            isOpen = Boolean(d.isOpen);
-          } else if (d.status || d.openStatus) {
-            isOpen = String(d.status || d.openStatus).toUpperCase() === "OPEN";
-          }
+          const isOpen = d.isStoreOpen !== undefined ? Boolean(d.isStoreOpen) : (d.isOpen !== undefined ? Boolean(d.isOpen) : true);
+          const autoEnabled = d.autoTimingEnabled !== undefined ? Boolean(d.autoTimingEnabled) : true;
 
-          const autoEnabled = d.autoTimingEnabled !== undefined ? Boolean(d.autoTimingEnabled) : (d.auto_timing_enabled !== undefined ? Boolean(d.auto_timing_enabled) : true);
+          const loadedOpenTime = d.openTime || INITIAL_APP_OPEN_CLOSE.openTime;
+          const loadedCloseTime = d.closeTime || INITIAL_APP_OPEN_CLOSE.closeTime;
+          const loadedOpeningHours = d.openingHours || INITIAL_APP_OPEN_CLOSE.openingHours;
+          const loadedClosedMessage = d.closedMessage || INITIAL_APP_OPEN_CLOSE.closedMessage;
 
-          setAppOpenClose({
+          const loadedData: AppOpenCloseSettings = {
             isStoreOpen: isOpen,
-            openTime: d.openTime || INITIAL_APP_OPEN_CLOSE.openTime,
-            closeTime: d.closeTime || INITIAL_APP_OPEN_CLOSE.closeTime,
-            openingHours: d.openingHours || d.openCloseTiming || INITIAL_APP_OPEN_CLOSE.openingHours,
-            closedMessage: d.closedMessage || INITIAL_APP_OPEN_CLOSE.closedMessage,
+            openTime: loadedOpenTime,
+            closeTime: loadedCloseTime,
+            openingHours: loadedOpeningHours,
+            closedMessage: loadedClosedMessage,
             autoTimingEnabled: autoEnabled,
             auto_timing_enabled: autoEnabled,
-          });
+          };
+
+          setAppOpenClose(loadedData);
+          setOpenTimeInput(loadedOpenTime);
+          setCloseTimeInput(loadedCloseTime);
+          setOpeningHoursInput(loadedOpeningHours);
+          setClosedMessageInput(loadedClosedMessage);
+          setIsFirestoreLoaded(true);
+
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem("magozi_app_open_close", JSON.stringify(loadedData));
+            } catch (e) {}
+          }
+        } else {
+          setIsFirestoreLoaded(true);
         }
       }, (err) => {
         console.warn("Firestore app_config/app_open_close listener warning:", err);
+        setIsFirestoreLoaded(true);
       });
 
       return () => unsub();
     } catch (e) {
       console.warn("Error subscribing to app_config/app_open_close in Firestore:", e);
+      setIsFirestoreLoaded(true);
     }
   }, []);
 
-  // Automatic Open/Close Scheduler — Evaluates openTime & closeTime against current system time
+  // Automatic Open/Close Scheduler — Evaluates openTime & closeTime against current system time ONLY if autoTimingEnabled is true AND Firestore data has completed initial load
   useEffect(() => {
+    if (!isFirestoreLoaded) return; // Prevent race conditions with initial default state on page reload/restart!
+
     const isAuto = appOpenClose.autoTimingEnabled ?? true;
-    if (!isAuto) return;
+    if (!isAuto) return; // Automatic calculation is disabled when user manually sets open/close status
 
     const checkAndSyncAutoStatus = async () => {
       const calculatedIsOpen = isCurrentTimeWithinOperatingHours(
@@ -135,26 +295,12 @@ export default function AppConfigPage() {
         appOpenClose.closeTime
       );
 
-      // Only write to Firestore if the calculated status differs from current isStoreOpen
       if (calculatedIsOpen !== appOpenClose.isStoreOpen) {
         try {
-          const payload = {
+          await saveAppOpenCloseToFirestore({
             isStoreOpen: calculatedIsOpen,
-            is_store_open: calculatedIsOpen,
-            isOpen: calculatedIsOpen,
-            status: calculatedIsOpen ? "OPEN" : "CLOSED",
-            openStatus: calculatedIsOpen ? "OPEN" : "CLOSED",
-            openTime: appOpenClose.openTime,
-            closeTime: appOpenClose.closeTime,
-            openingHours: appOpenClose.openingHours,
-            openCloseTiming: appOpenClose.openingHours,
-            closedMessage: appOpenClose.closedMessage,
             autoTimingEnabled: true,
-            auto_timing_enabled: true,
-            updatedAt: new Date().toISOString(),
-            lastUpdated: Date.now(),
-          };
-          await setDoc(doc(db, "app_config", "app_open_close"), payload, { merge: true });
+          });
         } catch (e) {
           console.warn("Auto open/close sync warning:", e);
         }
@@ -162,9 +308,9 @@ export default function AppConfigPage() {
     };
 
     checkAndSyncAutoStatus();
-    const timer = setInterval(checkAndSyncAutoStatus, 30000);
+    const timer = setInterval(checkAndSyncAutoStatus, 5000);
     return () => clearInterval(timer);
-  }, [appOpenClose.openTime, appOpenClose.closeTime, appOpenClose.isStoreOpen, appOpenClose.autoTimingEnabled]);
+  }, [isFirestoreLoaded, appOpenClose.openTime, appOpenClose.closeTime, appOpenClose.isStoreOpen, appOpenClose.autoTimingEnabled]);
 
   // Realtime Cloud Firestore Listener for app_config/supportpage
   useEffect(() => {
@@ -189,7 +335,46 @@ export default function AppConfigPage() {
     }
   }, []);
 
-  // Save to Cloud Firestore documents `app_config/global_settings`, `app_config/orders`, `orders/config` & `app_config/supportpage`
+  // Handle Toggle Auto Scheduler ON / OFF
+  const handleToggleAutoScheduler = async () => {
+    const nextVal = !(appOpenClose.autoTimingEnabled ?? true);
+    setSaving(true);
+    setSaveMessage(null);
+    setErrorMessage(null);
+
+    try {
+      let calculatedIsOpen = appOpenClose.isStoreOpen;
+      if (nextVal) {
+        calculatedIsOpen = isCurrentTimeWithinOperatingHours(
+          openTimeInput || appOpenClose.openTime,
+          closeTimeInput || appOpenClose.closeTime
+        );
+      }
+
+      const finalIsOpen = await saveAppOpenCloseToFirestore({
+        autoTimingEnabled: nextVal,
+        isStoreOpen: calculatedIsOpen,
+        openTime: openTimeInput,
+        closeTime: closeTimeInput,
+        openingHours: openingHoursInput,
+        closedMessage: closedMessageInput,
+      });
+
+      setSaveMessage(
+        nextVal
+          ? `Auto-Scheduler turned ON! Status updated to ${finalIsOpen ? "OPEN (isStoreOpen = true)" : "CLOSED (isStoreOpen = false)"} in Cloud Firestore!`
+          : `Auto-Scheduler turned OFF! You can now manually Open or Close the app at any time.`
+      );
+      setTimeout(() => setSaveMessage(null), 4000);
+    } catch (err: any) {
+      console.error("Error toggling auto scheduler:", err);
+      setErrorMessage(err.message || "Failed to update Auto-Scheduler setting in Cloud Firestore.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Save all app config & open/close settings to Cloud Firestore
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -198,7 +383,6 @@ export default function AppConfigPage() {
 
     const cancelTimerValInSeconds = Number(config.cancelOrderTimer) >= 0 ? Number(config.cancelOrderTimer) : 300;
 
-    // Payload for global_settings (cancelOrderTimer stored in SECONDS)
     const globalPayload = {
       min_order_amount: Number(config.minOrderAmount) || 0,
       handling_fee: Number(config.handlingFee) || 0,
@@ -217,14 +401,12 @@ export default function AppConfigPage() {
       updatedAt: new Date().toISOString()
     };
 
-    // Payload for `app_config/orders` (cancelOrderTimer in SECONDS)
     const ordersConfigPayload = {
       cancelOrderTimer: cancelTimerValInSeconds,
       cancel_order_timer: cancelTimerValInSeconds,
       updatedAt: new Date().toISOString()
     };
 
-    // Support Page payload for `app_config/supportpage`
     const supportPayload = {
       phone: supportConfig.phone || "",
       email: supportConfig.email || "",
@@ -233,30 +415,22 @@ export default function AppConfigPage() {
       updatedAt: new Date().toISOString()
     };
 
-    // App Open/Close payload for `app_config/app_open_close`
-    const openClosePayload = {
-      isStoreOpen: Boolean(appOpenClose.isStoreOpen),
-      is_store_open: Boolean(appOpenClose.isStoreOpen),
-      isOpen: Boolean(appOpenClose.isStoreOpen),
-      status: appOpenClose.isStoreOpen ? "OPEN" : "CLOSED",
-      openStatus: appOpenClose.isStoreOpen ? "OPEN" : "CLOSED",
-      openTime: appOpenClose.openTime.trim() || "06:00 AM",
-      closeTime: appOpenClose.closeTime.trim() || "11:30 PM",
-      openingHours: appOpenClose.openingHours.trim() || `${appOpenClose.openTime.trim()} - ${appOpenClose.closeTime.trim()}`,
-      openCloseTiming: appOpenClose.openingHours.trim() || `${appOpenClose.openTime.trim()} - ${appOpenClose.closeTime.trim()}`,
-      closedMessage: appOpenClose.closedMessage.trim() || "We are currently closed for orders.",
-      updatedAt: new Date().toISOString(),
-      lastUpdated: Date.now(),
-    };
-
     try {
       await setDoc(doc(db, "app_config", "global_settings"), globalPayload, { merge: true });
       await setDoc(doc(db, "app_config", "orders"), ordersConfigPayload, { merge: true });
       await setDoc(doc(db, "app_config", "supportpage"), supportPayload, { merge: true });
-      await setDoc(doc(db, "app_config", "app_open_close"), openClosePayload, { merge: true });
+
+      const isAuto = appOpenClose.autoTimingEnabled ?? true;
+      const finalIsOpen = await saveAppOpenCloseToFirestore({
+        openTime: openTimeInput,
+        closeTime: closeTimeInput,
+        openingHours: openingHoursInput,
+        closedMessage: closedMessageInput,
+        autoTimingEnabled: isAuto,
+      });
 
       setSaving(false);
-      setSaveMessage(`Successfully saved all app configuration & App Open/Close settings (isStoreOpen = ${appOpenClose.isStoreOpen}) to Cloud Firestore!`);
+      setSaveMessage(`Successfully saved all app configuration & App Open/Close settings (isStoreOpen = ${finalIsOpen}) to Cloud Firestore!`);
       setTimeout(() => setSaveMessage(null), 5000);
     } catch (err: any) {
       console.error("Error saving app config to Firestore:", err);
@@ -269,34 +443,56 @@ export default function AppConfigPage() {
     }
   };
 
+  // Manual Toggle Open / Close App Status Handler
   const handleToggleAppOpenStatus = async (newOpenState: boolean) => {
     setSaving(true);
     setSaveMessage(null);
     setErrorMessage(null);
     try {
-      setAppOpenClose((prev) => ({ ...prev, isStoreOpen: newOpenState }));
+      await saveAppOpenCloseToFirestore({
+        isStoreOpen: newOpenState,
+        autoTimingEnabled: false, // Turn off auto scheduler for manual override
+        openTime: openTimeInput,
+        closeTime: closeTimeInput,
+        openingHours: openingHoursInput,
+        closedMessage: closedMessageInput,
+      });
 
-      const payload = {
-        isStoreOpen: Boolean(newOpenState),
-        is_store_open: Boolean(newOpenState),
-        isOpen: Boolean(newOpenState),
-        status: newOpenState ? "OPEN" : "CLOSED",
-        openStatus: newOpenState ? "OPEN" : "CLOSED",
-        openTime: appOpenClose.openTime.trim() || "06:00 AM",
-        closeTime: appOpenClose.closeTime.trim() || "11:30 PM",
-        openingHours: appOpenClose.openingHours.trim() || `${appOpenClose.openTime.trim()} - ${appOpenClose.closeTime.trim()}`,
-        openCloseTiming: appOpenClose.openingHours.trim() || `${appOpenClose.openTime.trim()} - ${appOpenClose.closeTime.trim()}`,
-        closedMessage: appOpenClose.closedMessage.trim() || "We are currently closed for orders.",
-        updatedAt: new Date().toISOString(),
-        lastUpdated: Date.now(),
-      };
-
-      await setDoc(doc(db, "app_config", "app_open_close"), payload, { merge: true });
-      setSaveMessage(`App status set to ${newOpenState ? "OPEN (isStoreOpen = true)" : "CLOSED (isStoreOpen = false)"} in Cloud Firestore (\`app_config/app_open_close\`)!`);
+      setSaveMessage(
+        `App status manually set to ${newOpenState ? "OPEN (isStoreOpen = true)" : "CLOSED (isStoreOpen = false)"} in Cloud Firestore! (Auto-Scheduler paused for manual control)`
+      );
       setTimeout(() => setSaveMessage(null), 4000);
     } catch (err: any) {
       console.error("Error toggling app open status:", err);
       setErrorMessage(err.message || "Failed to update app open status in Cloud Firestore.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Dedicated Handler to Save Operating Hours & Timing Only
+  const handleSaveOpenCloseTimingOnly = async () => {
+    setSaving(true);
+    setSaveMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const isAuto = appOpenClose.autoTimingEnabled ?? true;
+      const finalIsOpen = await saveAppOpenCloseToFirestore({
+        openTime: openTimeInput,
+        closeTime: closeTimeInput,
+        openingHours: openingHoursInput,
+        closedMessage: closedMessageInput,
+        autoTimingEnabled: isAuto,
+      });
+
+      setSaveMessage(
+        `Successfully saved Open Time (${openTimeInput}), Close Time (${closeTimeInput}) & Operating Hours to Cloud Firestore! Status: ${finalIsOpen ? "OPEN (isStoreOpen = true)" : "CLOSED (isStoreOpen = false)"}`
+      );
+      setTimeout(() => setSaveMessage(null), 5000);
+    } catch (err: any) {
+      console.error("Error saving open/close timing to Firestore:", err);
+      setErrorMessage(err.message || "Failed to save operating hours to Cloud Firestore.");
     } finally {
       setSaving(false);
     }
@@ -475,21 +671,14 @@ export default function AppConfigPage() {
                         Automatic Time-Based Open / Close Scheduler
                       </h4>
                       <p className="text-[11px] text-slate-600 font-medium">
-                        Automatically opens app at <code className="font-bold text-slate-900">{appOpenClose.openTime}</code> and closes at <code className="font-bold text-slate-900">{appOpenClose.closeTime}</code> based on live system clock.
+                        Automatically opens app at <code className="font-bold text-slate-900">{openTimeInput}</code> and closes at <code className="font-bold text-slate-900">{closeTimeInput}</code> based on live system clock.
                       </p>
                     </div>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() => {
-                      const nextVal = !(appOpenClose.autoTimingEnabled ?? true);
-                      setAppOpenClose({
-                        ...appOpenClose,
-                        autoTimingEnabled: nextVal,
-                        auto_timing_enabled: nextVal,
-                      });
-                    }}
+                    onClick={handleToggleAutoScheduler}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
                       appOpenClose.autoTimingEnabled ?? true
                         ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
@@ -532,11 +721,21 @@ export default function AppConfigPage() {
                         <span className="text-xs font-mono font-extrabold text-slate-700">
                           (isStoreOpen = {String(appOpenClose.isStoreOpen)})
                         </span>
+                        {!(appOpenClose.autoTimingEnabled ?? true) ? (
+                          <span className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                            ⚡ MANUAL MODE (You can open/close at any time)
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                            ⏰ AUTO SCHEDULER ACTIVE
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-600 font-medium mt-1">
                         {appOpenClose.isStoreOpen
-                          ? `App is OPEN and accepting orders (${appOpenClose.openingHours}).`
+                          ? `App is OPEN and accepting orders.`
                           : `App is CLOSED. Checkout is disabled for users.`}
+                        {!(appOpenClose.autoTimingEnabled ?? true) && " (Manual control is active — state won't change automatically)."}
                       </p>
                     </div>
                   </div>
@@ -574,28 +773,33 @@ export default function AppConfigPage() {
                     <div className="flex items-center gap-2">
                       <input
                         type="time"
-                        value={convertTo24HourInput(appOpenClose.openTime)}
+                        value={convertTo24HourInput(openTimeInput)}
                         onChange={(e) => {
                           const formatted12h = convert24To12Hour(e.target.value);
-                          setAppOpenClose({
-                            ...appOpenClose,
+                          setOpenTimeInput(formatted12h);
+                          const newOpHours = `${formatted12h} - ${closeTimeInput}`;
+                          setOpeningHoursInput(newOpHours);
+                          saveAppOpenCloseToFirestore({
                             openTime: formatted12h,
-                            openingHours: `${formatted12h} - ${appOpenClose.closeTime}`,
-                          });
+                            openingHours: newOpHours,
+                          }).catch((e) => console.warn(e));
                         }}
                         className="px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                       />
                       <input
                         type="text"
                         required
-                        value={appOpenClose.openTime}
+                        value={openTimeInput}
                         onChange={(e) => {
                           const newOpen = e.target.value;
-                          setAppOpenClose({
-                            ...appOpenClose,
-                            openTime: newOpen,
-                            openingHours: `${newOpen} - ${appOpenClose.closeTime}`,
-                          });
+                          setOpenTimeInput(newOpen);
+                          setOpeningHoursInput(`${newOpen} - ${closeTimeInput}`);
+                        }}
+                        onBlur={() => {
+                          saveAppOpenCloseToFirestore({
+                            openTime: openTimeInput,
+                            openingHours: `${openTimeInput} - ${closeTimeInput}`,
+                          }).catch((e) => console.warn(e));
                         }}
                         placeholder="e.g. 06:00 AM"
                         className="flex-1 px-4 py-2 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
@@ -612,28 +816,33 @@ export default function AppConfigPage() {
                     <div className="flex items-center gap-2">
                       <input
                         type="time"
-                        value={convertTo24HourInput(appOpenClose.closeTime)}
+                        value={convertTo24HourInput(closeTimeInput)}
                         onChange={(e) => {
                           const formatted12h = convert24To12Hour(e.target.value);
-                          setAppOpenClose({
-                            ...appOpenClose,
+                          setCloseTimeInput(formatted12h);
+                          const newOpHours = `${openTimeInput} - ${formatted12h}`;
+                          setOpeningHoursInput(newOpHours);
+                          saveAppOpenCloseToFirestore({
                             closeTime: formatted12h,
-                            openingHours: `${appOpenClose.openTime} - ${formatted12h}`,
-                          });
+                            openingHours: newOpHours,
+                          }).catch((e) => console.warn(e));
                         }}
                         className="px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                       />
                       <input
                         type="text"
                         required
-                        value={appOpenClose.closeTime}
+                        value={closeTimeInput}
                         onChange={(e) => {
                           const newClose = e.target.value;
-                          setAppOpenClose({
-                            ...appOpenClose,
-                            closeTime: newClose,
-                            openingHours: `${appOpenClose.openTime} - ${newClose}`,
-                          });
+                          setCloseTimeInput(newClose);
+                          setOpeningHoursInput(`${openTimeInput} - ${newClose}`);
+                        }}
+                        onBlur={() => {
+                          saveAppOpenCloseToFirestore({
+                            closeTime: closeTimeInput,
+                            openingHours: `${openTimeInput} - ${closeTimeInput}`,
+                          }).catch((e) => console.warn(e));
                         }}
                         placeholder="e.g. 11:30 PM"
                         className="flex-1 px-4 py-2 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
@@ -644,13 +853,18 @@ export default function AppConfigPage() {
 
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 md:col-span-2">
                     <label className="block text-xs font-bold text-slate-700 uppercase">
-                      Full Operating Hours Display Text (`openingHours` / `openCloseTiming`)
+                      Full Operating Hours Display Text (`openingHours`)
                     </label>
                     <input
                       type="text"
                       required
-                      value={appOpenClose.openingHours}
-                      onChange={(e) => setAppOpenClose({ ...appOpenClose, openingHours: e.target.value })}
+                      value={openingHoursInput}
+                      onChange={(e) => setOpeningHoursInput(e.target.value)}
+                      onBlur={() => {
+                        saveAppOpenCloseToFirestore({
+                          openingHours: openingHoursInput,
+                        }).catch((e) => console.warn(e));
+                      }}
                       placeholder="e.g. 06:00 AM - 11:30 PM (Daily)"
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none"
                     />
@@ -663,13 +877,30 @@ export default function AppConfigPage() {
                     </label>
                     <textarea
                       rows={3}
-                      value={appOpenClose.closedMessage}
-                      onChange={(e) => setAppOpenClose({ ...appOpenClose, closedMessage: e.target.value })}
+                      value={closedMessageInput}
+                      onChange={(e) => setClosedMessageInput(e.target.value)}
+                      onBlur={() => {
+                        saveAppOpenCloseToFirestore({
+                          closedMessage: closedMessageInput,
+                        }).catch((e) => console.warn(e));
+                      }}
                       placeholder="e.g. We are currently closed for online orders. Our operating hours are 06:00 AM to 11:30 PM."
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-semibold text-slate-900 text-xs focus:ring-2 focus:ring-magozi-800 outline-none resize-none"
                     />
                     <p className="text-[11px] text-slate-500">Notice displayed to users in mobile app when app status is CLOSED.</p>
                   </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveOpenCloseTimingOnly}
+                    disabled={saving}
+                    className="px-6 py-3 rounded-2xl bg-magozi-800 hover:bg-magozi-900 text-white font-extrabold text-xs shadow-lg shadow-magozi-800/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <Save size={16} />
+                    <span>{saving ? "Saving Open & Close Times..." : "Save Open & Close Time Settings"}</span>
+                  </button>
                 </div>
               </div>
             )}
