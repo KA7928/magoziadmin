@@ -222,6 +222,8 @@ export const INITIAL_APP_OPEN_CLOSE = {
   closeTime: "11:30 PM",
   openingHours: "06:00 AM - 11:30 PM",
   closedMessage: "We are currently closed for orders. Operating hours are 06:00 AM - 11:30 PM.",
+  autoTimingEnabled: true,
+  auto_timing_enabled: true
 };
 
 export const INITIAL_BANNERS: Banner[] = [

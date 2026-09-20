@@ -129,6 +129,8 @@ export interface AppOpenCloseSettings {
   closeTime: string;
   openingHours: string;
   closedMessage: string;
+  autoTimingEnabled?: boolean;
+  auto_timing_enabled?: boolean;
   updatedAt?: string;
 }
 

@@ -7,6 +7,11 @@ import { AppConfigSettings, SupportConfigSettings, AppOpenCloseSettings } from "
 import { INITIAL_APP_CONFIG, INITIAL_SUPPORT_CONFIG, INITIAL_APP_OPEN_CLOSE } from "@/lib/mock-data";
 import { db, doc, onSnapshot, setDoc } from "@/lib/firebase";
 import { 
+  isCurrentTimeWithinOperatingHours, 
+  convertTo24HourInput, 
+  convert24To12Hour 
+} from "@/lib/time-utils";
+import { 
   Save, 
   CheckCircle2, 
   IndianRupee, 
@@ -24,7 +29,10 @@ import {
   Clock,
   Timer,
   Store,
-  XCircle
+  XCircle,
+  Sparkles,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
 
 export default function AppConfigPage() {
@@ -35,6 +43,18 @@ export default function AppConfigPage() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [currentTimeStr, setCurrentTimeStr] = useState<string>("");
+
+  // Live Digital Clock
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTimeStr(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Realtime Cloud Firestore Listener for app_config/global_settings
   useEffect(() => {
@@ -82,12 +102,16 @@ export default function AppConfigPage() {
             isOpen = String(d.status || d.openStatus).toUpperCase() === "OPEN";
           }
 
+          const autoEnabled = d.autoTimingEnabled !== undefined ? Boolean(d.autoTimingEnabled) : (d.auto_timing_enabled !== undefined ? Boolean(d.auto_timing_enabled) : true);
+
           setAppOpenClose({
             isStoreOpen: isOpen,
             openTime: d.openTime || INITIAL_APP_OPEN_CLOSE.openTime,
             closeTime: d.closeTime || INITIAL_APP_OPEN_CLOSE.closeTime,
             openingHours: d.openingHours || d.openCloseTiming || INITIAL_APP_OPEN_CLOSE.openingHours,
             closedMessage: d.closedMessage || INITIAL_APP_OPEN_CLOSE.closedMessage,
+            autoTimingEnabled: autoEnabled,
+            auto_timing_enabled: autoEnabled,
           });
         }
       }, (err) => {
@@ -99,6 +123,48 @@ export default function AppConfigPage() {
       console.warn("Error subscribing to app_config/app_open_close in Firestore:", e);
     }
   }, []);
+
+  // Automatic Open/Close Scheduler — Evaluates openTime & closeTime against current system time
+  useEffect(() => {
+    const isAuto = appOpenClose.autoTimingEnabled ?? true;
+    if (!isAuto) return;
+
+    const checkAndSyncAutoStatus = async () => {
+      const calculatedIsOpen = isCurrentTimeWithinOperatingHours(
+        appOpenClose.openTime,
+        appOpenClose.closeTime
+      );
+
+      // Only write to Firestore if the calculated status differs from current isStoreOpen
+      if (calculatedIsOpen !== appOpenClose.isStoreOpen) {
+        try {
+          const payload = {
+            isStoreOpen: calculatedIsOpen,
+            is_store_open: calculatedIsOpen,
+            isOpen: calculatedIsOpen,
+            status: calculatedIsOpen ? "OPEN" : "CLOSED",
+            openStatus: calculatedIsOpen ? "OPEN" : "CLOSED",
+            openTime: appOpenClose.openTime,
+            closeTime: appOpenClose.closeTime,
+            openingHours: appOpenClose.openingHours,
+            openCloseTiming: appOpenClose.openingHours,
+            closedMessage: appOpenClose.closedMessage,
+            autoTimingEnabled: true,
+            auto_timing_enabled: true,
+            updatedAt: new Date().toISOString(),
+            lastUpdated: Date.now(),
+          };
+          await setDoc(doc(db, "app_config", "app_open_close"), payload, { merge: true });
+        } catch (e) {
+          console.warn("Auto open/close sync warning:", e);
+        }
+      }
+    };
+
+    checkAndSyncAutoStatus();
+    const timer = setInterval(checkAndSyncAutoStatus, 30000);
+    return () => clearInterval(timer);
+  }, [appOpenClose.openTime, appOpenClose.closeTime, appOpenClose.isStoreOpen, appOpenClose.autoTimingEnabled]);
 
   // Realtime Cloud Firestore Listener for app_config/supportpage
   useEffect(() => {
@@ -380,14 +446,68 @@ export default function AppConfigPage() {
             {/* App Open / Close Status & Timing Section */}
             {activeTab === "openclose" && (
               <div className="space-y-6">
-                <div>
-                  <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
-                    <Store className="text-magozi-800" size={22} />
-                    <span>App Open / Close Status & Operating Hours</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Syncs live app availability with Cloud Firestore collection <code className="font-mono font-bold text-slate-700">app_config</code> — document <code className="font-mono font-bold text-slate-700">app_open_close</code>.
-                  </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
+                      <Store className="text-magozi-800" size={22} />
+                      <span>App Open / Close Status & Automatic Operating Hours</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Syncs live app availability with Cloud Firestore collection <code className="font-mono font-bold text-slate-700">app_config</code> — document <code className="font-mono font-bold text-slate-700">app_open_close</code>.
+                    </p>
+                  </div>
+
+                  {/* Live Clock Badge */}
+                  {currentTimeStr && (
+                    <div className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-2xl text-xs font-mono font-bold shadow-md flex-shrink-0">
+                      <Clock size={15} className="text-emerald-400" />
+                      <span>Live Time: {currentTimeStr}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Auto-Schedule Switch Banner */}
+                <div className="p-4 rounded-2xl bg-magozi-50/70 border border-magozi-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <Sparkles size={20} className="text-magozi-800 flex-shrink-0" />
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-900">
+                        Automatic Time-Based Open / Close Scheduler
+                      </h4>
+                      <p className="text-[11px] text-slate-600 font-medium">
+                        Automatically opens app at <code className="font-bold text-slate-900">{appOpenClose.openTime}</code> and closes at <code className="font-bold text-slate-900">{appOpenClose.closeTime}</code> based on live system clock.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !(appOpenClose.autoTimingEnabled ?? true);
+                      setAppOpenClose({
+                        ...appOpenClose,
+                        autoTimingEnabled: nextVal,
+                        auto_timing_enabled: nextVal,
+                      });
+                    }}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+                      appOpenClose.autoTimingEnabled ?? true
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                        : "bg-slate-200 hover:bg-slate-300 text-slate-700"
+                    }`}
+                  >
+                    {(appOpenClose.autoTimingEnabled ?? true) ? (
+                      <>
+                        <ToggleRight size={20} />
+                        <span>AUTO-SCHEDULER: ON</span>
+                      </>
+                    ) : (
+                      <>
+                        <ToggleLeft size={20} />
+                        <span>AUTO-SCHEDULER: OFF (Manual)</span>
+                      </>
+                    )}
+                  </button>
                 </div>
 
                 {/* Live Status Card & 1-Click Toggle */}
@@ -446,48 +566,80 @@ export default function AppConfigPage() {
 
                 {/* Operating Hours & Notice Form Inputs */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                     <label className="block text-xs font-bold text-slate-700 uppercase">
                       App Opening Time (`openTime`)
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={appOpenClose.openTime}
-                      onChange={(e) => {
-                        const newOpen = e.target.value;
-                        setAppOpenClose({
-                          ...appOpenClose,
-                          openTime: newOpen,
-                          openingHours: `${newOpen} - ${appOpenClose.closeTime}`,
-                        });
-                      }}
-                      placeholder="e.g. 06:00 AM"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none"
-                    />
-                    <p className="text-[11px] text-slate-500">Opening time displayed on mobile app.</p>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={convertTo24HourInput(appOpenClose.openTime)}
+                        onChange={(e) => {
+                          const formatted12h = convert24To12Hour(e.target.value);
+                          setAppOpenClose({
+                            ...appOpenClose,
+                            openTime: formatted12h,
+                            openingHours: `${formatted12h} - ${appOpenClose.closeTime}`,
+                          });
+                        }}
+                        className="px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        required
+                        value={appOpenClose.openTime}
+                        onChange={(e) => {
+                          const newOpen = e.target.value;
+                          setAppOpenClose({
+                            ...appOpenClose,
+                            openTime: newOpen,
+                            openingHours: `${newOpen} - ${appOpenClose.closeTime}`,
+                          });
+                        }}
+                        placeholder="e.g. 06:00 AM"
+                        className="flex-1 px-4 py-2 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500">Auto-opens app at this time when scheduler is ON.</p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                     <label className="block text-xs font-bold text-slate-700 uppercase">
                       App Closing Time (`closeTime`)
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={appOpenClose.closeTime}
-                      onChange={(e) => {
-                        const newClose = e.target.value;
-                        setAppOpenClose({
-                          ...appOpenClose,
-                          closeTime: newClose,
-                          openingHours: `${appOpenClose.openTime} - ${newClose}`,
-                        });
-                      }}
-                      placeholder="e.g. 11:30 PM"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none"
-                    />
-                    <p className="text-[11px] text-slate-500">Closing time after which app stops taking orders.</p>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={convertTo24HourInput(appOpenClose.closeTime)}
+                        onChange={(e) => {
+                          const formatted12h = convert24To12Hour(e.target.value);
+                          setAppOpenClose({
+                            ...appOpenClose,
+                            closeTime: formatted12h,
+                            openingHours: `${appOpenClose.openTime} - ${formatted12h}`,
+                          });
+                        }}
+                        className="px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        required
+                        value={appOpenClose.closeTime}
+                        onChange={(e) => {
+                          const newClose = e.target.value;
+                          setAppOpenClose({
+                            ...appOpenClose,
+                            closeTime: newClose,
+                            openingHours: `${appOpenClose.openTime} - ${newClose}`,
+                          });
+                        }}
+                        placeholder="e.g. 11:30 PM"
+                        className="flex-1 px-4 py-2 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500">Auto-closes app at this time when scheduler is ON.</p>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 md:col-span-2">
