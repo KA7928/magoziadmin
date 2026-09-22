@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import ProductModal from "@/components/ProductModal";
-import { Product, ProductCategory, CATEGORY_LABELS } from "@/lib/types";
+import { Product, CategoryItem, Superstore, CATEGORY_LABELS } from "@/lib/types";
 import { formatCurrency, calculateDiscountTag } from "@/lib/utils";
 import { db, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "@/lib/firebase";
 import { 
@@ -15,7 +15,15 @@ import {
   Trash2, 
   CheckCircle2, 
   XCircle, 
-  AlertTriangle
+  AlertTriangle,
+  Star,
+  Clock,
+  Store as StoreIcon,
+  Tag,
+  Layers,
+  Sparkles,
+  Sliders,
+  Image as ImageIcon
 } from "lucide-react";
 
 function ProductsContent() {
@@ -23,9 +31,11 @@ function ProductsContent() {
   const categoryParam = searchParams.get("category");
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [stores, setStores] = useState<Superstore[]>([]);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
-  const [syncedCategories, setSyncedCategories] = useState<{ id: string; label: string }[]>([]);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("ALL");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
@@ -33,78 +43,98 @@ function ProductsContent() {
   // Sync category param from URL on initial load / change
   useEffect(() => {
     if (categoryParam) {
-      setSelectedCategory(categoryParam);
+      setSelectedCategoryFilter(categoryParam);
     }
   }, [categoryParam]);
 
-  // Firestore Realtime Listener for Products — 100% Real Data
+  // 1. Realtime Firestore Listener for `products` collection — 100% Real Data
   useEffect(() => {
     try {
       const unsubscribe = onSnapshot(collection(db, "products"), (snapshot) => {
-        const list: Product[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as Product));
+        const list: Product[] = snapshot.docs.map((docSnap) => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
+            ...data,
+          } as Product;
+        });
         setProducts(list);
       }, (err) => console.warn("Products listener warning:", err));
+
       return () => unsubscribe();
     } catch (e) {
-      console.warn("Firestore connection warning", e);
+      console.warn("Firestore products connection warning", e);
     }
   }, []);
 
-  // Firestore Category Sync (categories collection + products collection + base CATEGORY_LABELS)
+  // 2. Realtime Firestore Listener for `categories` collection
   useEffect(() => {
     try {
-      const categoryMap = new Map<string, string>();
-      Object.keys(CATEGORY_LABELS).forEach((key) => {
-        categoryMap.set(key, CATEGORY_LABELS[key]);
-      });
+      const categoryMap = new Map<string, CategoryItem>();
 
-      const updateList = () => {
-        const list: { id: string; label: string }[] = [];
-        categoryMap.forEach((label, id) => {
-          if (id !== "none" && id !== "cart_page") {
-            list.push({ id, label });
-          }
-        });
-        setSyncedCategories(list);
-      };
+      // Seed default categories from CATEGORY_LABELS
+      Object.keys(CATEGORY_LABELS).forEach((key) => {
+        if (key !== "none" && key !== "cart_page") {
+          categoryMap.set(key, {
+            id: key,
+            name: CATEGORY_LABELS[key],
+            imageUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+            subCategories: [],
+          });
+        }
+      });
 
       const unsubCategories = onSnapshot(collection(db, "categories"), (snap) => {
         snap.docs.forEach((d) => {
           const data = d.data();
-          const catId = d.id || data.id || data.categoryId;
-          const catName = data.name || data.title || data.label || catId;
-          if (catId) {
-            categoryMap.set(catId, catName);
+          const id = d.id || data.id || data.categoryId;
+          if (id) {
+            const name = data.name || data.title || data.label || CATEGORY_LABELS[id] || id;
+            const subCategories: string[] = Array.isArray(data.subCategories)
+              ? data.subCategories.filter((s: any) => typeof s === "string" && s.trim().length > 0)
+              : [];
+            categoryMap.set(id, {
+              id,
+              name,
+              imageUrl: data.imageUrl || data.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+              subCategories,
+            });
           }
         });
-        updateList();
+        setCategories(Array.from(categoryMap.values()));
       }, (err) => console.warn("Categories listener error", err));
 
-      const unsubProductsCat = onSnapshot(collection(db, "products"), (snap) => {
-        snap.docs.forEach((d) => {
-          const prodCategory = d.data().category;
-          if (prodCategory && typeof prodCategory === "string" && !categoryMap.has(prodCategory)) {
-            const formatted = CATEGORY_LABELS[prodCategory] || prodCategory.replace("cat_", "").replace("_", " ").toUpperCase();
-            categoryMap.set(prodCategory, formatted);
-          }
-        });
-        updateList();
-      }, (err) => console.warn("Products categories listener error", err));
-
-      updateList();
-
-      return () => {
-        unsubCategories();
-        unsubProductsCat();
-      };
+      return () => unsubCategories();
     } catch (e) {
       console.warn("Categories sync error", e);
     }
   }, []);
 
+  // 3. Realtime Firestore Listener for `stores` collection
+  useEffect(() => {
+    try {
+      const unsubStores = onSnapshot(collection(db, "stores"), (snap) => {
+        const storeList: Superstore[] = snap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id || data.id,
+            name: data.name || data.branchName || "Magozi Store Branch",
+            branchName: data.branchName || data.name || "Magozi Store",
+            location: data.location || data.fullAddress || data.address || data.CoreLocation || "Main Market",
+            CoreLocation: data.CoreLocation || data.coreLocation || data.location || "Main Market",
+            imageUrl: data.imageUrl || data.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+          } as Superstore;
+        });
+        setStores(storeList);
+      }, (err) => console.warn("Stores listener error", err));
+
+      return () => unsubStores();
+    } catch (e) {
+      console.warn("Stores sync error", e);
+    }
+  }, []);
+
+  // Toggle Stock Availability directly from Table
   const handleToggleStock = async (product: Product) => {
     const newStockStatus = !product.inStock;
     try {
@@ -117,20 +147,36 @@ function ProductsContent() {
     }
   };
 
+  // Save Product (Create or Update) to Cloud Firestore `products` collection
   const handleSaveProduct = async (productData: Partial<Product>) => {
     const prodId = productData.id || `prod_${Date.now()}`;
     const newProduct: Product = {
       id: prodId,
       name: productData.name || "Untitled Product",
       category: productData.category || "cat_fruits",
-      unit: productData.unit || "1 kg",
+      subCategory: productData.subCategory || "",
+      storeId: productData.storeId || "",
+      storeName: productData.storeName || "",
+      storeIds: productData.storeIds || [],
       price: productData.price || 0,
       originalPrice: productData.originalPrice || productData.price || 0,
-      discountTag: calculateDiscountTag(productData.price || 0, productData.originalPrice || 0),
+      discountPercentage: productData.discountPercentage || 0,
+      discountTag: productData.discountTag || calculateDiscountTag(productData.price || 0, productData.originalPrice || 0),
+      unit: productData.unit || "1 kg",
+      weight: productData.weight || productData.unit || "1 kg",
+      quantity: productData.quantity !== undefined ? productData.quantity : 50,
       inStock: productData.inStock ?? true,
+      vegType: productData.vegType || "Pure Veg",
+      description: productData.description || "",
+      details: productData.details || productData.description || "",
       image: productData.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+      images: productData.images && productData.images.length > 0 ? productData.images : [productData.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80"],
+      replacementTime: productData.replacementTime || "7 Days Replacement",
+      rating: productData.rating || 4.5,
+      isCustomizable: productData.isCustomizable ?? false,
       createdAt: productData.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      lastUpdated: Date.now(),
     };
 
     try {
@@ -140,6 +186,7 @@ function ProductsContent() {
     }
   };
 
+  // Delete Product from Cloud Firestore `products` collection
   const handleDeleteProduct = async (id: string) => {
     try {
       await deleteDoc(doc(db, "products", id));
@@ -149,16 +196,18 @@ function ProductsContent() {
     }
   };
 
+  // Filter products by search query and category
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "ALL" || p.category === selectedCategory;
+                          p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (p.subCategory && p.subCategory.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesCategory = selectedCategoryFilter === "ALL" || p.category === selectedCategoryFilter;
     return matchesSearch && matchesCategory;
   });
 
   const getCategoryLabel = (catId: string) => {
-    const found = syncedCategories.find((c) => c.id === catId);
-    return found ? found.label : (CATEGORY_LABELS[catId] || catId);
+    const found = categories.find((c) => c.id === catId);
+    return found ? found.name : (CATEGORY_LABELS[catId] || catId);
   };
 
   return (
@@ -168,10 +217,11 @@ function ProductsContent() {
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
         <Header
           title="Product Catalog Management"
-          subtitle="Realtime Cloud Firestore collection `products` — Image Upload & Instant Stock Sync"
+          subtitle="Cloud Firestore `products` collection — Multi-Image Upload, Stores & Category Syncing"
         />
 
         <div className="p-3 md:p-6 space-y-6">
+          {/* Top Search, Category Filter & Add Product Button */}
           <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center flex-wrap gap-3 w-full md:w-auto flex-1">
               <div className="relative flex-1 min-w-[240px]">
@@ -180,21 +230,21 @@ function ProductsContent() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products by name or ID..."
+                  placeholder="Search products by name, sub-category, or ID..."
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div className="relative">
                 <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  value={selectedCategoryFilter}
+                  onChange={(e) => setSelectedCategoryFilter(e.target.value)}
                   className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                 >
                   <option value="ALL">All Categories ({products.length})</option>
-                  {syncedCategories.map((cat) => (
+                  {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
-                      {cat.label}
+                      {cat.name}
                     </option>
                   ))}
                 </select>
@@ -213,110 +263,185 @@ function ProductsContent() {
             </button>
           </div>
 
+          {/* Products Table */}
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-extrabold uppercase text-slate-400">
-                    <th className="py-4 px-5">Product Info</th>
-                    <th className="py-4 px-5">Category</th>
-                    <th className="py-4 px-5">Selling Price</th>
-                    <th className="py-4 px-5">MRP / Original</th>
-                    <th className="py-4 px-5">Unit</th>
-                    <th className="py-4 px-5 text-center">Instant Stock Toggle</th>
+                    <th className="py-4 px-5">Product Details & Images</th>
+                    <th className="py-4 px-5">Category / Sub-Category</th>
+                    <th className="py-4 px-5">Store Location</th>
+                    <th className="py-4 px-5">Pricing & Discount</th>
+                    <th className="py-4 px-5">Stock & Quantity</th>
+                    <th className="py-4 px-5">Replacement & Rating</th>
                     <th className="py-4 px-5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
                   {filteredProducts.length > 0 ? (
-                    filteredProducts.map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-50/60 transition">
-                        <td className="py-3.5 px-5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex-shrink-0">
-                              <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
-                            </div>
-                            <div>
-                              <p className="font-extrabold text-slate-900 text-sm leading-snug">{p.name}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[10px] text-slate-400 font-mono">{p.id}</span>
-                                {p.discountTag && (
-                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">
-                                    {p.discountTag}
+                    filteredProducts.map((p) => {
+                      const imageCount = p.images && p.images.length > 0 ? p.images.length : (p.image ? 1 : 0);
+                      const isVeg = p.vegType === "Pure Veg" || !p.vegType;
+                      const isEgg = p.vegType === "Egg";
+
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-50/60 transition">
+                          {/* Product Details & Images */}
+                          <td className="py-4 px-5">
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-14 h-14 rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 flex-shrink-0 group">
+                                <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                                {imageCount > 1 && (
+                                  <span className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-slate-900/80 text-white text-[9px] font-bold flex items-center gap-0.5">
+                                    <ImageIcon size={10} /> {imageCount}
                                   </span>
                                 )}
                               </div>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-extrabold text-slate-900 text-sm leading-snug">{p.name}</span>
+                                  {/* Veg / Non-Veg Badge */}
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                    isVeg 
+                                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                      : isEgg
+                                      ? "bg-amber-100 text-amber-800 border border-amber-300"
+                                      : "bg-rose-100 text-rose-800 border border-rose-300"
+                                  }`}>
+                                    {p.vegType || "Pure Veg"}
+                                  </span>
+
+                                  {/* Customization Badge */}
+                                  {p.isCustomizable && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 flex items-center gap-1">
+                                      <Sparkles size={10} /> Custom
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                  <span className="font-mono text-slate-400">ID: {p.id}</span>
+                                  {p.weight && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="font-semibold text-slate-600">{p.weight}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="py-3.5 px-5">
-                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">
-                            {getCategoryLabel(p.category)}
-                          </span>
-                        </td>
+                          {/* Category & Sub-Category */}
+                          <td className="py-4 px-5">
+                            <div className="space-y-1">
+                              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 block w-fit">
+                                {getCategoryLabel(p.category)}
+                              </span>
+                              {p.subCategory && (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 block w-fit">
+                                  ↳ {p.subCategory}
+                                </span>
+                              )}
+                            </div>
+                          </td>
 
-                        <td className="py-3.5 px-5">
-                          <span className="font-extrabold text-magozi-900 text-sm">
-                            {formatCurrency(p.price)}
-                          </span>
-                        </td>
+                          {/* Store Location */}
+                          <td className="py-4 px-5">
+                            <div className="flex items-center gap-1.5 text-slate-700 font-semibold text-xs">
+                              <StoreIcon size={14} className="text-slate-400" />
+                              <span>{p.storeName || "All Stores"}</span>
+                            </div>
+                          </td>
 
-                        <td className="py-3.5 px-5">
-                          <span className="text-slate-400 line-through">
-                            {p.originalPrice ? formatCurrency(p.originalPrice) : formatCurrency(p.price)}
-                          </span>
-                        </td>
+                          {/* Pricing & Discount */}
+                          <td className="py-4 px-5">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold text-magozi-900 text-sm">
+                                  {formatCurrency(p.price)}
+                                </span>
+                                {p.originalPrice > p.price && (
+                                  <span className="text-xs text-slate-400 line-through">
+                                    {formatCurrency(p.originalPrice)}
+                                  </span>
+                                )}
+                              </div>
+                              {p.discountTag && (
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                                  {p.discountTag}
+                                </span>
+                              )}
+                            </div>
+                          </td>
 
-                        <td className="py-3.5 px-5">
-                          <span className="font-semibold text-slate-700">{p.unit}</span>
-                        </td>
+                          {/* Stock & Quantity */}
+                          <td className="py-4 px-5">
+                            <div className="space-y-1.5">
+                              <button
+                                onClick={() => handleToggleStock(p)}
+                                className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 ${
+                                  p.inStock
+                                    ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                                    : "bg-rose-100 text-rose-800 hover:bg-rose-200"
+                                }`}
+                                title="Click to toggle product stock state"
+                              >
+                                {p.inStock ? (
+                                  <>
+                                    <CheckCircle2 size={13} className="text-emerald-700" />
+                                    <span>In Stock (+ ADD)</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle size={13} className="text-rose-700" />
+                                    <span>Out of Stock</span>
+                                  </>
+                                )}
+                              </button>
+                              <div className="text-[11px] text-slate-500 font-medium pl-1">
+                                Stock Count: <span className="font-bold text-slate-800">{p.quantity !== undefined ? p.quantity : 50}</span>
+                              </div>
+                            </div>
+                          </td>
 
-                        <td className="py-3.5 px-5 text-center">
-                          <button
-                            onClick={() => handleToggleStock(p)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center justify-center gap-1.5 mx-auto ${
-                              p.inStock
-                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                                : "bg-rose-100 text-rose-800 hover:bg-rose-200"
-                            }`}
-                            title="Click to toggle product stock state in real time for Android app"
-                          >
-                            {p.inStock ? (
-                              <>
-                                <CheckCircle2 size={14} className="text-emerald-700" />
-                                <span>In Stock (+ ADD)</span>
-                              </>
-                            ) : (
-                              <>
-                                <XCircle size={14} className="text-rose-700" />
-                                <span>Out of Stock</span>
-                              </>
-                            )}
-                          </button>
-                        </td>
+                          {/* Replacement & Rating */}
+                          <td className="py-4 px-5">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-[11px] text-slate-600">
+                                <Clock size={13} className="text-slate-400" />
+                                <span>{p.replacementTime || "7 Days Replacement"}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-amber-600 font-bold text-xs">
+                                <Star size={13} className="fill-amber-400 text-amber-400" />
+                                <span>{p.rating || 4.5} / 5</span>
+                              </div>
+                            </div>
+                          </td>
 
-                        <td className="py-3.5 px-5 text-right space-x-2">
-                          <button
-                            onClick={() => {
-                              setEditingProduct(p);
-                              setModalOpen(true);
-                            }}
-                            className="p-2 rounded-xl text-slate-500 hover:text-magozi-800 hover:bg-magozi-50 transition"
-                            title="Edit Product"
-                          >
-                            <Edit3 size={16} />
-                          </button>
-                          <button
-                            onClick={() => setDeletingProductId(p.id)}
-                            className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
-                            title="Delete Product"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                          {/* Actions */}
+                          <td className="py-4 px-5 text-right space-x-2">
+                            <button
+                              onClick={() => {
+                                setEditingProduct(p);
+                                setModalOpen(true);
+                              }}
+                              className="p-2 rounded-xl text-slate-500 hover:text-magozi-800 hover:bg-magozi-50 transition"
+                              title="Edit Product"
+                            >
+                              <Edit3 size={16} />
+                            </button>
+                            <button
+                              onClick={() => setDeletingProductId(p.id)}
+                              className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
+                              title="Delete Product"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-slate-400 italic">
@@ -331,9 +456,12 @@ function ProductsContent() {
         </div>
       </main>
 
+      {/* Product Creation / Edit Modal */}
       <ProductModal
         isOpen={modalOpen}
         product={editingProduct}
+        categories={categories}
+        stores={stores}
         onClose={() => {
           setModalOpen(false);
           setEditingProduct(null);
@@ -341,6 +469,7 @@ function ProductsContent() {
         onSave={handleSaveProduct}
       />
 
+      {/* Delete Confirmation Modal */}
       {deletingProductId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center">
@@ -349,7 +478,7 @@ function ProductsContent() {
             </div>
             <h3 className="text-lg font-bold text-slate-900">Delete Product?</h3>
             <p className="text-xs text-slate-500 mt-1">
-              Are you sure you want to delete this product? This action will remove it from Cloud Firestore.
+              Are you sure you want to delete this product? This action will remove it permanently from Cloud Firestore.
             </p>
             <div className="mt-6 flex items-center justify-center gap-3">
               <button

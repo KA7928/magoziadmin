@@ -24,14 +24,29 @@ export interface Product {
   id: string;
   name: string;
   category: ProductCategory;
+  subCategory?: string;
+  storeId?: string;
+  storeName?: string;
+  storeIds?: string[];
   price: number;
   originalPrice: number;
+  discountPercentage?: number;
   discountTag?: string;
-  unit: string; // e.g. "1 Litre", "1 kg", "500g", "Dozen"
+  unit: string;
+  weight?: string;
+  quantity?: number;
   inStock: boolean;
+  vegType?: 'Pure Veg' | 'Non-Veg' | 'Egg' | string;
+  description?: string;
+  details?: string;
   image: string;
+  images?: string[];
+  replacementTime?: string;
+  rating?: string | number;
+  isCustomizable?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  lastUpdated?: number;
 }
 
 export type OrderStatus = 'PLACED' | 'PACKING' | 'OUT_FOR_DELIVERY' | 'AT_DOORSTEPS' | 'DELIVERED' | 'CANCELLED';
