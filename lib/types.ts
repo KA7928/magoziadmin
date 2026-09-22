@@ -157,6 +157,8 @@ export interface Superstore {
   location?: string;
   fullAddress?: string;
   address?: string;
+  CoreLocation?: string;
+  coreLocation?: string;
   contactNumber?: string;
   phone?: string;
   description?: string;

@@ -29,7 +29,8 @@ import {
   Search,
   Sparkles,
   Zap,
-  Lock
+  Lock,
+  Navigation
 } from "lucide-react";
 
 export default function StoresPage() {
@@ -47,6 +48,7 @@ export default function StoresPage() {
   const [storeAutoTimingEnabled, setStoreAutoTimingEnabled] = useState<boolean>(true);
   const [storeRating, setStoreRating] = useState("4.9 ★ (1.5k+)");
   const [storeLocation, setStoreLocation] = useState("");
+  const [storeCoreLocation, setStoreCoreLocation] = useState("");
   const [storeContact, setStoreContact] = useState("");
   const [storeDescription, setStoreDescription] = useState("");
   const [storeImage, setStoreImage] = useState("");
@@ -66,6 +68,7 @@ export default function StoresPage() {
           const id = d.id || data.id;
           const name = data.name || data.branchName || "Magozi Store Branch";
           const location = data.location || data.fullAddress || data.address || "Main Market, Gurgaon";
+          const coreLoc = data.CoreLocation || data.coreLocation || location;
           const imageUrl = data.imageUrl || data.image || data.photoUrl || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80";
           const logoUrl = data.logoUrl || data.logo || data.storeLogo || "";
 
@@ -106,6 +109,8 @@ export default function StoresPage() {
             location,
             fullAddress: location,
             address: location,
+            CoreLocation: coreLoc,
+            coreLocation: coreLoc,
             contactNumber: data.contactNumber || data.phone || "N/A",
             phone: data.phone || data.contactNumber || "N/A",
             description: data.description || "Official Magozi local dark store fulfillment hub delivering in 8-10 minutes.",
@@ -264,7 +269,9 @@ export default function StoresPage() {
       calculatedIsOpen = isCurrentTimeWithinOperatingHours(cleanOpenTime, cleanCloseTime);
     }
 
-    // 3. Save document to Firestore `stores` collection
+    const finalCoreLocation = storeCoreLocation.trim() || storeLocation.trim() || "Main Market, Gurgaon";
+
+    // 3. Save document to Firestore `stores` collection with `CoreLocation`
     const newStoreData = {
       id,
       name: storeName.trim(),
@@ -279,6 +286,8 @@ export default function StoresPage() {
       location: storeLocation.trim() || "Main Market, Gurgaon",
       fullAddress: storeLocation.trim() || "Main Market, Gurgaon",
       address: storeLocation.trim() || "Main Market, Gurgaon",
+      CoreLocation: finalCoreLocation,
+      coreLocation: finalCoreLocation,
       contactNumber: storeContact.trim() || "+91 9288585939",
       phone: storeContact.trim() || "+91 9288585939",
       description: storeDescription.trim() || "Official Magozi local dark store fulfillment hub delivering in 8-10 minutes.",
@@ -318,6 +327,7 @@ export default function StoresPage() {
     setStoreAutoTimingEnabled(true);
     setStoreRating("4.9 ★ (1.5k+)");
     setStoreLocation("");
+    setStoreCoreLocation("");
     setStoreContact("");
     setStoreDescription("");
     setStoreImage("");
@@ -345,6 +355,7 @@ export default function StoresPage() {
     setStoreAutoTimingEnabled(store.autoTimingEnabled !== undefined ? Boolean(store.autoTimingEnabled) : true);
     setStoreRating(String(store.rating || "4.8 ★"));
     setStoreLocation(store.location || store.fullAddress || "");
+    setStoreCoreLocation(store.CoreLocation || store.coreLocation || store.location || "");
     setStoreContact(store.contactNumber || store.phone || "");
     setStoreDescription(store.description || "");
     setStoreImage(store.imageUrl);
@@ -383,6 +394,7 @@ export default function StoresPage() {
   const filteredStores = stores.filter((s) =>
     (s.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     (s.location || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.CoreLocation || s.coreLocation || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     (s.id || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -393,7 +405,7 @@ export default function StoresPage() {
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
         <Header
           title="Superstores & Dark Store Hubs"
-          subtitle="Realtime Store Open/Close Operating Hours & Auto-Scheduler Sync in Firestore `stores`"
+          subtitle="Manage `CoreLocation`, Realtime Open/Close Operating Hours & Sync in Firestore `stores`"
         />
 
         <div className="p-3 md:p-6 space-y-6">
@@ -406,7 +418,7 @@ export default function StoresPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search stores by name, location or ID..."
+                  placeholder="Search stores by name, location, CoreLocation or ID..."
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
@@ -542,6 +554,18 @@ export default function StoresPage() {
                       </p>
 
                       <div className="space-y-2 pt-1 text-xs text-slate-600 font-medium">
+                        {/* CoreLocation Badge Display */}
+                        <div className="flex items-start gap-2 text-xs text-slate-800 font-semibold bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-200/80">
+                          <Navigation size={15} className="text-emerald-700 flex-shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] font-extrabold uppercase text-emerald-800 tracking-wider block leading-none mb-0.5">Core Location (`CoreLocation`)</span>
+                            <span className="text-xs font-bold text-slate-900 truncate block">
+                              {store.CoreLocation || store.coreLocation || store.location || "Default Core Hub"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Location / Full Address */}
                         <div className="flex items-start gap-2">
                           <MapPin size={15} className="text-magozi-800 flex-shrink-0 mt-0.5" />
                           <a
@@ -727,6 +751,21 @@ export default function StoresPage() {
                 </div>
               </div>
 
+              {/* Core Location Field */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Core Location (`CoreLocation`)</span>
+                  <span className="text-[10px] text-emerald-700 font-bold">Main Zone / Hub Area</span>
+                </label>
+                <input
+                  type="text"
+                  value={storeCoreLocation}
+                  onChange={(e) => setStoreCoreLocation(e.target.value)}
+                  placeholder="e.g. Gurgaon Sector 14 Dark Store Hub / Cyber City Zone"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none bg-emerald-50/30"
+                />
+              </div>
+
               {/* Store Open/Close Timing & Auto-Scheduler Section */}
               <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 space-y-3 shadow-inner">
                 <div className="flex items-center justify-between flex-wrap gap-2">
@@ -856,7 +895,7 @@ export default function StoresPage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Location / Full Address <span className="text-rose-500">*</span>
+                  Full Location / Address <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
