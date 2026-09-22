@@ -67,41 +67,25 @@ function ProductsContent() {
     }
   }, []);
 
-  // 2. Realtime Firestore Listener for `categories` collection
+  // 2. Realtime Firestore Listener for `categories` collection — 100% Pure Firestore Data
   useEffect(() => {
     try {
-      const categoryMap = new Map<string, CategoryItem>();
-
-      // Seed default categories from CATEGORY_LABELS
-      Object.keys(CATEGORY_LABELS).forEach((key) => {
-        if (key !== "none" && key !== "cart_page") {
-          categoryMap.set(key, {
-            id: key,
-            name: CATEGORY_LABELS[key],
-            imageUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
-            subCategories: [],
-          });
-        }
-      });
-
       const unsubCategories = onSnapshot(collection(db, "categories"), (snap) => {
-        snap.docs.forEach((d) => {
+        const list: CategoryItem[] = snap.docs.map((d) => {
           const data = d.data();
           const id = d.id || data.id || data.categoryId;
-          if (id) {
-            const name = data.name || data.title || data.label || CATEGORY_LABELS[id] || id;
-            const subCategories: string[] = Array.isArray(data.subCategories)
-              ? data.subCategories.filter((s: any) => typeof s === "string" && s.trim().length > 0)
-              : [];
-            categoryMap.set(id, {
-              id,
-              name,
-              imageUrl: data.imageUrl || data.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
-              subCategories,
-            });
-          }
+          const name = data.name || data.title || data.label || id;
+          const subCategories: string[] = Array.isArray(data.subCategories)
+            ? data.subCategories.filter((s: any) => typeof s === "string" && s.trim().length > 0)
+            : [];
+          return {
+            id,
+            name,
+            imageUrl: data.imageUrl || data.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80",
+            subCategories,
+          };
         });
-        setCategories(Array.from(categoryMap.values()));
+        setCategories(list);
       }, (err) => console.warn("Categories listener error", err));
 
       return () => unsubCategories();
@@ -153,7 +137,7 @@ function ProductsContent() {
     const newProduct: Product = {
       id: prodId,
       name: productData.name || "Untitled Product",
-      category: productData.category || "cat_fruits",
+      category: productData.category || (categories.length > 0 ? categories[0].id : "general"),
       subCategory: productData.subCategory || "",
       storeId: productData.storeId || "",
       storeName: productData.storeName || "",

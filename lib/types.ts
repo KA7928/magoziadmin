@@ -1,22 +1,7 @@
-export type ProductCategory = 
-  | 'none'
-  | 'cat_fruits' 
-  | 'cat_veggies' 
-  | 'cat_dairy' 
-  | 'cat_bakery' 
-  | 'cat_meals' 
-  | 'cat_snacks'
-  | 'cart_page'
-  | (string & {});
+export type ProductCategory = 'none' | 'cart_page' | string;
 
 export const CATEGORY_LABELS: Record<string, string> = {
   none: '🚫 None (No Redirection)',
-  cat_fruits: 'Fresh Fruits',
-  cat_veggies: 'Vegetables & Herbs',
-  cat_dairy: 'Dairy & Milk',
-  cat_bakery: 'Bakery & Bread',
-  cat_meals: 'Ready Meals & Instant',
-  cat_snacks: 'Snacks & Beverages',
   cart_page: '🛒 Open Cart Page / Checkout',
 };
 

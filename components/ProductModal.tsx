@@ -73,7 +73,7 @@ export default function ProductModal({
       setDescription(product.description || product.details || "");
       setVegType(product.vegType || "Pure Veg");
       setSelectedStoreId(product.storeId || (stores.length > 0 ? stores[0].id : ""));
-      setCategory(product.category || (categories.length > 0 ? categories[0].id : "cat_fruits"));
+      setCategory(product.category || (categories.length > 0 ? categories[0].id : ""));
       setSubCategory(product.subCategory || "");
       setOriginalPrice(product.originalPrice !== undefined ? product.originalPrice : (product.price || 120));
       setPrice(product.price !== undefined ? product.price : 100);
@@ -102,7 +102,7 @@ export default function ProductModal({
       setDescription("");
       setVegType("Pure Veg");
       setSelectedStoreId(stores.length > 0 ? stores[0].id : "");
-      const defaultCat = categories.length > 0 ? categories[0].id : "cat_fruits";
+      const defaultCat = categories.length > 0 ? categories[0].id : "";
       setCategory(defaultCat);
       setSubCategory("");
       setOriginalPrice(120);

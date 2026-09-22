@@ -25,7 +25,7 @@ export default function BannersPage() {
   // Banner Form State
   const [bannerTitle, setBannerTitle] = useState("");
   const [bannerSubtitle, setBannerSubtitle] = useState("");
-  const [bannerCategory, setBannerCategory] = useState<ProductCategory>("cat_fruits");
+  const [bannerCategory, setBannerCategory] = useState<ProductCategory>("none");
   const [bannerPriority, setBannerPriority] = useState<number>(1);
   const [bannerActive, setBannerActive] = useState<boolean>(true);
   const [bannerImage, setBannerImage] = useState<string>("https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=1200&q=80");
@@ -143,7 +143,7 @@ export default function BannersPage() {
   const resetBannerForm = () => {
     setBannerTitle("");
     setBannerSubtitle("");
-    setBannerCategory("cat_fruits");
+    setBannerCategory("none");
     setBannerPriority(1);
     setBannerActive(true);
     setBannerImage("https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=1200&q=80");

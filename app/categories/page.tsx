@@ -65,7 +65,7 @@ export default function CategoriesPage() {
           const data = d.data();
           const id = d.id || data.id || data.categoryId;
           if (id) {
-            const name = data.name || data.title || data.label || CATEGORY_LABELS[id] || id.replace("cat_", "").replace(/_/g, " ").toUpperCase();
+            const name = data.name || data.title || data.label || id;
             const imageUrl = data.imageUrl || data.image || data.iconUrl || data.icon || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80";
             
             // Normalize subCategories string array
@@ -100,7 +100,7 @@ export default function CategoriesPage() {
         snap.docs.forEach((d) => {
           const prodCategory = d.data().category;
           if (prodCategory && typeof prodCategory === "string" && !categoryMap.has(prodCategory)) {
-            const formattedName = CATEGORY_LABELS[prodCategory] || prodCategory.replace("cat_", "").replace(/_/g, " ").toUpperCase();
+            const formattedName = prodCategory;
             categoryMap.set(prodCategory, {
               id: prodCategory,
               name: formattedName,
