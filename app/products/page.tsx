@@ -23,7 +23,11 @@ import {
   Layers,
   Sparkles,
   Sliders,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Filter,
+  ArrowUpDown,
+  RotateCcw,
+  Percent
 } from "lucide-react";
 
 function ProductsContent() {
@@ -34,8 +38,12 @@ function ProductsContent() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [stores, setStores] = useState<Superstore[]>([]);
 
+  // Filter & Search & Sort States
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("ALL");
+  const [selectedStoreFilter, setSelectedStoreFilter] = useState<string>("ALL");
+  const [sortBy, setSortBy] = useState<string>("newest");
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
@@ -180,18 +188,66 @@ function ProductsContent() {
     }
   };
 
-  // Filter products by search query and category
+  // 1. Filter products by search query, store, and category
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (p.subCategory && p.subCategory.toLowerCase().includes(searchQuery.toLowerCase()));
+    
     const matchesCategory = selectedCategoryFilter === "ALL" || p.category === selectedCategoryFilter;
-    return matchesSearch && matchesCategory;
+
+    const matchesStore = selectedStoreFilter === "ALL" || 
+                         p.storeId === selectedStoreFilter || 
+                         (Array.isArray(p.storeIds) && p.storeIds.includes(selectedStoreFilter));
+
+    return matchesSearch && matchesCategory && matchesStore;
+  });
+
+  // 2. Sort filtered products by user selection
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortBy === "oldest") {
+      const timeA = new Date(a.createdAt || 0).getTime() || a.lastUpdated || 0;
+      const timeB = new Date(b.createdAt || 0).getTime() || b.lastUpdated || 0;
+      return timeA - timeB;
+    }
+    if (sortBy === "price_low_high") {
+      return (a.price || 0) - (b.price || 0);
+    }
+    if (sortBy === "price_high_low") {
+      return (b.price || 0) - (a.price || 0);
+    }
+    if (sortBy === "top_rating") {
+      const ratingA = Number(a.rating) || 0;
+      const ratingB = Number(b.rating) || 0;
+      return ratingB - ratingA;
+    }
+    if (sortBy === "top_discounted") {
+      const discA = a.discountPercentage !== undefined 
+        ? a.discountPercentage 
+        : (a.originalPrice && a.originalPrice > a.price ? Math.round(((a.originalPrice - a.price) / a.originalPrice) * 100) : 0);
+      const discB = b.discountPercentage !== undefined 
+        ? b.discountPercentage 
+        : (b.originalPrice && b.originalPrice > b.price ? Math.round(((b.originalPrice - b.price) / b.originalPrice) * 100) : 0);
+      return discB - discA;
+    }
+    // Default: newest (Date New to Old)
+    const timeA = new Date(a.createdAt || 0).getTime() || a.lastUpdated || 0;
+    const timeB = new Date(b.createdAt || 0).getTime() || b.lastUpdated || 0;
+    return timeB - timeA;
   });
 
   const getCategoryLabel = (catId: string) => {
     const found = categories.find((c) => c.id === catId);
     return found ? found.name : (CATEGORY_LABELS[catId] || catId);
+  };
+
+  const isFilterActive = searchQuery !== "" || selectedCategoryFilter !== "ALL" || selectedStoreFilter !== "ALL" || sortBy !== "newest";
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setSelectedCategoryFilter("ALL");
+    setSelectedStoreFilter("ALL");
+    setSortBy("newest");
   };
 
   return (
@@ -201,14 +257,15 @@ function ProductsContent() {
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
         <Header
           title="Product Catalog Management"
-          subtitle="Cloud Firestore `products` collection — Multi-Image Upload, Stores & Category Syncing"
+          subtitle="Cloud Firestore `products` collection — Realtime Filtering, Store & Category Sync"
         />
 
         <div className="p-3 md:p-6 space-y-6">
-          {/* Top Search, Category Filter & Add Product Button */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center flex-wrap gap-3 w-full md:w-auto flex-1">
-              <div className="relative flex-1 min-w-[240px]">
+          {/* Top Bar: Search, Category Filter, Store Filter, Sort By & Add Product */}
+          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+              {/* Search Bar */}
+              <div className="relative flex-1 w-full">
                 <Search size={18} className="absolute left-3.5 top-3 text-slate-400" />
                 <input
                   type="text"
@@ -219,13 +276,32 @@ function ProductsContent() {
                 />
               </div>
 
-              <div className="relative">
+              {/* Add New Product Button */}
+              <button
+                onClick={() => {
+                  setEditingProduct(null);
+                  setModalOpen(true);
+                }}
+                className="w-full lg:w-auto px-5 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 transition flex items-center justify-center gap-2 flex-shrink-0"
+              >
+                <Plus size={16} />
+                <span>Add New Product</span>
+              </button>
+            </div>
+
+            {/* Filter & Sort Controls Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-slate-100">
+              {/* 1. Category Filter (Synced from Firestore categories) */}
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                  <Layers size={13} /> Filter Category
+                </label>
                 <select
                   value={selectedCategoryFilter}
                   onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                 >
-                  <option value="ALL">All Categories ({products.length})</option>
+                  <option value="ALL">All Categories ({categories.length})</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
@@ -233,18 +309,73 @@ function ProductsContent() {
                   ))}
                 </select>
               </div>
+
+              {/* 2. Store Filter (Synced from Firestore stores) */}
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                  <StoreIcon size={13} /> Filter Store
+                </label>
+                <select
+                  value={selectedStoreFilter}
+                  onChange={(e) => setSelectedStoreFilter(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                >
+                  <option value="ALL">All Stores ({stores.length})</option>
+                  {stores.map((store) => (
+                    <option key={store.id} value={store.id}>
+                      {store.name || store.branchName || "Store"} ({store.location || "Location"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 3. Sort By Options */}
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                  <ArrowUpDown size={13} /> Sort By
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-magozi-900 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                >
+                  <option value="newest">📅 Date: Newest First</option>
+                  <option value="oldest">📅 Date: Oldest First</option>
+                  <option value="price_low_high">💵 Price: Low to High</option>
+                  <option value="price_high_low">💰 Price: High to Low</option>
+                  <option value="top_rating">⭐ Top Rated</option>
+                  <option value="top_discounted">🏷️ Top Discounted %</option>
+                </select>
+              </div>
+
+              {/* 4. Reset Filters Button */}
+              <div className="flex items-end">
+                <button
+                  onClick={handleResetFilters}
+                  disabled={!isFilterActive}
+                  className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                    isFilterActive
+                      ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+                      : "border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed"
+                  }`}
+                >
+                  <RotateCcw size={14} />
+                  <span>Reset Filters</span>
+                </button>
+              </div>
             </div>
 
-            <button
-              onClick={() => {
-                setEditingProduct(null);
-                setModalOpen(true);
-              }}
-              className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 transition flex items-center justify-center gap-2"
-            >
-              <Plus size={16} />
-              <span>Add New Product</span>
-            </button>
+            {/* Active Filter Counter */}
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+              <span className="font-medium">
+                Showing <strong className="text-slate-900 font-bold">{sortedProducts.length}</strong> of {products.length} products
+              </span>
+              {isFilterActive && (
+                <span className="text-[11px] text-magozi-800 font-bold bg-magozi-50 px-2 py-0.5 rounded-full border border-magozi-200">
+                  Filters Active
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Products Table */}
@@ -263,8 +394,8 @@ function ProductsContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.map((p) => {
+                  {sortedProducts.length > 0 ? (
+                    sortedProducts.map((p) => {
                       const imageCount = p.images && p.images.length > 0 ? p.images.length : (p.image ? 1 : 0);
                       const isVeg = p.vegType === "Pure Veg" || !p.vegType;
                       const isEgg = p.vegType === "Egg";
@@ -429,7 +560,9 @@ function ProductsContent() {
                   ) : (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-slate-400 italic">
-                        No products found in Cloud Firestore <code className="font-mono text-slate-600 font-bold">products</code> collection.
+                        {isFilterActive 
+                          ? "No products match your selected filters." 
+                          : "No products found in Cloud Firestore products collection."}
                       </td>
                     </tr>
                   )}
