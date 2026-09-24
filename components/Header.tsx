@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useTheme } from "@/lib/theme-context";
 import { seedFirestoreDatabase } from "@/lib/seeder";
 import { getFirebaseConfig, saveCustomFirebaseConfig } from "@/lib/firebase";
-import { Database, ShieldCheck, CheckCircle2, RefreshCw, Key, X, Settings, Menu } from "lucide-react";
+import { Database, ShieldCheck, CheckCircle2, RefreshCw, Key, X, Settings, Menu, Sun, Moon } from "lucide-react";
 
 interface HeaderProps {
   title: string;
@@ -13,6 +14,7 @@ interface HeaderProps {
 
 export default function Header({ title, subtitle }: HeaderProps) {
   const { adminEmail } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState<string | null>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -57,50 +59,64 @@ export default function Header({ title, subtitle }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-6 py-3.5 md:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
+    <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 md:px-6 py-3.5 md:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4 transition-colors">
       <div className="flex items-center gap-3">
         <button
           onClick={() => window.dispatchEvent(new CustomEvent("toggle-mobile-menu"))}
-          className="md:hidden p-2 rounded-xl bg-slate-100 text-slate-800 hover:bg-slate-200 transition shadow-xs flex-shrink-0"
+          className="md:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition shadow-xs flex-shrink-0"
           title="Toggle Navigation Menu"
         >
           <Menu size={20} />
         </button>
 
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">{title}</h1>
-          {subtitle && <p className="text-xs md:text-sm text-slate-500 line-clamp-1">{subtitle}</p>}
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{title}</h1>
+          {subtitle && <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 line-clamp-1">{subtitle}</p>}
         </div>
       </div>
 
       <div className="flex items-center flex-wrap gap-3">
+        {/* Dark Mode Toggle Button */}
+        <button
+          onClick={toggleTheme}
+          className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition shadow-sm flex items-center justify-center cursor-pointer"
+          title={theme === "dark" ? "Switch to Light Mode ☀️" : "Switch to Dark Mode 🌙"}
+          aria-label="Toggle Dark Mode"
+        >
+          {theme === "dark" ? (
+            <Sun size={18} className="text-amber-400" />
+          ) : (
+            <Moon size={18} className="text-slate-700" />
+          )}
+        </button>
+
         {/* Firebase Config Keys Button */}
         <button
           onClick={() => setShowConfigModal(true)}
-          className="p-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition shadow-sm"
+          className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition shadow-sm"
           title="Connect or Edit your Real Firebase Credentials"
         >
-          <Key size={16} className="text-slate-600" />
+          <Key size={16} className="text-slate-600 dark:text-slate-300" />
         </button>
 
         {/* Firestore Seeder Button */}
         <button
           onClick={handleSeedDatabase}
           disabled={seeding}
-          className="p-2.5 rounded-xl bg-emerald-50 text-magozi-800 border border-magozi-200 hover:bg-magozi-100 transition shadow-sm disabled:opacity-50"
+          className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-magozi-800 dark:text-emerald-400 border border-magozi-200 dark:border-emerald-800/60 hover:bg-magozi-100 dark:hover:bg-emerald-900/60 transition shadow-sm disabled:opacity-50"
           title="Populate Cloud Firestore with production schema & default admin permissions"
         >
           {seeding ? (
-            <RefreshCw size={16} className="animate-spin text-magozi-700" />
+            <RefreshCw size={16} className="animate-spin text-magozi-700 dark:text-emerald-400" />
           ) : (
-            <Database size={16} className="text-magozi-700" />
+            <Database size={16} className="text-magozi-700 dark:text-emerald-400" />
           )}
         </button>
 
         {/* Admin Email Pill */}
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-900">
-          <ShieldCheck size={14} className="text-emerald-600" />
-          <span className="font-bold text-slate-900">{adminEmail || "Verified Admin"}</span>
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold text-emerald-900 dark:text-emerald-300">
+          <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400" />
+          <span className="font-bold text-slate-900 dark:text-slate-100">{adminEmail || "Verified Admin"}</span>
         </div>
       </div>
 

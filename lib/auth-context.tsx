@@ -151,6 +151,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    // Trigger background sync for store open/close timing
+    fetch("/api/cron/sync-store-status").catch((err) => {
+      console.warn("Background store status sync fetch notice:", err);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
