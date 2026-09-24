@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Product, ProductCategory, CategoryItem, Superstore } from "@/lib/types";
-import { storage, ref, uploadBytes, getDownloadURL } from "@/lib/firebase";
+import { storage, ref, uploadBytes, getDownloadURL, deleteStorageImage } from "@/lib/firebase";
 import { calculateDiscountTag } from "@/lib/utils";
 import { 
   X, 
@@ -191,7 +191,11 @@ export default function ProductModal({
     }
   };
 
-  const handleRemoveExistingUrl = (index: number) => {
+  const handleRemoveExistingUrl = async (index: number) => {
+    const urlToRemove = imageUrls[index];
+    if (urlToRemove) {
+      deleteStorageImage(urlToRemove);
+    }
     setImageUrls((prev) => prev.filter((_, i) => i !== index));
     if (primaryImageIndex >= index && primaryImageIndex > 0) {
       setPrimaryImageIndex(primaryImageIndex - 1);
@@ -241,6 +245,20 @@ export default function ProductModal({
       const allCombinedImages = [...imageUrls, ...uploadedStorageUrls];
       if (allCombinedImages.length === 0) {
         allCombinedImages.push("https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80");
+      }
+
+      // Delete any previously assigned images that were removed during editing
+      if (product) {
+        const oldImages = new Set<string>();
+        if (product.image) oldImages.add(product.image);
+        if (Array.isArray(product.images)) product.images.forEach((img) => img && oldImages.add(img));
+        
+        const newImageSet = new Set(allCombinedImages);
+        for (const oldUrl of Array.from(oldImages)) {
+          if (!newImageSet.has(oldUrl)) {
+            await deleteStorageImage(oldUrl);
+          }
+        }
       }
 
       const selectedStoreObj = stores.find((s) => s.id === selectedStoreId);

@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import ProductModal from "@/components/ProductModal";
 import { Product, CategoryItem, Superstore, CATEGORY_LABELS } from "@/lib/types";
 import { formatCurrency, calculateDiscountTag } from "@/lib/utils";
-import { db, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "@/lib/firebase";
+import { db, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, deleteStorageImage } from "@/lib/firebase";
 import { 
   Plus, 
   Search, 
@@ -179,8 +179,22 @@ function ProductsContent() {
     }
   };
 
-  // Delete Product from Cloud Firestore `products` collection
+  // Delete Product from Cloud Firestore `products` collection & delete images from Firebase Storage
   const handleDeleteProduct = async (id: string) => {
+    const productToDelete = products.find((p) => p.id === id);
+    if (productToDelete) {
+      const urlsToDelete = new Set<string>();
+      if (productToDelete.image) urlsToDelete.add(productToDelete.image);
+      if (Array.isArray(productToDelete.images)) {
+        productToDelete.images.forEach((img) => {
+          if (img) urlsToDelete.add(img);
+        });
+      }
+      for (const url of Array.from(urlsToDelete)) {
+        await deleteStorageImage(url);
+      }
+    }
+
     try {
       await deleteDoc(doc(db, "products", id));
       setDeletingProductId(null);

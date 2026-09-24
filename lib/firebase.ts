@@ -80,6 +80,19 @@ export function saveCustomFirebaseConfig(newConfig: Record<string, string>) {
   }
 }
 
+export async function deleteStorageImage(imageUrl: string) {
+  if (!imageUrl || typeof imageUrl !== "string") return;
+  if (imageUrl.includes("firebasestorage.googleapis.com") || imageUrl.includes("gs://")) {
+    try {
+      const storageRef = ref(storage, imageUrl);
+      await deleteObject(storageRef);
+      console.log("Successfully deleted image from Firebase Storage:", imageUrl);
+    } catch (err) {
+      console.warn("Notice deleting image from Firebase Storage:", err);
+    }
+  }
+}
+
 export {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
