@@ -77,26 +77,24 @@ export default function Header({ title, subtitle }: HeaderProps) {
         {/* Firebase Config Keys Button */}
         <button
           onClick={() => setShowConfigModal(true)}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition shadow-sm"
+          className="p-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition shadow-sm"
           title="Connect or Edit your Real Firebase Credentials"
         >
-          <Key size={14} className="text-slate-600" />
-          <span>Firebase Keys</span>
+          <Key size={16} className="text-slate-600" />
         </button>
 
         {/* Firestore Seeder Button */}
         <button
           onClick={handleSeedDatabase}
           disabled={seeding}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-magozi-800 border border-magozi-200 hover:bg-magozi-100 transition shadow-sm disabled:opacity-50"
+          className="p-2.5 rounded-xl bg-emerald-50 text-magozi-800 border border-magozi-200 hover:bg-magozi-100 transition shadow-sm disabled:opacity-50"
           title="Populate Cloud Firestore with production schema & default admin permissions"
         >
           {seeding ? (
-            <RefreshCw size={14} className="animate-spin text-magozi-700" />
+            <RefreshCw size={16} className="animate-spin text-magozi-700" />
           ) : (
-            <Database size={14} className="text-magozi-700" />
+            <Database size={16} className="text-magozi-700" />
           )}
-          <span>{seeding ? "Seeding Real DB..." : "Seed Real Firestore"}</span>
         </button>
 
         {/* Admin Email Pill */}
