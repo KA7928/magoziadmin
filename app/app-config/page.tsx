@@ -64,7 +64,8 @@ export default function AppConfigPage() {
   const [openingHoursInput, setOpeningHoursInput] = useState<string>(appOpenClose.openingHours || "06:00 AM - 11:30 PM");
   const [closedMessageInput, setClosedMessageInput] = useState<string>(appOpenClose.closedMessage || "We are currently closed for orders.");
 
-  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "terms" | "privacy" | "refund" | "shipping" | "about" | "support">("charges");
+  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "policies" | "support">("charges");
+  const [policySubTab, setPolicySubTab] = useState<"terms" | "privacy" | "refund" | "shipping" | "about">("terms");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -393,10 +394,15 @@ export default function AppConfigPage() {
       cancel_order_timer: cancelTimerValInSeconds,
 
       terms_and_conditions: config.termsAndConditions || "",
+      termsAndConditions: config.termsAndConditions || "",
       privacy_policy: config.privacyPolicy || "",
+      privacyPolicy: config.privacyPolicy || "",
       refund_policy: config.refundPolicy || "",
+      refundPolicy: config.refundPolicy || "",
       shipping_policy: config.shippingPolicy || "",
+      shippingPolicy: config.shippingPolicy || "",
       about_us: config.aboutUs || "",
+      aboutUs: config.aboutUs || "",
 
       updatedAt: new Date().toISOString()
     };
@@ -566,63 +572,15 @@ export default function AppConfigPage() {
             </button>
 
             <button
-              onClick={() => setActiveTab("terms")}
+              onClick={() => setActiveTab("policies")}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                activeTab === "terms"
+                activeTab === "policies"
                   ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
                   : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
               }`}
             >
               <FileText size={15} />
-              <span>Terms & Conditions Policy</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("privacy")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                activeTab === "privacy"
-                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <ShieldCheck size={15} />
-              <span>Privacy Policy</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("refund")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                activeTab === "refund"
-                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <FileText size={15} />
-              <span>Refund & Return Policy</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("shipping")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                activeTab === "shipping"
-                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <Truck size={15} />
-              <span>Shipping & Delivery Policy</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("about")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                activeTab === "about"
-                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <HelpCircle size={15} />
-              <span>About Us Info</span>
+              <span>Policies & Legal Documents</span>
             </button>
 
             <button
@@ -1108,93 +1066,196 @@ export default function AppConfigPage() {
               </div>
             )}
 
-            {/* Terms and Conditions Editor */}
-            {activeTab === "terms" && (
-              <div className="space-y-4">
+            {/* Unified Policies & Legal Documents Section */}
+            {activeTab === "policies" && (
+              <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-900">Terms & Conditions Policy</h3>
-                  <p className="text-xs text-slate-500">
-                    Saved to Firestore fields <code className="font-mono font-bold text-slate-700">termsAndConditions</code> & <code className="font-mono font-bold text-slate-700">terms_and_conditions</code>
+                  <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                    <FileText className="text-magozi-800" size={22} />
+                    <span>Policies & Legal Documents</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Manage terms & conditions, privacy policy, refund policy, shipping policy, and about us info. All content syncs to Cloud Firestore document <code className="font-mono font-bold text-slate-700">app_config/global_settings</code>.
                   </p>
                 </div>
-                <textarea
-                  rows={14}
-                  value={config.termsAndConditions}
-                  onChange={(e) => setConfig({ ...config, termsAndConditions: e.target.value })}
-                  className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed"
-                />
-              </div>
-            )}
 
-            {/* Privacy Policy Editor */}
-            {activeTab === "privacy" && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-900">Privacy Policy</h3>
-                  <p className="text-xs text-slate-500">
-                    Saved to Firestore fields <code className="font-mono font-bold text-slate-700">privacyPolicy</code> & <code className="font-mono font-bold text-slate-700">privacy_policy</code>
-                  </p>
-                </div>
-                <textarea
-                  rows={14}
-                  value={config.privacyPolicy}
-                  onChange={(e) => setConfig({ ...config, privacyPolicy: e.target.value })}
-                  className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed"
-                />
-              </div>
-            )}
+                {/* Policy Sub-Tabs / Sub-Navigation */}
+                <div className="flex items-center flex-wrap gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setPolicySubTab("terms")}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                      policySubTab === "terms"
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    }`}
+                  >
+                    <FileText size={14} className={policySubTab === "terms" ? "text-magozi-800" : "text-slate-400"} />
+                    <span>Terms & Conditions</span>
+                  </button>
 
-            {/* Refund Policy Editor */}
-            {activeTab === "refund" && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-900">Refund & Return Policy</h3>
-                  <p className="text-xs text-slate-500">
-                    Saved to Firestore fields <code className="font-mono font-bold text-slate-700">refundPolicy</code> & <code className="font-mono font-bold text-slate-700">refund_policy</code>
-                  </p>
-                </div>
-                <textarea
-                  rows={14}
-                  value={config.refundPolicy}
-                  onChange={(e) => setConfig({ ...config, refundPolicy: e.target.value })}
-                  className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed"
-                />
-              </div>
-            )}
+                  <button
+                    type="button"
+                    onClick={() => setPolicySubTab("privacy")}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                      policySubTab === "privacy"
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    }`}
+                  >
+                    <ShieldCheck size={14} className={policySubTab === "privacy" ? "text-magozi-800" : "text-slate-400"} />
+                    <span>Privacy Policy</span>
+                  </button>
 
-            {/* Shipping Policy Editor */}
-            {activeTab === "shipping" && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-900">Shipping & Delivery Policy</h3>
-                  <p className="text-xs text-slate-500">
-                    Saved to Firestore fields <code className="font-mono font-bold text-slate-700">shippingPolicy</code> & <code className="font-mono font-bold text-slate-700">shipping_policy</code>
-                  </p>
-                </div>
-                <textarea
-                  rows={14}
-                  value={config.shippingPolicy}
-                  onChange={(e) => setConfig({ ...config, shippingPolicy: e.target.value })}
-                  className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed"
-                />
-              </div>
-            )}
+                  <button
+                    type="button"
+                    onClick={() => setPolicySubTab("refund")}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                      policySubTab === "refund"
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    }`}
+                  >
+                    <FileText size={14} className={policySubTab === "refund" ? "text-magozi-800" : "text-slate-400"} />
+                    <span>Refund & Return Policy</span>
+                  </button>
 
-            {/* About Us Editor */}
-            {activeTab === "about" && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-900">About Us Information</h3>
-                  <p className="text-xs text-slate-500">
-                    Saved to Firestore fields <code className="font-mono font-bold text-slate-700">aboutUs</code> & <code className="font-mono font-bold text-slate-700">about_us</code>
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setPolicySubTab("shipping")}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                      policySubTab === "shipping"
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    }`}
+                  >
+                    <Truck size={14} className={policySubTab === "shipping" ? "text-magozi-800" : "text-slate-400"} />
+                    <span>Shipping & Delivery</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPolicySubTab("about")}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                      policySubTab === "about"
+                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    }`}
+                  >
+                    <HelpCircle size={14} className={policySubTab === "about" ? "text-magozi-800" : "text-slate-400"} />
+                    <span>About Us Information</span>
+                  </button>
                 </div>
-                <textarea
-                  rows={14}
-                  value={config.aboutUs}
-                  onChange={(e) => setConfig({ ...config, aboutUs: e.target.value })}
-                  className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed"
-                />
+
+                {/* Terms & Conditions Editor */}
+                {policySubTab === "terms" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                        <FileText size={16} className="text-magozi-800" />
+                        <span>Terms & Conditions Policy</span>
+                      </h4>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        Fields: <code className="font-bold text-slate-700">termsAndConditions</code> & <code className="font-bold text-slate-700">terms_and_conditions</code>
+                      </span>
+                    </div>
+                    <textarea
+                      rows={14}
+                      value={config.termsAndConditions}
+                      onChange={(e) => setConfig({ ...config, termsAndConditions: e.target.value })}
+                      placeholder="Enter terms and conditions text here..."
+                      className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white"
+                    />
+                  </div>
+                )}
+
+                {/* Privacy Policy Editor */}
+                {policySubTab === "privacy" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-magozi-800" />
+                        <span>Privacy Policy</span>
+                      </h4>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        Fields: <code className="font-bold text-slate-700">privacyPolicy</code> & <code className="font-bold text-slate-700">privacy_policy</code>
+                      </span>
+                    </div>
+                    <textarea
+                      rows={14}
+                      value={config.privacyPolicy}
+                      onChange={(e) => setConfig({ ...config, privacyPolicy: e.target.value })}
+                      placeholder="Enter privacy policy text here..."
+                      className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white"
+                    />
+                  </div>
+                )}
+
+                {/* Refund & Return Policy Editor */}
+                {policySubTab === "refund" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                        <FileText size={16} className="text-magozi-800" />
+                        <span>Refund & Return Policy</span>
+                      </h4>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        Fields: <code className="font-bold text-slate-700">refundPolicy</code> & <code className="font-bold text-slate-700">refund_policy</code>
+                      </span>
+                    </div>
+                    <textarea
+                      rows={14}
+                      value={config.refundPolicy}
+                      onChange={(e) => setConfig({ ...config, refundPolicy: e.target.value })}
+                      placeholder="Enter refund & return policy text here..."
+                      className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white"
+                    />
+                  </div>
+                )}
+
+                {/* Shipping & Delivery Policy Editor */}
+                {policySubTab === "shipping" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                        <Truck size={16} className="text-magozi-800" />
+                        <span>Shipping & Delivery Policy</span>
+                      </h4>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        Fields: <code className="font-bold text-slate-700">shippingPolicy</code> & <code className="font-bold text-slate-700">shipping_policy</code>
+                      </span>
+                    </div>
+                    <textarea
+                      rows={14}
+                      value={config.shippingPolicy}
+                      onChange={(e) => setConfig({ ...config, shippingPolicy: e.target.value })}
+                      placeholder="Enter shipping & delivery policy text here..."
+                      className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white"
+                    />
+                  </div>
+                )}
+
+                {/* About Us Information Editor */}
+                {policySubTab === "about" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                        <HelpCircle size={16} className="text-magozi-800" />
+                        <span>About Us Information</span>
+                      </h4>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        Fields: <code className="font-bold text-slate-700">aboutUs</code> & <code className="font-bold text-slate-700">about_us</code>
+                      </span>
+                    </div>
+                    <textarea
+                      rows={14}
+                      value={config.aboutUs}
+                      onChange={(e) => setConfig({ ...config, aboutUs: e.target.value })}
+                      placeholder="Enter about us information here..."
+                      className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
