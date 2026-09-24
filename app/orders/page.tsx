@@ -526,26 +526,15 @@ export default function OrdersPage() {
                           <p className="text-[11px] text-slate-500 font-mono">{ord.contactNumber || ord.phone}</p>
                         </td>
 
-                        <td className="py-4 px-5 max-w-xs">
-                          <a
-                            href={
-                              ord.latitude && ord.longitude
-                                ? `https://www.google.com/maps/search/?api=1&query=${ord.latitude},${ord.longitude}`
-                                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([ord.location, ord.address].filter(Boolean).join(", "))}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group block"
-                            title="Click to Open in Google Maps 🗺️"
+                        <td className="py-4 px-5">
+                          <button
+                            onClick={() => setSelectedOrder(ord)}
+                            className="px-3.5 py-1.5 rounded-xl bg-magozi-50 hover:bg-magozi-100 text-magozi-800 border border-magozi-200/80 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs group"
+                            title="Click to open full Delivery Location details & Google Maps 🗺️"
                           >
-                            <p className="truncate text-slate-900 font-bold text-xs group-hover:text-magozi-800 group-hover:underline flex items-center gap-1">
-                              <span>{ord.location || ord.address}</span>
-                              <ExternalLink size={12} className="text-slate-400 group-hover:text-magozi-800 flex-shrink-0" />
-                            </p>
-                            {ord.location && ord.address !== ord.location && (
-                              <p className="truncate text-slate-500 text-[11px] mt-0.5">{ord.address}</p>
-                            )}
-                          </a>
+                            <MapPin size={16} className="text-magozi-800 group-hover:scale-110 transition-transform" />
+                            <span>Location</span>
+                          </button>
                         </td>
 
                         <td className="py-4 px-5 max-w-xs">

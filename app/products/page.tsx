@@ -398,7 +398,6 @@ function ProductsContent() {
                     sortedProducts.map((p) => {
                       const imageCount = p.images && p.images.length > 0 ? p.images.length : (p.image ? 1 : 0);
                       const isVeg = p.vegType === "Pure Veg" || !p.vegType;
-                      const isEgg = p.vegType === "Egg";
 
                       return (
                         <tr key={p.id} className="hover:bg-slate-50/60 transition">
@@ -420,11 +419,9 @@ function ProductsContent() {
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
                                     isVeg 
                                       ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                      : isEgg
-                                      ? "bg-amber-100 text-amber-800 border border-amber-300"
                                       : "bg-rose-100 text-rose-800 border border-rose-300"
                                   }`}>
-                                    {p.vegType || "Pure Veg"}
+                                    {isVeg ? "Pure Veg" : "Non-Veg"}
                                   </span>
 
                                   {/* Customization Badge */}

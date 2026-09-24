@@ -21,6 +21,17 @@ import {
   Sparkles
 } from "lucide-react";
 
+const REPLACEMENT_HINTS = [
+  "No Replacement",
+  "Open Box",
+  "1 Hour Replacement",
+  "6 Hours Replacement",
+  "12 Hours Replacement",
+  "24 Hours Replacement",
+  "72 Hours Replacement",
+  "7 Days Replacement",
+];
+
 interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -331,7 +342,7 @@ export default function ProductModal({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  2. Veg / Non-Veg / Egg *
+                  2. Veg / Non-Veg *
                 </label>
                 <select
                   value={vegType}
@@ -340,7 +351,6 @@ export default function ProductModal({
                 >
                   <option value="Pure Veg">🟢 Pure Veg</option>
                   <option value="Non-Veg">🔴 Non-Veg</option>
-                  <option value="Egg">🟡 Egg</option>
                 </select>
               </div>
             </div>
@@ -567,15 +577,34 @@ export default function ProductModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1">
-                  <Clock size={13} /> 13. Replacement Time
+                  <Clock size={13} /> 13. Replacement Time *
                 </label>
                 <input
                   type="text"
                   value={replacementTime}
                   onChange={(e) => setReplacementTime(e.target.value)}
-                  placeholder="e.g. 7 Days Replacement, 24 Hours, No Return"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                  placeholder="e.g. 7 Days Replacement, 24 Hours, No Replacement"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium bg-white focus:ring-2 focus:ring-magozi-800 outline-none mb-2"
                 />
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 block">Quick Choice Hints:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {REPLACEMENT_HINTS.map((hint) => (
+                      <button
+                        key={hint}
+                        type="button"
+                        onClick={() => setReplacementTime(hint)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition border ${
+                          replacementTime === hint
+                            ? "bg-magozi-800 text-white border-magozi-800 font-bold shadow-xs"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-magozi-800 hover:text-magozi-800"
+                        }`}
+                      >
+                        {hint}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div>
