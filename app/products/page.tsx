@@ -145,6 +145,7 @@ function ProductsContent() {
     const newProduct: Product = {
       id: prodId,
       name: productData.name || "Untitled Product",
+      brand: productData.brand || "",
       category: productData.category || (categories.length > 0 ? categories[0].id : "general"),
       subCategory: productData.subCategory || "",
       storeId: productData.storeId || "",
@@ -192,6 +193,7 @@ function ProductsContent() {
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (p.brand && p.brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
                           (p.subCategory && p.subCategory.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesCategory = selectedCategoryFilter === "ALL" || p.category === selectedCategoryFilter;
@@ -415,6 +417,13 @@ function ProductsContent() {
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-extrabold text-slate-900 text-sm leading-snug">{p.name}</span>
+                                  {/* Brand Badge */}
+                                  {p.brand && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">
+                                      🏷️ {p.brand}
+                                    </span>
+                                  )}
+
                                   {/* Veg / Non-Veg Badge */}
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
                                     isVeg 

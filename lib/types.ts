@@ -8,6 +8,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
 export interface Product {
   id: string;
   name: string;
+  brand?: string;
   category: ProductCategory;
   subCategory?: string;
   storeId?: string;

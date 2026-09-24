@@ -50,6 +50,7 @@ export default function ProductModal({
   stores
 }: ProductModalProps) {
   const [name, setName] = useState("");
+  const [brand, setBrand] = useState("");
   const [description, setDescription] = useState("");
   const [vegType, setVegType] = useState<string>("Pure Veg");
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
@@ -81,6 +82,7 @@ export default function ProductModal({
   useEffect(() => {
     if (product) {
       setName(product.name || "");
+      setBrand(product.brand || "");
       setDescription(product.description || product.details || "");
       setVegType(product.vegType || "Pure Veg");
       setSelectedStoreId(product.storeId || (stores.length > 0 ? stores[0].id : ""));
@@ -110,6 +112,7 @@ export default function ProductModal({
       setPrimaryImageIndex(0);
     } else {
       setName("");
+      setBrand("");
       setDescription("");
       setVegType("Pure Veg");
       setSelectedStoreId(stores.length > 0 ? stores[0].id : "");
@@ -249,6 +252,7 @@ export default function ProductModal({
       await onSave({
         ...(product?.id ? { id: product.id } : {}),
         name: name.trim(),
+        brand: brand.trim(),
         image: primaryImage,
         images: allCombinedImages,
         description: description.trim(),
@@ -326,7 +330,7 @@ export default function ProductModal({
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="sm:col-span-2">
+              <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                   1. Product Name *
                 </label>
@@ -342,7 +346,20 @@ export default function ProductModal({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  2. Veg / Non-Veg *
+                  2. Product Brand
+                </label>
+                <input
+                  type="text"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder="e.g. Amul, Nestle, Fortune, Tata"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  3. Veg / Non-Veg *
                 </label>
                 <select
                   value={vegType}
