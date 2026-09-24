@@ -36,23 +36,23 @@ export default function MetricCard({
   }[color];
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</p>
-          <h3 className="text-2xl font-extrabold text-slate-900 mt-1 tracking-tight">{value}</h3>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{title}</p>
+          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1 tracking-tight">{value}</h3>
         </div>
         <div className={`p-3 rounded-xl shadow-sm ${iconBgStyles}`}>
           <Icon size={22} />
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-        {subtitle && <span className="text-slate-500 font-medium">{subtitle}</span>}
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+        {subtitle && <span className="text-slate-500 dark:text-slate-400 font-medium">{subtitle}</span>}
         {trend && (
           <span
             className={`inline-flex items-center gap-1 font-bold ${
-              trend.isPositive ? "text-emerald-600" : "text-rose-600"
+              trend.isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
             }`}
           >
             {trend.isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}

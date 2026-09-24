@@ -306,16 +306,16 @@ function ProductsContent() {
             </div>
 
             {/* Filter & Sort Controls Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
               {/* 1. Category Filter (Synced from Firestore categories) */}
               <div>
-                <label className="block text-[11px] font-extrabold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                <label className="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase mb-1 flex items-center gap-1">
                   <Layers size={13} /> Filter Category
                 </label>
                 <select
                   value={selectedCategoryFilter}
                   onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                 >
                   <option value="ALL">All Categories ({categories.length})</option>
                   {categories.map((cat) => (
@@ -328,13 +328,13 @@ function ProductsContent() {
 
               {/* 2. Store Filter (Synced from Firestore stores) */}
               <div>
-                <label className="block text-[11px] font-extrabold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                <label className="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase mb-1 flex items-center gap-1">
                   <StoreIcon size={13} /> Filter Store
                 </label>
                 <select
                   value={selectedStoreFilter}
                   onChange={(e) => setSelectedStoreFilter(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                 >
                   <option value="ALL">All Stores ({stores.length})</option>
                   {stores.map((store) => (
@@ -347,13 +347,13 @@ function ProductsContent() {
 
               {/* 3. Sort By Options */}
               <div>
-                <label className="block text-[11px] font-extrabold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                <label className="block text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase mb-1 flex items-center gap-1">
                   <ArrowUpDown size={13} /> Sort By
                 </label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-magozi-900 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-magozi-900 dark:text-emerald-400 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                 >
                   <option value="newest">📅 Date: Newest First</option>
                   <option value="oldest">📅 Date: Oldest First</option>
@@ -371,8 +371,8 @@ function ProductsContent() {
                   disabled={!isFilterActive}
                   className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                     isFilterActive
-                      ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-                      : "border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed"
+                      ? "border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-100"
+                      : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-600 cursor-not-allowed"
                   }`}
                 >
                   <RotateCcw size={14} />
@@ -382,12 +382,12 @@ function ProductsContent() {
             </div>
 
             {/* Active Filter Counter */}
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
               <span className="font-medium">
-                Showing <strong className="text-slate-900 font-bold">{sortedProducts.length}</strong> of {products.length} products
+                Showing <strong className="text-slate-900 dark:text-white font-bold">{sortedProducts.length}</strong> of {products.length} products
               </span>
               {isFilterActive && (
-                <span className="text-[11px] text-magozi-800 font-bold bg-magozi-50 px-2 py-0.5 rounded-full border border-magozi-200">
+                <span className="text-[11px] text-magozi-800 dark:text-emerald-400 font-bold bg-magozi-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-magozi-200 dark:border-emerald-800/60">
                   Filters Active
                 </span>
               )}
@@ -395,11 +395,11 @@ function ProductsContent() {
           </div>
 
           {/* Products Table */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-extrabold uppercase text-slate-400">
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[11px] font-extrabold uppercase text-slate-400 dark:text-slate-500">
                     <th className="py-4 px-5">Product Details & Images</th>
                     <th className="py-4 px-5">Category / Sub-Category</th>
                     <th className="py-4 px-5">Store Location</th>
@@ -409,18 +409,18 @@ function ProductsContent() {
                     <th className="py-4 px-5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300">
                   {sortedProducts.length > 0 ? (
                     sortedProducts.map((p) => {
                       const imageCount = p.images && p.images.length > 0 ? p.images.length : (p.image ? 1 : 0);
                       const isVeg = p.vegType === "Pure Veg" || !p.vegType;
 
                       return (
-                        <tr key={p.id} className="hover:bg-slate-50/60 transition">
+                        <tr key={p.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/50 transition">
                           {/* Product Details & Images */}
                           <td className="py-4 px-5">
                             <div className="flex items-center gap-3">
-                              <div className="relative w-14 h-14 rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 flex-shrink-0 group">
+                              <div className="relative w-14 h-14 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 group">
                                 <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
                                 {imageCount > 1 && (
                                   <span className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-slate-900/80 text-white text-[9px] font-bold flex items-center gap-0.5">
@@ -430,7 +430,7 @@ function ProductsContent() {
                               </div>
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-extrabold text-slate-900 text-sm leading-snug">{p.name}</span>
+                                  <span className="font-extrabold text-slate-900 dark:text-white text-sm leading-snug">{p.name}</span>
                                   {/* Brand Badge */}
                                   {p.brand && (
                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">

@@ -24,10 +24,10 @@ export default function UserDetailDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white max-w-md w-full h-full p-6 shadow-2xl overflow-y-auto flex flex-col justify-between">
+      <div className="bg-white dark:bg-slate-900 max-w-md w-full h-full p-6 shadow-2xl overflow-y-auto flex flex-col justify-between border-l border-slate-200 dark:border-slate-800">
         <div>
           {/* Header with Avatar & Magozi ID */}
-          <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+          <div className="flex items-start justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               {user.photoUrl ? (
                 <img 
@@ -47,9 +47,9 @@ export default function UserDetailDrawer({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   User Profile & Account
                 </span>
-                <h3 className="text-lg font-extrabold text-slate-900 leading-snug">{user.fullName}</h3>
-                <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-mono font-bold">
-                  <Hash size={12} className="text-emerald-600" />
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white leading-snug">{user.fullName}</h3>
+                <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-[11px] font-mono font-bold">
+                  <Hash size={12} className="text-emerald-600 dark:text-emerald-400" />
                   <span>Magozi ID: {user.magoziId || user.id}</span>
                 </div>
               </div>
@@ -57,29 +57,29 @@ export default function UserDetailDrawer({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+              className="p-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
               <X size={20} />
             </button>
           </div>
 
           {/* Admin Role Toggle Banner */}
-          <div className="my-5 p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+          <div className="my-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <div className="flex items-center gap-3">
               {user.role === "admin" ? (
-                <div className="p-2 rounded-xl bg-emerald-100 text-magozi-800">
+                <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-magozi-800 dark:text-emerald-400">
                   <ShieldCheck size={20} />
                 </div>
               ) : (
-                <div className="p-2 rounded-xl bg-slate-200 text-slate-600">
+                <div className="p-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                   <ShieldAlert size={20} />
                 </div>
               )}
               <div>
-                <span className="block text-xs font-bold text-slate-900 uppercase">
+                <span className="block text-xs font-bold text-slate-900 dark:text-white uppercase">
                   Current Role: {user.role.toUpperCase()}
                 </span>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   {user.role === "admin"
                     ? "Has full administrator privileges"
                     : "Standard customer app privileges"}
