@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import { AppConfigSettings, SupportConfigSettings, AppOpenCloseSettings } from "@/lib/types";
+import { AppConfigSettings, SupportConfigSettings, AppOpenCloseSettings, Product } from "@/lib/types";
 import { INITIAL_APP_CONFIG, INITIAL_SUPPORT_CONFIG, INITIAL_APP_OPEN_CLOSE } from "@/lib/mock-data";
 import { db, doc, onSnapshot, setDoc, collection, getDocs } from "@/lib/firebase";
 import { 
@@ -32,7 +32,12 @@ import {
   XCircle,
   Sparkles,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Star,
+  Search,
+  Plus,
+  Trash2,
+  Check
 } from "lucide-react";
 
 const getInitialAppOpenClose = (): AppOpenCloseSettings => {
@@ -64,12 +69,18 @@ export default function AppConfigPage() {
   const [openingHoursInput, setOpeningHoursInput] = useState<string>(appOpenClose.openingHours || "06:00 AM - 11:30 PM");
   const [closedMessageInput, setClosedMessageInput] = useState<string>(appOpenClose.closedMessage || "We are currently closed for orders.");
 
-  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "policies" | "support">("charges");
+  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "dailyspecial" | "policies" | "support">("charges");
   const [policySubTab, setPolicySubTab] = useState<"terms" | "privacy" | "refund" | "shipping" | "about">("terms");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentTimeStr, setCurrentTimeStr] = useState<string>("");
+
+  // Today's Special (Daily Special) Products State
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [dailySpecialProductIds, setDailySpecialProductIds] = useState<string[]>([]);
+  const [dailySpecialSearch, setDailySpecialSearch] = useState<string>("");
+  const [savingDailySpecial, setSavingDailySpecial] = useState<boolean>(false);
 
   // Sync client-side localStorage on initial client mount to guarantee immediate persistence across restarts
   useEffect(() => {
@@ -336,6 +347,79 @@ export default function AppConfigPage() {
     }
   }, []);
 
+  // Realtime Cloud Firestore Listener for app_config/dailyspecial
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(doc(db, "app_config", "dailyspecial"), (snap) => {
+        if (snap.exists()) {
+          const d = snap.data();
+          const pIds = d.DailySPCLproducts || d.daily_spcl_products || d.products || [];
+          if (Array.isArray(pIds)) {
+            setDailySpecialProductIds(pIds.map((id: any) => String(id)));
+          }
+        }
+      }, (err) => {
+        console.warn("Firestore app_config/dailyspecial listener warning:", err);
+      });
+
+      return () => unsub();
+    } catch (e) {
+      console.warn("Error subscribing to app_config/dailyspecial in Firestore:", e);
+    }
+  }, []);
+
+  // Realtime Cloud Firestore Listener for products collection
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(collection(db, "products"), (snap) => {
+        const loaded: Product[] = snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        } as Product));
+        setProductsList(loaded);
+      }, (err) => {
+        console.warn("Firestore products collection listener warning:", err);
+      });
+
+      return () => unsub();
+    } catch (e) {
+      console.warn("Error subscribing to products collection in Firestore:", e);
+    }
+  }, []);
+
+  // Dedicated Handler to Save Daily Special Products
+  const handleSaveDailySpecial = async () => {
+    setSavingDailySpecial(true);
+    setSaveMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const payload = {
+        DailySPCLproducts: dailySpecialProductIds,
+        updatedAt: new Date().toISOString(),
+        lastUpdated: Date.now(),
+      };
+
+      await setDoc(doc(db, "app_config", "dailyspecial"), payload, { merge: true });
+
+      setSaveMessage(`Successfully saved ${dailySpecialProductIds.length} Daily Special product IDs to Cloud Firestore (app_config/dailyspecial -> DailySPCLproducts)!`);
+      setTimeout(() => setSaveMessage(null), 5000);
+    } catch (err: any) {
+      console.error("Error saving Daily Special products to Firestore:", err);
+      setErrorMessage(err.message || "Failed to save Daily Special products to Cloud Firestore.");
+    } finally {
+      setSavingDailySpecial(false);
+    }
+  };
+
+  const handleToggleDailySpecialProduct = (prodId: string) => {
+    if (dailySpecialProductIds.includes(prodId)) {
+      setDailySpecialProductIds(dailySpecialProductIds.filter((id) => id !== prodId));
+    } else {
+      setDailySpecialProductIds([...dailySpecialProductIds, prodId]);
+    }
+  };
+
   // Handle Toggle Auto Scheduler ON / OFF
   const handleToggleAutoScheduler = async () => {
     const nextVal = !(appOpenClose.autoTimingEnabled ?? true);
@@ -569,6 +653,18 @@ export default function AppConfigPage() {
             >
               <Clock size={15} />
               <span>Order Cancel Timer (Seconds)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("dailyspecial")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                activeTab === "dailyspecial"
+                  ? "bg-amber-600 text-white shadow-md shadow-amber-600/20"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <Star size={15} className={activeTab === "dailyspecial" ? "fill-white text-white" : "fill-amber-400 text-amber-500"} />
+              <span>Today's Special Products</span>
             </button>
 
             <button
@@ -1061,6 +1157,185 @@ export default function AppConfigPage() {
                     <p className="text-[11px] text-slate-400 italic">
                       Saves seconds value directly to `app_config` collection upon clicking Save & Deploy below.
                     </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Today's Special Products Section */}
+            {activeTab === "dailyspecial" && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
+                      <Star className="text-amber-500 fill-amber-500" size={22} />
+                      <span>Today's Special Products Configuration</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Configure products featured in "Today's Special" on the mobile app home page. Saves product IDs to Cloud Firestore collection <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config</code> — document <code className="font-mono font-bold text-slate-700 dark:text-slate-300">dailyspecial</code>, field <code className="font-mono font-bold text-amber-600 dark:text-amber-400">DailySPCLproducts</code>.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveDailySpecial}
+                    disabled={savingDailySpecial}
+                    className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md shadow-amber-600/20 transition flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
+                  >
+                    {savingDailySpecial ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+                    <span>{savingDailySpecial ? "Saving..." : "Save Today's Special"}</span>
+                  </button>
+                </div>
+
+                {/* Selected Today's Special Products List */}
+                <div className="p-5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-extrabold text-slate-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                      <Star size={16} className="text-amber-600 fill-amber-600" />
+                      <span>Selected Special Products ({dailySpecialProductIds.length})</span>
+                    </h4>
+                    {dailySpecialProductIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setDailySpecialProductIds([])}
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 transition"
+                      >
+                        Clear All Selected
+                      </button>
+                    )}
+                  </div>
+
+                  {dailySpecialProductIds.length === 0 ? (
+                    <div className="p-6 text-center rounded-xl bg-white/70 dark:bg-slate-900/50 border border-dashed border-amber-300 dark:border-amber-800/70">
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No products selected for Today's Special yet.</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Pick products from the available products catalog below to add them!</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {dailySpecialProductIds.map((pId) => {
+                        const prod = productsList.find((p) => p.id === pId);
+                        return (
+                          <div
+                            key={pId}
+                            className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 shadow-sm flex items-center justify-between gap-3"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <img
+                                src={prod?.image || "https://placehold.co/100x100?text=Product"}
+                                alt={prod?.name || pId}
+                                className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                  {prod?.name || `ID: ${pId}`}
+                                </p>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                                  {prod ? `₹${prod.price} • ${prod.category}` : pId}
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleDailySpecialProduct(pId)}
+                              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition flex-shrink-0"
+                              title="Remove from Today's Special"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Available Products Selector / Catalog */}
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      Available Products Catalog ({productsList.length} Products)
+                    </h4>
+
+                    {/* Search Input */}
+                    <div className="relative max-w-xs w-full">
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={dailySpecialSearch}
+                        onChange={(e) => setDailySpecialSearch(e.target.value)}
+                        placeholder="Search products..."
+                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto pr-1">
+                    {productsList
+                      .filter((p) => {
+                        if (!dailySpecialSearch.trim()) return true;
+                        const q = dailySpecialSearch.toLowerCase();
+                        return (
+                          p.name?.toLowerCase().includes(q) ||
+                          p.category?.toLowerCase().includes(q) ||
+                          p.brand?.toLowerCase().includes(q)
+                        );
+                      })
+                      .map((prod) => {
+                        const isSelected = dailySpecialProductIds.includes(prod.id);
+                        return (
+                          <div
+                            key={prod.id}
+                            onClick={() => handleToggleDailySpecialProduct(prod.id)}
+                            className={`p-3 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 ${
+                              isSelected
+                                ? "bg-amber-50/80 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 shadow-sm"
+                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-amber-300"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <img
+                                src={prod.image || "https://placehold.co/100x100?text=Product"}
+                                alt={prod.name}
+                                className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                  {prod.name}
+                                </p>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                                  ₹{prod.price} {prod.weight ? `• ${prod.weight}` : ""}
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleDailySpecialProduct(prod.id);
+                              }}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition flex items-center gap-1 flex-shrink-0 ${
+                                isSelected
+                                  ? "bg-amber-600 text-white"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100"
+                              }`}
+                            >
+                              {isSelected ? (
+                                <>
+                                  <Check size={14} />
+                                  <span>Selected</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus size={14} />
+                                  <span>Add</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               </div>

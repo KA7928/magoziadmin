@@ -78,15 +78,22 @@ export default function Header({ title, subtitle }: HeaderProps) {
       <div className="flex items-center flex-wrap gap-3">
         {/* Dark Mode Toggle Button */}
         <button
+          type="button"
           onClick={toggleTheme}
-          className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition shadow-sm flex items-center justify-center cursor-pointer"
+          className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700"
           title={theme === "dark" ? "Switch to Light Mode ☀️" : "Switch to Dark Mode 🌙"}
           aria-label="Toggle Dark Mode"
         >
           {theme === "dark" ? (
-            <Sun size={18} className="text-amber-400" />
+            <>
+              <Sun size={16} className="text-amber-400 fill-amber-400 animate-in spin-in-90 duration-300" />
+              <span className="font-extrabold text-amber-500">Light Mode</span>
+            </>
           ) : (
-            <Moon size={18} className="text-slate-700" />
+            <>
+              <Moon size={16} className="text-indigo-600 fill-indigo-600 dark:text-indigo-400 animate-in spin-in-90 duration-300" />
+              <span className="font-extrabold text-slate-700 dark:text-slate-200">Dark Mode</span>
+            </>
           )}
         </button>
 
