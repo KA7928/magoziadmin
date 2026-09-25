@@ -39,7 +39,9 @@ import {
   Trash2,
   Check,
   Grid,
-  Layers
+  Layers,
+  LayoutGrid,
+  Hash
 } from "lucide-react";
 
 const getInitialAppOpenClose = (): AppOpenCloseSettings => {
@@ -71,7 +73,7 @@ export default function AppConfigPage() {
   const [openingHoursInput, setOpeningHoursInput] = useState<string>(appOpenClose.openingHours || "06:00 AM - 11:30 PM");
   const [closedMessageInput, setClosedMessageInput] = useState<string>(appOpenClose.closedMessage || "We are currently closed for orders.");
 
-  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "dailyspecial" | "homecategory" | "policies" | "support">("charges");
+  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "dailyspecial" | "homecategory" | "customhome" | "policies" | "support">("charges");
   const [policySubTab, setPolicySubTab] = useState<"terms" | "privacy" | "refund" | "shipping" | "about">("terms");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -89,6 +91,13 @@ export default function AppConfigPage() {
   const [homeCategoryShowIds, setHomeCategoryShowIds] = useState<string[]>([]);
   const [homeCategorySearch, setHomeCategorySearch] = useState<string>("");
   const [savingHomeCategory, setSavingHomeCategory] = useState<boolean>(false);
+
+  // Custom Home Show Products State (customproductshome)
+  const [customHomeProductIds, setCustomHomeProductIds] = useState<string[]>([]);
+  const [customHomeHeading, setCustomHomeHeading] = useState<string>("");
+  const [customHomePriority, setCustomHomePriority] = useState<number | string>(1);
+  const [customHomeSearch, setCustomHomeSearch] = useState<string>("");
+  const [savingCustomHome, setSavingCustomHome] = useState<boolean>(false);
 
   // Sync client-side localStorage on initial client mount to guarantee immediate persistence across restarts
   useEffect(() => {
@@ -511,6 +520,71 @@ export default function AppConfigPage() {
     }
   };
 
+  // Realtime Cloud Firestore Listener for app_config/customproductshome
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(doc(db, "app_config", "customproductshome"), (snap) => {
+        if (snap.exists()) {
+          const d = snap.data();
+          const pIds = d.customProducts || d.custom_products || d.products || [];
+          if (Array.isArray(pIds)) {
+            setCustomHomeProductIds(pIds.map((id: any) => String(id)));
+          }
+          if (d.Heading !== undefined) {
+            setCustomHomeHeading(String(d.Heading));
+          } else if (d.heading !== undefined) {
+            setCustomHomeHeading(String(d.heading));
+          }
+          if (d.priority !== undefined) {
+            setCustomHomePriority(d.priority);
+          }
+        }
+      }, (err) => {
+        console.warn("Firestore app_config/customproductshome listener warning:", err);
+      });
+
+      return () => unsub();
+    } catch (e) {
+      console.warn("Error subscribing to app_config/customproductshome in Firestore:", e);
+    }
+  }, []);
+
+  // Dedicated Handler to Save Custom Home Show Products
+  const handleSaveCustomHomeProducts = async () => {
+    setSavingCustomHome(true);
+    setSaveMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const priorityVal = Number(customHomePriority);
+      const payload = {
+        customProducts: customHomeProductIds,
+        Heading: customHomeHeading.trim(),
+        priority: isNaN(priorityVal) ? 1 : priorityVal,
+        updatedAt: new Date().toISOString(),
+        lastUpdated: Date.now(),
+      };
+
+      await setDoc(doc(db, "app_config", "customproductshome"), payload, { merge: true });
+
+      setSaveMessage(`Successfully saved ${customHomeProductIds.length} custom home products, Heading ("${customHomeHeading}"), and Priority (${priorityVal}) to Cloud Firestore (app_config/customproductshome)!`);
+      setTimeout(() => setSaveMessage(null), 5000);
+    } catch (err: any) {
+      console.error("Error saving Custom Home products to Firestore:", err);
+      setErrorMessage(err.message || "Failed to save Custom Home products to Cloud Firestore.");
+    } finally {
+      setSavingCustomHome(false);
+    }
+  };
+
+  const handleToggleCustomHomeProduct = (prodId: string) => {
+    if (customHomeProductIds.includes(prodId)) {
+      setCustomHomeProductIds(customHomeProductIds.filter((id) => id !== prodId));
+    } else {
+      setCustomHomeProductIds([...customHomeProductIds, prodId]);
+    }
+  };
+
   // Handle Toggle Auto Scheduler ON / OFF
   const handleToggleAutoScheduler = async () => {
     const nextVal = !(appOpenClose.autoTimingEnabled ?? true);
@@ -768,6 +842,19 @@ export default function AppConfigPage() {
             >
               <Layers size={15} />
               <span>Home Category UI</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("customhome")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                activeTab === "customhome"
+                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <LayoutGrid size={15} />
+              <span>Custom Home Show</span>
             </button>
 
             <button
@@ -1618,6 +1705,227 @@ export default function AppConfigPage() {
                                   : isMaxReached
                                   ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
                                   : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-emerald-100"
+                              }`}
+                            >
+                              {isSelected ? (
+                                <>
+                                  <Check size={14} />
+                                  <span>Selected</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus size={14} />
+                                  <span>Add</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Custom Home Show Products Section */}
+            {activeTab === "customhome" && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
+                      <LayoutGrid className="text-magozi-800 dark:text-emerald-400" size={22} />
+                      <span>Custom Home Show Products</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Configure custom products showcase for the mobile app home screen. Saves data to Cloud Firestore collection <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config</code> — document <code className="font-mono font-bold text-slate-700 dark:text-slate-300">customproductshome</code>, fields: <code className="font-mono font-bold text-magozi-800 dark:text-emerald-400">customProducts</code>, <code className="font-mono font-bold text-magozi-800 dark:text-emerald-400">Heading</code>, and <code className="font-mono font-bold text-magozi-800 dark:text-emerald-400">priority</code>.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveCustomHomeProducts}
+                    disabled={savingCustomHome}
+                    className="px-5 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 transition flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
+                  >
+                    {savingCustomHome ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+                    <span>{savingCustomHome ? "Saving Custom Home..." : "Save Custom Home Products"}</span>
+                  </button>
+                </div>
+
+                {/* Section Settings: Heading & Priority */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <FileText size={14} className="text-magozi-800 dark:text-emerald-400" />
+                      <span>Section Heading / Title</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={customHomeHeading}
+                      onChange={(e) => setCustomHomeHeading(e.target.value)}
+                      placeholder="e.g. Featured Products, Trending Today..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved to Firestore field: <code className="font-bold text-slate-700 dark:text-slate-300">Heading</code>
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <Hash size={14} className="text-magozi-800 dark:text-emerald-400" />
+                      <span>Priority (Number Value)</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={customHomePriority}
+                      onChange={(e) => setCustomHomePriority(e.target.value)}
+                      placeholder="e.g. 1"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved to Firestore field: <code className="font-bold text-slate-700 dark:text-slate-300">priority</code>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Selected Custom Home Products List */}
+                <div className="p-5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-indigo-300 uppercase tracking-wider flex items-center gap-2">
+                        <LayoutGrid size={16} className="text-indigo-600 dark:text-indigo-400" />
+                        <span>Selected Custom Home Products</span>
+                      </h4>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-900/60 dark:text-indigo-300 dark:border-indigo-700">
+                        {customHomeProductIds.length} Products Selected
+                      </span>
+                    </div>
+
+                    {customHomeProductIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomHomeProductIds([])}
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 transition"
+                      >
+                        Clear All Selected
+                      </button>
+                    )}
+                  </div>
+
+                  {customHomeProductIds.length === 0 ? (
+                    <div className="p-6 text-center rounded-xl bg-white/70 dark:bg-slate-900/50 border border-dashed border-indigo-300 dark:border-indigo-800/70">
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No products selected for Custom Home Show yet.</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Pick products from the catalog below to display in the custom home section on the mobile app!</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {customHomeProductIds.map((pId, idx) => {
+                        const prod = productsList.find((p) => p.id === pId);
+                        return (
+                          <div
+                            key={pId}
+                            className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/60 shadow-sm flex items-center justify-between gap-2"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                                {idx + 1}
+                              </span>
+                              <img
+                                src={prod?.image || "https://placehold.co/100x100?text=Product"}
+                                alt={prod?.name || pId}
+                                className="w-9 h-9 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                  {prod?.name || `ID: ${pId}`}
+                                </p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                                  ₹{prod?.price || 0} {prod?.weight ? `• ${prod.weight}` : ""}
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCustomHomeProduct(pId)}
+                              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition flex-shrink-0"
+                              title="Remove Product"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Available Products Selector / Catalog */}
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      Available Products Catalog ({productsList.length} Products)
+                    </h4>
+
+                    {/* Search Input */}
+                    <div className="relative max-w-xs w-full">
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={customHomeSearch}
+                        onChange={(e) => setCustomHomeSearch(e.target.value)}
+                        placeholder="Search products..."
+                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto pr-1">
+                    {productsList
+                      .filter((p) => {
+                        if (!customHomeSearch.trim()) return true;
+                        return p.name?.toLowerCase().includes(customHomeSearch.toLowerCase());
+                      })
+                      .map((prod) => {
+                        const isSelected = customHomeProductIds.includes(prod.id);
+
+                        return (
+                          <div
+                            key={prod.id}
+                            onClick={() => handleToggleCustomHomeProduct(prod.id)}
+                            className={`p-3 rounded-xl border transition flex items-center justify-between gap-3 cursor-pointer ${
+                              isSelected
+                                ? "bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-600 shadow-sm"
+                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <img
+                                src={prod.image || "https://placehold.co/100x100?text=Product"}
+                                alt={prod.name}
+                                className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                  {prod.name}
+                                </p>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                                  ₹{prod.price} {prod.weight ? `• ${prod.weight}` : ""}
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleCustomHomeProduct(prod.id);
+                              }}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition flex items-center gap-1 flex-shrink-0 ${
+                                isSelected
+                                  ? "bg-indigo-600 text-white"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-100"
                               }`}
                             >
                               {isSelected ? (
