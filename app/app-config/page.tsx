@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import { AppConfigSettings, SupportConfigSettings, AppOpenCloseSettings, Product } from "@/lib/types";
+import { AppConfigSettings, SupportConfigSettings, AppOpenCloseSettings, Product, CategoryItem } from "@/lib/types";
 import { INITIAL_APP_CONFIG, INITIAL_SUPPORT_CONFIG, INITIAL_APP_OPEN_CLOSE } from "@/lib/mock-data";
 import { db, doc, onSnapshot, setDoc, collection, getDocs } from "@/lib/firebase";
 import { 
@@ -37,7 +37,9 @@ import {
   Search,
   Plus,
   Trash2,
-  Check
+  Check,
+  Grid,
+  Layers
 } from "lucide-react";
 
 const getInitialAppOpenClose = (): AppOpenCloseSettings => {
@@ -69,7 +71,7 @@ export default function AppConfigPage() {
   const [openingHoursInput, setOpeningHoursInput] = useState<string>(appOpenClose.openingHours || "06:00 AM - 11:30 PM");
   const [closedMessageInput, setClosedMessageInput] = useState<string>(appOpenClose.closedMessage || "We are currently closed for orders.");
 
-  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "dailyspecial" | "policies" | "support">("charges");
+  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "dailyspecial" | "homecategory" | "policies" | "support">("charges");
   const [policySubTab, setPolicySubTab] = useState<"terms" | "privacy" | "refund" | "shipping" | "about">("terms");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -81,6 +83,12 @@ export default function AppConfigPage() {
   const [dailySpecialProductIds, setDailySpecialProductIds] = useState<string[]>([]);
   const [dailySpecialSearch, setDailySpecialSearch] = useState<string>("");
   const [savingDailySpecial, setSavingDailySpecial] = useState<boolean>(false);
+
+  // Home Category UI State (max 5 categories)
+  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>([]);
+  const [homeCategoryShowIds, setHomeCategoryShowIds] = useState<string[]>([]);
+  const [homeCategorySearch, setHomeCategorySearch] = useState<string>("");
+  const [savingHomeCategory, setSavingHomeCategory] = useState<boolean>(false);
 
   // Sync client-side localStorage on initial client mount to guarantee immediate persistence across restarts
   useEffect(() => {
@@ -420,6 +428,89 @@ export default function AppConfigPage() {
     }
   };
 
+  // Realtime Cloud Firestore Listener for app_config/homeCatogaryUI
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(doc(db, "app_config", "homeCatogaryUI"), (snap) => {
+        if (snap.exists()) {
+          const d = snap.data();
+          const cIds = d.homecatogaryshow || d.homeCatogaryShow || d.home_category_show || d.categories || [];
+          if (Array.isArray(cIds)) {
+            setHomeCategoryShowIds(cIds.slice(0, 5).map((id: any) => String(id)));
+          }
+        }
+      }, (err) => {
+        console.warn("Firestore app_config/homeCatogaryUI listener warning:", err);
+      });
+
+      return () => unsub();
+    } catch (e) {
+      console.warn("Error subscribing to app_config/homeCatogaryUI in Firestore:", e);
+    }
+  }, []);
+
+  // Realtime Cloud Firestore Listener for categories collection
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(collection(db, "categories"), (snap) => {
+        const loaded: CategoryItem[] = snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        } as CategoryItem));
+        setCategoriesList(loaded);
+      }, (err) => {
+        console.warn("Firestore categories collection listener warning:", err);
+      });
+
+      return () => unsub();
+    } catch (e) {
+      console.warn("Error subscribing to categories collection in Firestore:", e);
+    }
+  }, []);
+
+  // Dedicated Handler to Save Home Category UI (max 5 categories)
+  const handleSaveHomeCategoryUI = async () => {
+    if (homeCategoryShowIds.length > 5) {
+      setErrorMessage("Maximum limit exceeded: Only up to 5 categories can be saved to Home Category UI!");
+      return;
+    }
+
+    setSavingHomeCategory(true);
+    setSaveMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const payload = {
+        homecatogaryshow: homeCategoryShowIds.slice(0, 5),
+        updatedAt: new Date().toISOString(),
+        lastUpdated: Date.now(),
+      };
+
+      await setDoc(doc(db, "app_config", "homeCatogaryUI"), payload, { merge: true });
+
+      setSaveMessage(`Successfully saved ${homeCategoryShowIds.length} Home Category IDs to Cloud Firestore (app_config/homeCatogaryUI -> homecatogaryshow)!`);
+      setTimeout(() => setSaveMessage(null), 5000);
+    } catch (err: any) {
+      console.error("Error saving Home Category UI to Firestore:", err);
+      setErrorMessage(err.message || "Failed to save Home Category UI to Cloud Firestore.");
+    } finally {
+      setSavingHomeCategory(false);
+    }
+  };
+
+  const handleToggleHomeCategory = (catId: string) => {
+    if (homeCategoryShowIds.includes(catId)) {
+      setHomeCategoryShowIds(homeCategoryShowIds.filter((id) => id !== catId));
+    } else {
+      if (homeCategoryShowIds.length >= 5) {
+        setErrorMessage("Maximum 5 Categories Allowed! Remove an existing category before adding a new one.");
+        setTimeout(() => setErrorMessage(null), 4000);
+        return;
+      }
+      setHomeCategoryShowIds([...homeCategoryShowIds, catId]);
+    }
+  };
+
   // Handle Toggle Auto Scheduler ON / OFF
   const handleToggleAutoScheduler = async () => {
     const nextVal = !(appOpenClose.autoTimingEnabled ?? true);
@@ -665,6 +756,18 @@ export default function AppConfigPage() {
             >
               <Star size={15} className={activeTab === "dailyspecial" ? "fill-white text-white" : "fill-amber-400 text-amber-500"} />
               <span>Today's Special Products</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("homecategory")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                activeTab === "homecategory"
+                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <Layers size={15} />
+              <span>Home Category UI</span>
             </button>
 
             <button
@@ -1319,6 +1422,202 @@ export default function AppConfigPage() {
                                 isSelected
                                   ? "bg-amber-600 text-white"
                                   : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100"
+                              }`}
+                            >
+                              {isSelected ? (
+                                <>
+                                  <Check size={14} />
+                                  <span>Selected</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus size={14} />
+                                  <span>Add</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Home Category UI Section (Max 5 Categories) */}
+            {activeTab === "homecategory" && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
+                      <Grid className="text-magozi-800 dark:text-emerald-400" size={22} />
+                      <span>Home Category UI Configuration (Max 5 Categories)</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Configure top categories featured on the mobile app home screen. Saves category IDs to Cloud Firestore collection <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config</code> — document <code className="font-mono font-bold text-slate-700 dark:text-slate-300">homeCatogaryUI</code>, field <code className="font-mono font-bold text-magozi-800 dark:text-emerald-400">homecatogaryshow</code>.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveHomeCategoryUI}
+                    disabled={savingHomeCategory}
+                    className="px-5 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 transition flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
+                  >
+                    {savingHomeCategory ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+                    <span>{savingHomeCategory ? "Saving Home Categories..." : "Save Home Categories"}</span>
+                  </button>
+                </div>
+
+                {/* Selected Categories Counter & List */}
+                <div className="p-5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-2">
+                        <Layers size={16} className="text-magozi-800 dark:text-emerald-400" />
+                        <span>Selected Home Categories</span>
+                      </h4>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
+                        homeCategoryShowIds.length >= 5
+                          ? "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800"
+                          : "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-700"
+                      }`}>
+                        {homeCategoryShowIds.length} / 5 Selected {homeCategoryShowIds.length >= 5 ? "(Max Limit Reached)" : ""}
+                      </span>
+                    </div>
+
+                    {homeCategoryShowIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setHomeCategoryShowIds([])}
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 transition"
+                      >
+                        Clear All Selected
+                      </button>
+                    )}
+                  </div>
+
+                  {homeCategoryShowIds.length === 0 ? (
+                    <div className="p-6 text-center rounded-xl bg-white/70 dark:bg-slate-900/50 border border-dashed border-emerald-300 dark:border-emerald-800/70">
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No categories selected for Home Category UI yet.</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Pick up to 5 categories from the catalog below to display on the mobile app home screen!</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                      {homeCategoryShowIds.map((cId, idx) => {
+                        const cat = categoriesList.find((c) => c.id === cId);
+                        return (
+                          <div
+                            key={cId}
+                            className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/60 shadow-sm flex items-center justify-between gap-2"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="w-5 h-5 rounded-full bg-emerald-800 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                                {idx + 1}
+                              </span>
+                              <img
+                                src={cat?.imageUrl || "https://placehold.co/80x80?text=Category"}
+                                alt={cat?.name || cId}
+                                className="w-9 h-9 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                  {cat?.name || `ID: ${cId}`}
+                                </p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                                  {cat?.subCategories?.length || 0} sub-cats
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleHomeCategory(cId)}
+                              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition flex-shrink-0"
+                              title="Remove Category"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Available Categories Selector / Catalog */}
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      Available Categories Catalog ({categoriesList.length} Categories)
+                    </h4>
+
+                    {/* Search Input */}
+                    <div className="relative max-w-xs w-full">
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={homeCategorySearch}
+                        onChange={(e) => setHomeCategorySearch(e.target.value)}
+                        placeholder="Search categories..."
+                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto pr-1">
+                    {categoriesList
+                      .filter((c) => {
+                        if (!homeCategorySearch.trim()) return true;
+                        return c.name?.toLowerCase().includes(homeCategorySearch.toLowerCase());
+                      })
+                      .map((cat) => {
+                        const isSelected = homeCategoryShowIds.includes(cat.id);
+                        const isMaxReached = !isSelected && homeCategoryShowIds.length >= 5;
+
+                        return (
+                          <div
+                            key={cat.id}
+                            onClick={() => {
+                              if (!isMaxReached) handleToggleHomeCategory(cat.id);
+                            }}
+                            className={`p-3 rounded-xl border transition flex items-center justify-between gap-3 ${
+                              isSelected
+                                ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600 shadow-sm"
+                                : isMaxReached
+                                ? "bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60 cursor-not-allowed"
+                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-300 cursor-pointer"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <img
+                                src={cat.imageUrl || "https://placehold.co/80x80?text=Category"}
+                                alt={cat.name}
+                                className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                  {cat.name}
+                                </p>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                                  {cat.subCategories?.length || 0} sub-categories
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={isMaxReached}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleHomeCategory(cat.id);
+                              }}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition flex items-center gap-1 flex-shrink-0 ${
+                                isSelected
+                                  ? "bg-emerald-700 text-white"
+                                  : isMaxReached
+                                  ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-emerald-100"
                               }`}
                             >
                               {isSelected ? (
