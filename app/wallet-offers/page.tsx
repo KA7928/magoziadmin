@@ -27,12 +27,14 @@ import {
   RefreshCw, 
   Sparkles,
   IndianRupee,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ShoppingBag
 } from "lucide-react";
 
 export default function WalletOffersPage() {
   const [coinPerRupees, setCoinPerRupees] = useState<number | string>(1);
   const [rewardPercentage, setRewardPercentage] = useState<number | string>(5);
+  const [minMagoziCoinApply, setMinMagoziCoinApply] = useState<number | string>(0);
   const [ongoing, setOngoing] = useState<boolean>(true);
   const [magoziimageURL, setMagoziimageURL] = useState<string>("");
 
@@ -49,6 +51,7 @@ export default function WalletOffersPage() {
           const d = snap.data();
           if (d.coinPerRupees !== undefined) setCoinPerRupees(d.coinPerRupees);
           if (d.rewardPercentage !== undefined) setRewardPercentage(d.rewardPercentage);
+          if (d.minMagoziCoinApply !== undefined) setMinMagoziCoinApply(d.minMagoziCoinApply);
           if (d.ongoing !== undefined) setOngoing(Boolean(d.ongoing));
           if (d.magoziimageURL) setMagoziimageURL(d.magoziimageURL);
         }
@@ -106,10 +109,12 @@ export default function WalletOffersPage() {
     try {
       const coinsVal = Number(coinPerRupees);
       const rewardVal = Number(rewardPercentage);
+      const minCoinsVal = Number(minMagoziCoinApply);
 
       const payload = {
         coinPerRupees: isNaN(coinsVal) ? 1 : coinsVal,
         rewardPercentage: isNaN(rewardVal) ? 0 : rewardVal,
+        minMagoziCoinApply: isNaN(minCoinsVal) ? 0 : minCoinsVal,
         ongoing: Boolean(ongoing),
         magoziimageURL: magoziimageURL || "",
         updatedAt: new Date().toISOString(),
@@ -135,7 +140,7 @@ export default function WalletOffersPage() {
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
         <Header
           title="Wallet & Offers Config"
-          subtitle="Configure Magozi Coins rate, reward percentage, order earn status, and coin icon (offers_and_wallets/Magoziwallet)"
+          subtitle="Configure Magozi Coins rate, reward percentage, min coins for discount, order earn status, and coin icon (offers_and_wallets/Magoziwallet)"
         />
 
         <div className="p-3 md:p-6 space-y-6">
@@ -158,7 +163,7 @@ export default function WalletOffersPage() {
           )}
 
           {/* Quick Summary Cards Header */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
                 <Coins size={24} />
@@ -176,6 +181,16 @@ export default function WalletOffersPage() {
               <div>
                 <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Order Reward %</p>
                 <p className="text-lg font-black text-slate-900 dark:text-white">{rewardPercentage}% Cashback</p>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold">
+                <ShoppingBag size={24} />
+              </div>
+              <div>
+                <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Min Coins Apply</p>
+                <p className="text-lg font-black text-slate-900 dark:text-white">{minMagoziCoinApply} Coins</p>
               </div>
             </div>
 
@@ -234,7 +249,7 @@ export default function WalletOffersPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* 1. Coin Conversion Rate (1 RS = X Magozi Coin) */}
               <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
                 <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
@@ -283,8 +298,31 @@ export default function WalletOffersPage() {
                 </p>
               </div>
 
+              {/* 3. Minimum Magozi Coin Required to Apply Discount in Cart */}
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                  <ShoppingBag size={16} className="text-sky-500" />
+                  <span>Min Coins Required for Cart Discount</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={minMagoziCoinApply}
+                    onChange={(e) => setMinMagoziCoinApply(e.target.value)}
+                    placeholder="Enter minimum coins required to apply..."
+                    className="w-full pl-4 pr-16 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Coins</span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                  Saved to Firestore field: <code className="font-bold text-slate-700 dark:text-slate-300">minMagoziCoinApply</code> (Number value)
+                </p>
+              </div>
+
               {/* 3. Order to Receive Magozi Coin Toggle (ON / OFF) */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 md:col-span-2">
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 md:col-span-3">
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
                     <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
@@ -324,7 +362,7 @@ export default function WalletOffersPage() {
               </div>
 
               {/* 4. Magozi Coin Image Upload & Firebase Storage ("miscellaneous" folder) */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 md:col-span-2">
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 md:col-span-3">
                 <div>
                   <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
                     <ImageIcon size={16} className="text-indigo-500" />
