@@ -174,7 +174,7 @@ export default function BannersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       <Sidebar />
 
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
@@ -185,64 +185,64 @@ export default function BannersPage() {
 
         <div className="p-3 md:p-6 space-y-6">
           {/* Header Action Bar */}
-          <div className="p-4 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-between flex-wrap gap-3">
+          <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-magozi-800 text-white shadow-md shadow-magozi-800/20">
                 <ImageIcon size={22} />
               </div>
               <div>
-                <h3 className="text-lg font-extrabold text-slate-900">Promotional Carousel Banners</h3>
-                <p className="text-xs text-slate-500">
-                  {banners.length} total banners configured in Firestore <code className="font-mono text-slate-700 font-bold">banners</code> collection
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Promotional Carousel Banners</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {banners.length} total banners configured in Firestore <code className="font-mono text-slate-700 dark:text-slate-300 font-bold">banners</code> collection
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200">
-              <Sparkles size={16} className="text-emerald-600" />
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800/60">
+              <Sparkles size={16} className="text-emerald-600 dark:text-emerald-400" />
               <span>Synced with {syncedCategories.length} Firestore Categories</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Banner Form */}
-            <form onSubmit={handleSaveBanner} className="lg:col-span-1 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
-              <h4 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-                <Tag size={18} className="text-magozi-800" />
+            <form onSubmit={handleSaveBanner} className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+              <h4 className="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                <Tag size={18} className="text-magozi-800 dark:text-emerald-400" />
                 <span>{editingBannerId ? "Edit Banner" : "Add New Swiping Banner"}</span>
               </h4>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Banner Title (Optional)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Banner Title (Optional)</label>
                 <input
                   type="text"
                   value={bannerTitle}
                   onChange={(e) => setBannerTitle(e.target.value)}
                   placeholder="e.g. Fresh Summer Alphonso Mangoes 🥭 (Optional)"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Subtitle / Tagline (Optional)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Subtitle / Tagline (Optional)</label>
                 <input
                   type="text"
                   value={bannerSubtitle}
                   onChange={(e) => setBannerSubtitle(e.target.value)}
                   placeholder="e.g. Flat 30% OFF today! (Optional)"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1 flex items-center justify-between">
                     <span>Category Link *</span>
                   </label>
                   <select
                     value={bannerCategory}
                     onChange={(e) => setBannerCategory(e.target.value as ProductCategory)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                   >
                     {syncedCategories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
@@ -253,24 +253,24 @@ export default function BannersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Priority Order *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Priority Order *</label>
                   <input
                     type="number"
                     min={1}
                     value={bannerPriority}
                     onChange={(e) => setBannerPriority(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   Banner Photo (Firebase Storage Upload or URL) *
                 </label>
                 <div className="space-y-2">
                   {bannerImage && (
-                    <div className="w-full h-28 rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 relative">
+                    <div className="w-full h-28 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
                       <img src={bannerImage} alt="Banner Preview" className="w-full h-full object-cover" />
                       <span className="absolute top-2 right-2 px-2.5 py-1 rounded-lg text-[9px] font-extrabold bg-slate-900/80 text-white backdrop-blur-xs">
                         Live Preview
@@ -281,25 +281,25 @@ export default function BannersPage() {
                     type="file"
                     accept="image/*"
                     onChange={handleBannerFileChange}
-                    className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-magozi-50 file:text-magozi-800 hover:file:bg-magozi-100 cursor-pointer"
+                    className="block w-full text-xs text-slate-500 dark:text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-magozi-50 dark:file:bg-slate-800 file:text-magozi-800 dark:file:text-emerald-400 hover:file:bg-magozi-100 cursor-pointer"
                   />
                   <input
                     type="url"
                     value={bannerImage}
                     onChange={(e) => setBannerImage(e.target.value)}
                     placeholder="Or paste direct image URL https://..."
-                    className="w-full px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                    className="w-full px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-xs font-bold text-slate-700">Active Status</span>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Active Status</span>
                 <button
                   type="button"
                   onClick={() => setBannerActive(!bannerActive)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    bannerActive ? "bg-magozi-800" : "bg-slate-300"
+                    bannerActive ? "bg-magozi-800" : "bg-slate-300 dark:bg-slate-700"
                   }`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -313,7 +313,7 @@ export default function BannersPage() {
                   <button
                     type="button"
                     onClick={resetBannerForm}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                   >
                     Cancel
                   </button>
@@ -339,8 +339,8 @@ export default function BannersPage() {
             <div className="lg:col-span-2 space-y-4">
               {banners.length > 0 ? (
                 banners.map((b) => (
-                  <div key={b.id} className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-5 hover:border-slate-300 transition">
-                    <div className="w-full sm:w-48 h-32 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
+                  <div key={b.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-5 hover:border-slate-300 dark:hover:border-slate-700 transition">
+                    <div className="w-full sm:w-48 h-32 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 relative">
                       <img src={b.imageUrl} alt={b.title || "Banner"} className="w-full h-full object-cover" />
                       <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-900/80 text-white backdrop-blur-xs">
                         Priority #{b.priority}
@@ -350,7 +350,7 @@ export default function BannersPage() {
                     <div className="flex-1 space-y-1.5">
                       <div className="flex items-center gap-2">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
-                          b.active ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-slate-100 text-slate-500 border border-slate-200"
+                          b.active ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
                         }`}>
                           {b.active ? "ACTIVE" : "INACTIVE"}
                         </span>
@@ -358,13 +358,13 @@ export default function BannersPage() {
                         <span className="text-[11px] text-slate-400 font-mono">ID: {b.id}</span>
                       </div>
 
-                      <h4 className="font-extrabold text-slate-900 text-base leading-snug">
+                      <h4 className="font-extrabold text-slate-900 dark:text-white text-base leading-snug">
                         {b.title ? b.title : <span className="text-slate-400 italic text-sm">(No Title - Image Only)</span>}
                       </h4>
-                      {b.subtitle && <p className="text-xs text-slate-500 leading-relaxed">{b.subtitle}</p>}
+                      {b.subtitle && <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{b.subtitle}</p>}
 
                       <div className="pt-2 flex items-center flex-wrap gap-2">
-                        <span className="text-xs font-bold text-magozi-800 bg-magozi-50 px-3 py-1 rounded-xl border border-magozi-100 flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-magozi-800 dark:text-emerald-300 bg-magozi-50 dark:bg-slate-800 px-3 py-1 rounded-xl border border-magozi-100 dark:border-slate-700 flex items-center gap-1.5">
                           <Layers size={13} />
                           <span>Linked Category: {getCategoryLabel(b.targetCategoryId)}</span>
                         </span>
@@ -377,7 +377,7 @@ export default function BannersPage() {
                                 ? "/products"
                                 : `/products?category=${encodeURIComponent(b.targetCategoryId)}`
                             }
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs shadow-sm transition border border-slate-700"
                             title="Click to redirect and view products under this category"
                           >
                             <span>🔗 Open Category Page</span>
@@ -398,14 +398,14 @@ export default function BannersPage() {
                           setBannerActive(b.active);
                           setBannerImage(b.imageUrl);
                         }}
-                        className="p-2.5 rounded-xl text-slate-600 hover:text-magozi-800 hover:bg-magozi-50 border border-slate-200 transition"
+                        className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-magozi-800 dark:hover:text-white hover:bg-magozi-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition"
                         title="Edit Banner"
                       >
                         <Edit3 size={18} />
                       </button>
                       <button
                         onClick={() => handleDeleteBanner(b)}
-                        className="p-2.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition"
+                        className="p-2.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-slate-200 dark:border-slate-700 transition"
                         title="Delete Banner"
                       >
                         <Trash2 size={18} />
@@ -414,8 +414,8 @@ export default function BannersPage() {
                   </div>
                 ))
               ) : (
-                <div className="p-12 bg-white rounded-3xl border border-slate-200/80 text-center text-slate-400 italic">
-                  No promotional banners created in Firestore <code className="font-mono text-slate-600 font-bold">banners</code> collection yet.
+                <div className="p-12 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 text-center text-slate-400 italic">
+                  No promotional banners created in Firestore <code className="font-mono text-slate-400 font-bold">banners</code> collection yet.
                 </div>
               )}
             </div>

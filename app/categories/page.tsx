@@ -336,7 +336,7 @@ export default function CategoriesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       <Sidebar />
 
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
@@ -347,7 +347,7 @@ export default function CategoriesPage() {
 
         <div className="p-3 md:p-6 space-y-6">
           {/* Top Bar Actions */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center flex-wrap gap-3 w-full md:w-auto flex-1">
               <div className="relative flex-1 min-w-[240px]">
                 <Search size={18} className="absolute left-3.5 top-3 text-slate-400" />
@@ -356,17 +356,17 @@ export default function CategoriesPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search categories or sub-categories by name..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-100 px-3.5 py-2.5 rounded-xl border border-slate-200">
-                <Layers size={16} className="text-magozi-800" />
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                <Layers size={16} className="text-magozi-800 dark:text-emerald-400" />
                 <span>Categories: {categories.length}</span>
               </div>
 
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-2.5 rounded-xl border border-emerald-200">
-                <FolderTree size={16} className="text-emerald-600" />
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3.5 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60">
+                <FolderTree size={16} className="text-emerald-600 dark:text-emerald-400" />
                 <span>Total Sub-Categories: {categories.reduce((acc, c) => acc + (c.subCategories?.length || 0), 0)}</span>
               </div>
             </div>

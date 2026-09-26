@@ -315,26 +315,26 @@ export default function ProductModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-white">
         {/* Modal Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 z-10">
           <div>
-            <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
-              <Sparkles className="text-magozi-800" size={20} />
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="text-magozi-800 dark:text-emerald-400" size={20} />
               <span>{product ? "Edit Product" : "Add New Product"}</span>
             </h2>
-            <p className="text-xs text-slate-500">Configure all 15 product attributes — Syncs with Firestore `products` collection</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Configure all 15 product attributes — Syncs with Firestore `products` collection</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+            className="p-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
             <X size={20} />
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+          <div className="mt-4 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
             <AlertCircle size={16} />
             <span>{error}</span>
           </div>
@@ -342,14 +342,14 @@ export default function ProductModal({
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-6">
           {/* SECTION 1: Product Name & Dietary Preference */}
-          <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/70 space-y-4">
-            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-slate-50/70 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-4">
+            <h3 className="text-xs font-extrabold text-slate-400 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Tag size={14} /> Basic Product Details
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   1. Product Name *
                 </label>
                 <input
@@ -358,12 +358,12 @@ export default function ProductModal({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Fresh Organic Alphonso Mangoes"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   2. Product Brand
                 </label>
                 <input
@@ -371,18 +371,18 @@ export default function ProductModal({
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
                   placeholder="e.g. Amul, Nestle, Fortune, Tata"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   3. Veg / Non-Veg *
                 </label>
                 <select
                   value={vegType}
                   onChange={(e) => setVegType(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
                 >
                   <option value="Pure Veg">🟢 Pure Veg</option>
                   <option value="Non-Veg">🔴 Non-Veg</option>
@@ -392,21 +392,21 @@ export default function ProductModal({
           </div>
 
           {/* SECTION 2: Category, Sub-Category & Stores Sync */}
-          <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/70 space-y-4">
-            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-slate-50/70 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-4">
+            <h3 className="text-xs font-extrabold text-slate-400 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Layers size={14} /> Category, Sub-Category & Store Mapping
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Store Selection */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1 flex items-center gap-1">
                   <StoreIcon size={13} /> 3. Store Location *
                 </label>
                 <select
                   value={selectedStoreId}
                   onChange={(e) => setSelectedStoreId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
                 >
                   {stores.length > 0 ? (
                     stores.map((s) => (
@@ -422,13 +422,13 @@ export default function ProductModal({
 
               {/* Category Selection */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   4. Category *
                 </label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
                 >
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
@@ -440,14 +440,14 @@ export default function ProductModal({
 
               {/* Sub-Category Selection */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   5. Sub-Category
                 </label>
                 {availableSubCategories.length > 0 ? (
                   <select
                     value={subCategory}
                     onChange={(e) => setSubCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
                   >
                     <option value="">Select Sub-Category</option>
                     {availableSubCategories.map((sub, idx) => (
@@ -462,7 +462,7 @@ export default function ProductModal({
                     value={subCategory}
                     onChange={(e) => setSubCategory(e.target.value)}
                     placeholder="Enter Sub-Category"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                   />
                 )}
               </div>
@@ -470,15 +470,15 @@ export default function ProductModal({
           </div>
 
           {/* SECTION 3: Pricing, Discount, Quantity & Weight */}
-          <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/70 space-y-4">
-            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-slate-50/70 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-4">
+            <h3 className="text-xs font-extrabold text-slate-400 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Sliders size={14} /> Pricing & Stock Quantity
             </h3>
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
               {/* Original Price */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   6. Original MRP (₹)
                 </label>
                 <input
@@ -486,13 +486,13 @@ export default function ProductModal({
                   min={0}
                   value={originalPrice}
                   onChange={(e) => handleOriginalPriceChange(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-500 bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               {/* Discount / Selling Price */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   7. Selling Price (₹) *
                 </label>
                 <input
@@ -501,13 +501,13 @@ export default function ProductModal({
                   min={1}
                   value={price}
                   onChange={(e) => handlePriceChange(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-extrabold text-slate-900 bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-extrabold text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               {/* Discount Percentage */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   8. Discount % MRP
                 </label>
                 <div className="relative">
@@ -517,15 +517,15 @@ export default function ProductModal({
                     max={100}
                     value={discountPercentage}
                     onChange={(e) => setDiscountPercentage(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-emerald-700 bg-emerald-50/50 focus:ring-2 focus:ring-emerald-600 outline-none"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40 focus:ring-2 focus:ring-emerald-600 outline-none"
                   />
-                  <span className="absolute right-2.5 top-2 text-xs font-bold text-emerald-700">%</span>
+                  <span className="absolute right-2.5 top-2 text-xs font-bold text-emerald-700 dark:text-emerald-400">%</span>
                 </div>
               </div>
 
               {/* Quantity */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   9. Stock Count
                 </label>
                 <input
@@ -533,13 +533,13 @@ export default function ProductModal({
                   min={0}
                   value={quantity}
                   onChange={(e) => setQuantity(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               {/* Weight / Unit */}
               <div className="col-span-2 sm:col-span-1">
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   10. Weight / Unit *
                 </label>
                 <input
@@ -548,7 +548,7 @@ export default function ProductModal({
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
                   placeholder="1 kg, 500g, 12 Pcs"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
             </div>
@@ -557,12 +557,12 @@ export default function ProductModal({
           {/* SECTION 4: Toggles (Stock Available & Customization) & Specs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Stock Availability Toggle */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
               <div>
-                <span className="block text-xs font-extrabold text-slate-800 uppercase">
+                <span className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase">
                   11. Stock Available (In Stock)
                 </span>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   {inStock ? "🟢 Active (+ ADD enabled on app)" : "🔴 OUT OF STOCK"}
                 </span>
               </div>
@@ -570,7 +570,7 @@ export default function ProductModal({
                 type="button"
                 onClick={() => setInStock(!inStock)}
                 className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                  inStock ? "bg-emerald-600" : "bg-slate-300"
+                  inStock ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
                 }`}
               >
                 <span
@@ -582,12 +582,12 @@ export default function ProductModal({
             </div>
 
             {/* Customization Toggle */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
               <div>
-                <span className="block text-xs font-extrabold text-slate-800 uppercase">
+                <span className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase">
                   12. Customization (ON / OFF)
                 </span>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   {isCustomizable ? "✨ Product Customization Enabled" : "Standard fixed product"}
                 </span>
               </div>
@@ -595,7 +595,7 @@ export default function ProductModal({
                 type="button"
                 onClick={() => setIsCustomizable(!isCustomizable)}
                 className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                  isCustomizable ? "bg-magozi-800" : "bg-slate-300"
+                  isCustomizable ? "bg-magozi-800" : "bg-slate-300 dark:bg-slate-700"
                 }`}
               >
                 <span
@@ -608,10 +608,10 @@ export default function ProductModal({
           </div>
 
           {/* SECTION 5: Replacement Time, Rating & Details */}
-          <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/70 space-y-4">
+          <div className="bg-slate-50/70 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1 flex items-center gap-1">
                   <Clock size={13} /> 13. Replacement Time *
                 </label>
                 <input
@@ -619,7 +619,7 @@ export default function ProductModal({
                   value={replacementTime}
                   onChange={(e) => setReplacementTime(e.target.value)}
                   placeholder="e.g. 7 Days Replacement, 24 Hours, No Replacement"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium bg-white focus:ring-2 focus:ring-magozi-800 outline-none mb-2"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none mb-2"
                 />
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-slate-400 block">Quick Choice Hints:</span>
@@ -632,7 +632,7 @@ export default function ProductModal({
                         className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition border ${
                           replacementTime === hint
                             ? "bg-magozi-800 text-white border-magozi-800 font-bold shadow-xs"
-                            : "bg-white text-slate-600 border-slate-200 hover:border-magozi-800 hover:text-magozi-800"
+                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-magozi-800 hover:text-magozi-800"
                         }`}
                       >
                         {hint}
@@ -643,7 +643,7 @@ export default function ProductModal({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1 flex items-center gap-1">
                   <Star size={13} className="text-amber-500" /> 14. Product Rating
                 </label>
                 <input
@@ -654,13 +654,13 @@ export default function ProductModal({
                   value={rating}
                   onChange={(e) => setRating(Number(e.target.value))}
                   placeholder="4.5"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-amber-700 bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-amber-700 dark:text-amber-400 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                 15. Product Details & Description
               </label>
               <textarea
@@ -668,21 +668,21 @@ export default function ProductModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Enter rich details, ingredients, storage instructions, or origin info..."
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
               />
             </div>
           </div>
 
           {/* SECTION 6: Multi-Image Upload & Preview Gallery */}
-          <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/70 space-y-4">
-            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-slate-50/70 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-4">
+            <h3 className="text-xs font-extrabold text-slate-400 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <ImageIcon size={14} /> 16. Multiple Product Images (Upload & Gallery)
             </h3>
 
             {/* Input Options: File Picker & URL Adder */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   Upload Multiple Image Files
                 </label>
                 <input
@@ -690,12 +690,12 @@ export default function ProductModal({
                   multiple
                   accept="image/*"
                   onChange={handleMultipleFilesChange}
-                  className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-magozi-50 file:text-magozi-800 hover:file:bg-magozi-100 cursor-pointer"
+                  className="block w-full text-xs text-slate-500 dark:text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-magozi-50 dark:file:bg-slate-800 file:text-magozi-800 dark:file:text-emerald-400 hover:file:bg-magozi-100 cursor-pointer"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   Add Image by URL
                 </label>
                 <div className="flex gap-2">
@@ -704,12 +704,12 @@ export default function ProductModal({
                     value={newUrlInput}
                     onChange={(e) => setNewUrlInput(e.target.value)}
                     placeholder="https://..."
-                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-1 focus:ring-magozi-800 outline-none bg-white"
+                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs focus:ring-1 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                   />
                   <button
                     type="button"
                     onClick={handleAddUrl}
-                    className="px-3 py-2 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-900"
+                    className="px-3 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-xs font-bold hover:bg-slate-900"
                   >
                     Add
                   </button>
@@ -720,7 +720,7 @@ export default function ProductModal({
             {/* Preview Gallery Grid */}
             {allPreviews.length > 0 && (
               <div>
-                <p className="text-[11px] font-bold text-slate-600 mb-2">
+                <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-2">
                   Uploaded / Selected Images Gallery ({allPreviews.length}) — Click thumbnail to set as Primary Image:
                 </p>
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
@@ -731,7 +731,7 @@ export default function ProductModal({
                       className={`relative aspect-square rounded-xl border-2 overflow-hidden cursor-pointer group transition ${
                         primaryImageIndex === idx
                           ? "border-magozi-800 ring-2 ring-magozi-800/30"
-                          : "border-slate-200 hover:border-slate-400"
+                          : "border-slate-200 dark:border-slate-700 hover:border-slate-400"
                       }`}
                     >
                       <img src={item.url} alt={`Image ${idx}`} className="w-full h-full object-cover" />
@@ -764,11 +764,11 @@ export default function ProductModal({
           </div>
 
           {/* Submit Actions */}
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3 sticky bottom-0 bg-white py-2">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 sticky bottom-0 bg-white dark:bg-slate-900 py-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
+              className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               Cancel
             </button>

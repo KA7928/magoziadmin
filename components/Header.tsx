@@ -137,20 +137,20 @@ export default function Header({ title, subtitle }: HeaderProps) {
       {/* Firebase Keys Settings Modal */}
       {showConfigModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                  <Settings size={20} className="text-magozi-800" />
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Settings size={20} className="text-magozi-800 dark:text-emerald-400" />
                   <span>Real Firebase Project Credentials</span>
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Connect your live Firebase App to show real values directly from your Cloud Firestore database
                 </p>
               </div>
               <button
                 onClick={() => setShowConfigModal(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 <X size={20} />
               </button>
@@ -158,7 +158,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
             <form onSubmit={handleSaveFirebaseKeys} className="mt-5 space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   API Key (apiKey)
                 </label>
                 <input
@@ -166,12 +166,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="AIzaSy..."
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   Auth Domain (authDomain)
                 </label>
                 <input
@@ -179,12 +179,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
                   value={authDomain}
                   onChange={(e) => setAuthDomain(e.target.value)}
                   placeholder="your-project.firebaseapp.com"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   Project ID (projectId)
                 </label>
                 <input
@@ -192,12 +192,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
                   value={projectId}
                   onChange={(e) => setProjectId(e.target.value)}
                   placeholder="your-project-id"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   Storage Bucket (storageBucket)
                 </label>
                 <input
@@ -205,12 +205,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
                   value={storageBucket}
                   onChange={(e) => setStorageBucket(e.target.value)}
                   placeholder="your-project.appspot.com"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   Messaging Sender ID (messagingSenderId)
                 </label>
                 <input
@@ -218,12 +218,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
                   value={messagingSenderId}
                   onChange={(e) => setMessagingSenderId(e.target.value)}
                   placeholder="1234567890"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                   App ID (appId)
                 </label>
                 <input
@@ -231,13 +231,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
                   value={appId}
                   onChange={(e) => setAppId(e.target.value)}
                   placeholder="1:1234567890:web:abcdef..."
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <p className="text-[11px] text-slate-400">
-                  Or edit <code className="text-slate-800 font-bold">.env.local</code> in project root.
+                  Or edit <code className="text-slate-800 dark:text-slate-200 font-bold">.env.local</code> in project root.
                 </p>
                 <button
                   type="submit"

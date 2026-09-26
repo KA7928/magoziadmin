@@ -96,43 +96,43 @@ export default function OrderDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-white">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-xl text-slate-900">{order.id}</span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+              <span className="font-extrabold text-xl text-slate-900 dark:text-white">{order.id}</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                 {order.paymentStatus}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">Placed on {formatDate(order.createdAt)}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Placed on {formatDate(order.createdAt)}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+            className="p-2 rounded-xl text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Update Notification Section - Upside of Expected Delivery Timing */}
-        <div className="mt-4 p-4 rounded-2xl bg-amber-50/90 border border-amber-200 shadow-xs space-y-3">
+        <div className="mt-4 p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 shadow-xs space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-xl bg-amber-600 text-white shadow-xs">
                 <BellRing size={18} />
               </div>
               <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 dark:text-amber-300">
                   Update Notification (notifyuser)
                 </p>
                 {order.notifyuser ? (
-                  <p className="text-xs font-bold text-amber-950">
-                    Active: "<span className="text-amber-900 italic">{order.notifyuser}</span>"
+                  <p className="text-xs font-bold text-amber-950 dark:text-amber-100">
+                    Active: "<span className="text-amber-900 dark:text-amber-300 italic">{order.notifyuser}</span>"
                   </p>
                 ) : (
-                  <p className="text-[11px] text-amber-700/80 italic">
+                  <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 italic">
                     No active notification set for this user
                   </p>
                 )}
@@ -143,7 +143,7 @@ export default function OrderDetailModal({
               <button
                 type="button"
                 onClick={() => handleNotifyUserChange("")}
-                className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 hover:bg-rose-200 text-[11px] font-bold transition shadow-2xs"
+                className="px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900 text-[11px] font-bold transition shadow-2xs border border-rose-200 dark:border-rose-800"
                 title="Clear notifyuser text in Firestore"
               >
                 Clear ✕
@@ -153,7 +153,7 @@ export default function OrderDetailModal({
 
           {/* Quick Message Hints */}
           <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800/80 block mb-1.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800/80 dark:text-amber-400 block mb-1.5">
               Quick Message Hints:
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -165,7 +165,7 @@ export default function OrderDetailModal({
                   className={`px-3 py-1 rounded-xl text-xs font-bold transition border ${
                     order.notifyuser === hint
                       ? "bg-amber-600 text-white border-amber-700 shadow-xs"
-                      : "bg-white text-slate-800 border-amber-300 hover:bg-amber-100/80"
+                      : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-amber-300 dark:border-amber-800 hover:bg-amber-100/80 dark:hover:bg-amber-950/60"
                   }`}
                 >
                   {hint}
@@ -181,7 +181,7 @@ export default function OrderDetailModal({
               placeholder="Type custom update notification message..."
               value={customNotifyMessage}
               onChange={(e) => setCustomNotifyMessage(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-amber-300 bg-white text-xs font-medium focus:ring-2 focus:ring-amber-600 outline-none flex-1 text-slate-900 placeholder:text-amber-700/50"
+              className="px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-white dark:bg-slate-800 text-xs font-medium focus:ring-2 focus:ring-amber-600 outline-none flex-1 text-slate-900 dark:text-white placeholder:text-amber-700/50 dark:placeholder:text-amber-400/50"
             />
             <button
               type="submit"
@@ -193,16 +193,16 @@ export default function OrderDetailModal({
         </div>
 
         {/* Expected Delivery Timing Banner & Editor */}
-        <div className="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="mt-4 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-emerald-600 text-white shadow-sm">
               <Clock size={18} />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                 Expected Delivery Timing
               </p>
-              <p className="text-sm font-extrabold text-emerald-950">
+              <p className="text-sm font-extrabold text-emerald-950 dark:text-emerald-100">
                 {order.deliveryTiming || "8 to 15 Mins"}
               </p>
             </div>
@@ -227,18 +227,18 @@ export default function OrderDetailModal({
                   placeholder="Custom timing..."
                   value={customTiming}
                   onChange={(e) => setCustomTiming(e.target.value)}
-                  className="px-3 py-1 rounded-lg border border-emerald-300 text-xs font-medium focus:ring-2 focus:ring-emerald-600 outline-none flex-1"
+                  className="px-3 py-1 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-emerald-600 outline-none flex-1"
                 />
                 <button
                   type="submit"
-                  className="px-3 py-1 rounded-lg bg-slate-900 text-white font-bold text-xs"
+                  className="px-3 py-1 rounded-lg bg-slate-900 dark:bg-slate-700 text-white font-bold text-xs"
                 >
                   Save
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsEditingTiming(false)}
-                  className="px-2.5 py-1 rounded-lg border border-slate-300 text-xs text-slate-600"
+                  className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400"
                 >
                   Cancel
                 </button>
@@ -250,7 +250,7 @@ export default function OrderDetailModal({
                 setCustomTiming(order.deliveryTiming || "");
                 setIsEditingTiming(true);
               }}
-              className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-xs font-bold text-emerald-900 hover:bg-emerald-100 transition shadow-sm"
+              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 text-xs font-bold text-emerald-900 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-slate-700 transition shadow-sm"
             >
               ✏️ Change Timing
             </button>
@@ -258,13 +258,13 @@ export default function OrderDetailModal({
         </div>
 
         {/* 1-Click 6-Step Delivery Status Stepper */}
-        <div className="my-6 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+        <div className="my-6 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Realtime Delivery Status Stepper
             </p>
             {order.deliveryStatus && (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-magozi-100 text-magozi-900 border border-magozi-200">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-magozi-100 dark:bg-slate-700 text-magozi-900 dark:text-emerald-400 border border-magozi-200 dark:border-slate-600">
                 Firestore deliveryStatus: "{order.deliveryStatus}"
               </span>
             )}
@@ -276,7 +276,7 @@ export default function OrderDetailModal({
               const isActive = order.status === step.status;
               const isCancelled = step.status === "CANCELLED";
 
-              let btnBg = "bg-white text-slate-600 border-slate-200 hover:bg-slate-100";
+              let btnBg = "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700";
               if (isActive) {
                 if (isCancelled) {
                   btnBg = "bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-600/20 font-bold";
@@ -301,30 +301,30 @@ export default function OrderDetailModal({
 
         {/* Customer & Location/Address Details Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+          <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+            <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
               Customer Details
             </h4>
-            <div className="space-y-1.5 text-xs text-slate-700 font-medium">
+            <div className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300 font-medium">
               <div className="flex items-center gap-2">
-                <User size={14} className="text-magozi-800" />
-                <span className="font-bold text-slate-900 text-sm">{order.customerName}</span>
+                <User size={14} className="text-magozi-800 dark:text-emerald-400" />
+                <span className="font-bold text-slate-900 dark:text-white text-sm">{order.customerName}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone size={14} className="text-slate-400" />
-                <span>Contact Number: <strong className="text-slate-900">{order.contactNumber || order.phone}</strong></span>
+                <span>Contact Number: <strong className="text-slate-900 dark:text-white">{order.contactNumber || order.phone}</strong></span>
               </div>
               <div className="flex items-center gap-2">
                 <CreditCard size={14} className="text-slate-400" />
-                <span>Payment: <strong className="text-slate-900">{order.paymentStatus}</strong></span>
+                <span>Payment: <strong className="text-slate-900 dark:text-white">{order.paymentStatus}</strong></span>
               </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex flex-col justify-between">
+          <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Delivery Location & Address
                 </h4>
                 <a
@@ -349,14 +349,14 @@ export default function OrderDetailModal({
                 }
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-start gap-2 text-xs text-slate-700 font-medium leading-relaxed hover:text-magozi-800 transition"
+                className="group flex items-start gap-2 text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed hover:text-magozi-800 dark:hover:text-emerald-400 transition"
               >
-                <MapPin size={16} className="text-magozi-800 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                <MapPin size={16} className="text-magozi-800 dark:text-emerald-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
                 <div>
-                  <p className="font-bold text-slate-900 group-hover:underline flex items-center gap-1">
+                  <p className="font-bold text-slate-900 dark:text-white group-hover:underline flex items-center gap-1">
                     <span>{order.location || "Delivery Address"}</span>
                   </p>
-                  <p className="text-slate-600 text-xs mt-0.5">{order.address}</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-xs mt-0.5">{order.address}</p>
                 </div>
               </a>
             </div>
@@ -365,22 +365,22 @@ export default function OrderDetailModal({
 
         {/* Itemized List */}
         <div>
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+          <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
             Itemized Order Breakdown ({order.items.length} Items)
           </h4>
-          <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
             {order.items.map((item, idx) => (
-              <div key={idx} className="p-3 bg-white flex items-center justify-between gap-4">
+              <div key={idx} className="p-3 bg-white dark:bg-slate-900 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-magozi-50 text-magozi-800 font-bold text-xs flex items-center justify-center border border-magozi-100">
+                  <div className="w-8 h-8 rounded-lg bg-magozi-50 dark:bg-slate-800 text-magozi-800 dark:text-emerald-400 font-bold text-xs flex items-center justify-center border border-magozi-100 dark:border-slate-700">
                     {item.quantity}x
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-900">{item.name}</p>
-                    <p className="text-[11px] text-slate-500">{item.unit} • {formatCurrency(item.price)} each</p>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">{item.name}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{item.unit} • {formatCurrency(item.price)} each</p>
                   </div>
                 </div>
-                <span className="text-xs font-extrabold text-slate-900">
+                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
                   {formatCurrency(item.price * item.quantity)}
                 </span>
               </div>
@@ -389,30 +389,30 @@ export default function OrderDetailModal({
         </div>
 
         {/* Financial Breakdown & Total Amount Footer */}
-        <div className="mt-6 pt-4 border-t border-slate-100 space-y-2">
-          <div className="space-y-1 text-xs font-medium text-slate-600">
+        <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <div className="space-y-1 text-xs font-medium text-slate-600 dark:text-slate-400">
             <div className="flex items-center justify-between">
               <span>Delivery Charges</span>
-              <span className="font-bold text-slate-900">
+              <span className="font-bold text-slate-900 dark:text-white">
                 {order.deliveryFee ? formatCurrency(order.deliveryFee) : "FREE (₹0)"}
               </span>
             </div>
             {Boolean(order.discount) && (
-              <div className="flex items-center justify-between text-emerald-600 font-bold">
+              <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-bold">
                 <span>Discount / Coupon</span>
                 <span>-{formatCurrency(order.discount!)}</span>
               </div>
             )}
           </div>
 
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
-              <span className="text-xs text-slate-500 font-medium">Grand Total</span>
-              <p className="text-2xl font-extrabold text-magozi-900">{formatCurrency(order.totalAmount)}</p>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Grand Total</span>
+              <p className="text-2xl font-extrabold text-magozi-900 dark:text-emerald-400">{formatCurrency(order.totalAmount)}</p>
             </div>
             <button
               onClick={onClose}
-              className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition"
+              className="px-6 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-sm font-bold transition border border-slate-700"
             >
               Done
             </button>

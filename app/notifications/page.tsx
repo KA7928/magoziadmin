@@ -118,7 +118,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       <Sidebar />
 
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
@@ -129,7 +129,7 @@ export default function NotificationsPage() {
 
         <div className="p-3 md:p-6 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div className="lg:col-span-1 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -137,23 +137,23 @@ export default function NotificationsPage() {
                       <BellRing size={20} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-extrabold text-slate-900">Send Push Payload</h3>
-                      <p className="text-xs text-slate-500">Firebase FCM Admin Dispatch</p>
+                      <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Send Push Payload</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Firebase FCM Admin Dispatch</p>
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setShowFcmKeyInput(!showFcmKeyInput)}
-                    className="px-2.5 py-1 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition"
+                    className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                   >
                     {showFcmKeyInput ? "Close Settings" : "🔑 FCM Key"}
                   </button>
                 </div>
 
                 {showFcmKeyInput && (
-                  <form onSubmit={handleSaveFcmKey} className="mb-4 p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase">
+                  <form onSubmit={handleSaveFcmKey} className="mb-4 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
                       Firebase Cloud Messaging (FCM) Server Key
                     </label>
                     <input
@@ -161,12 +161,12 @@ export default function NotificationsPage() {
                       placeholder="AIzaSy..."
                       value={fcmKey}
                       onChange={(e) => setFcmKey(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-mono focus:ring-2 focus:ring-magozi-800 outline-none"
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-magozi-800 outline-none"
                     />
                     <div className="flex justify-end">
                       <button
                         type="submit"
-                        className="px-3 py-1 rounded-lg bg-slate-900 text-white font-bold text-[10px]"
+                        className="px-3 py-1 rounded-lg bg-slate-900 dark:bg-slate-700 text-white font-bold text-[10px]"
                       >
                         Save Key Locally
                       </button>
@@ -175,7 +175,7 @@ export default function NotificationsPage() {
                 )}
 
                 {successMsg && (
-                  <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+                  <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
                     <CheckCircle2 size={16} />
                     <span>{successMsg}</span>
                   </div>
@@ -183,7 +183,7 @@ export default function NotificationsPage() {
 
                 <form onSubmit={handleSendNotification} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                       Notification Title *
                     </label>
                     <input
@@ -192,12 +192,12 @@ export default function NotificationsPage() {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="e.g. 🎉 Flat 50% OFF Flash Sale!"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                       Message Body *
                     </label>
                     <textarea
@@ -206,12 +206,12 @@ export default function NotificationsPage() {
                       value={body}
                       onChange={(e) => setBody(e.target.value)}
                       placeholder="e.g. Get fresh organic mangoes delivered in 8 minutes."
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none resize-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none resize-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                       Target Audience *
                     </label>
                     <div className="grid grid-cols-2 gap-2">
@@ -221,7 +221,7 @@ export default function NotificationsPage() {
                         className={`p-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 ${
                           targetAudience === "All Users"
                             ? "bg-magozi-800 text-white border-magozi-800 shadow-md shadow-magozi-800/20"
-                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                            : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                         }`}
                       >
                         <Users size={16} />
@@ -234,7 +234,7 @@ export default function NotificationsPage() {
                         className={`p-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 ${
                           targetAudience === "Active Buyers"
                             ? "bg-magozi-800 text-white border-magozi-800 shadow-md shadow-magozi-800/20"
-                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                            : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                         }`}
                       >
                         <Sparkles size={16} />
@@ -255,31 +255,31 @@ export default function NotificationsPage() {
               </div>
             </div>
 
-            <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-extrabold text-slate-900">Notification History Log</h3>
-                    <p className="text-xs text-slate-500">Records saved in Firestore `notifications` collection</p>
+                    <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Notification History Log</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Records saved in Firestore `notifications` collection</p>
                   </div>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                     Total Sent: {notifications.length}
                   </span>
                 </div>
 
-                <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
                   {notifications.length > 0 ? (
                     notifications.map((n) => (
-                      <div key={n.id} className="p-4 bg-white hover:bg-slate-50/80 transition flex items-start justify-between gap-4">
+                      <div key={n.id} className="p-4 bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3">
-                          <div className="p-2.5 rounded-xl bg-emerald-50 text-magozi-800 border border-magozi-100 flex-shrink-0 mt-0.5">
+                          <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-magozi-800 dark:text-emerald-400 border border-magozi-100 dark:border-emerald-800/60 flex-shrink-0 mt-0.5">
                             <BellRing size={18} />
                           </div>
                           <div>
-                            <h4 className="font-extrabold text-slate-900 text-sm">{n.title}</h4>
-                            <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{n.body}</p>
-                            <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-400 font-medium">
-                              <span>Target: <strong className="text-slate-700">{n.targetAudience}</strong></span>
+                            <h4 className="font-extrabold text-slate-900 dark:text-white text-sm">{n.title}</h4>
+                            <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">{n.body}</p>
+                            <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-400 dark:text-slate-400 font-medium">
+                              <span>Target: <strong className="text-slate-700 dark:text-slate-300">{n.targetAudience}</strong></span>
                               <span>•</span>
                               <span>Dispatched: {formatDate(n.sentAt)}</span>
                             </div>
@@ -287,14 +287,14 @@ export default function NotificationsPage() {
                         </div>
 
                         <div className="text-right flex-shrink-0 flex items-center gap-2">
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                             {n.reachCount} Users Reached
                           </span>
                           <button
                             type="button"
                             onClick={() => handleDeleteNotification(n.id)}
                             title="Delete notification log"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 border border-transparent hover:border-red-100 transition"
                           >
                             <Trash2 size={16} />
                           </button>

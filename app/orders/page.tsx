@@ -399,7 +399,7 @@ export default function OrdersPage() {
     });
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       <Sidebar />
 
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
@@ -410,7 +410,7 @@ export default function OrdersPage() {
 
         <div className="p-3 md:p-6 space-y-6">
           {/* Filter Tabs & Search */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center flex-wrap gap-2 w-full md:w-auto">
                 {FILTER_TABS.map((tab) => {
@@ -428,14 +428,14 @@ export default function OrdersPage() {
                       className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
                         isActive
                           ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                       }`}
                     >
                       <Icon size={14} />
                       <span>{tab.label}</span>
                       <span
                         className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                          isActive ? "bg-magozi-900 text-white" : "bg-slate-200 text-slate-700"
+                          isActive ? "bg-magozi-900 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200"
                         }`}
                       >
                         {count}
@@ -471,7 +471,7 @@ export default function OrdersPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by Order ID (#MAG...), Phone, or Name..."
-                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
                   />
                 </div>
               </div>
@@ -479,11 +479,11 @@ export default function OrdersPage() {
           </div>
 
           {/* Orders Table */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-extrabold uppercase text-slate-400">
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-[11px] font-extrabold uppercase text-slate-400 dark:text-slate-400">
                     <th className="py-4 px-5">Order ID & Date</th>
                     <th className="py-4 px-5">Customer & Phone</th>
                     <th className="py-4 px-5">Delivery Address</th>
@@ -494,62 +494,64 @@ export default function OrdersPage() {
                     <th className="py-4 px-5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300">
                   {filteredOrders.length > 0 ? (
                     filteredOrders.map((ord) => (
                       <tr
                         key={ord.id}
                         className={`transition ${
-                          ord.isPinned ? "bg-amber-50/40 hover:bg-amber-50/60" : "hover:bg-slate-50/60"
+                          ord.isPinned
+                            ? "bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-50/60 dark:hover:bg-amber-950/30"
+                            : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
                         }`}
                       >
                         <td className="py-4 px-5">
                           <div className="flex items-center gap-1.5">
-                            <p className="font-extrabold text-slate-900 text-sm">{ord.id}</p>
+                            <p className="font-extrabold text-slate-900 dark:text-white text-sm">{ord.id}</p>
                             {ord.isPinned && (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1 shadow-xs">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 flex items-center gap-1 shadow-xs">
                                 📌 PINNED
                               </span>
                             )}
                           </div>
                           <p className="text-[11px] text-slate-400 mt-0.5">{formatDate(ord.createdAt)}</p>
                           {ord.notifyuser && (
-                            <div className="mt-1.5 flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-300/80 truncate max-w-[180px]">
-                              <BellRing size={10} className="text-amber-700 flex-shrink-0" />
+                            <div className="mt-1.5 flex items-center gap-1 text-[10px] font-bold text-amber-900 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-300/80 dark:border-amber-800/80 truncate max-w-[180px]">
+                              <BellRing size={10} className="text-amber-700 dark:text-amber-400 flex-shrink-0" />
                               <span className="truncate" title={`notifyuser: ${ord.notifyuser}`}>{ord.notifyuser}</span>
                             </div>
                           )}
                         </td>
 
                         <td className="py-4 px-5">
-                          <p className="font-bold text-slate-900">{ord.customerName}</p>
-                          <p className="text-[11px] text-slate-500 font-mono">{ord.contactNumber || ord.phone}</p>
+                          <p className="font-bold text-slate-900 dark:text-white">{ord.customerName}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{ord.contactNumber || ord.phone}</p>
                         </td>
 
                         <td className="py-4 px-5">
                           <button
                             onClick={() => setSelectedOrder(ord)}
-                            className="px-3.5 py-1.5 rounded-xl bg-magozi-50 hover:bg-magozi-100 text-magozi-800 border border-magozi-200/80 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs group"
+                            className="px-3.5 py-1.5 rounded-xl bg-magozi-50 dark:bg-slate-800 hover:bg-magozi-100 dark:hover:bg-slate-700 text-magozi-800 dark:text-slate-200 border border-magozi-200/80 dark:border-slate-700 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs group"
                             title="Click to open full Delivery Location details & Google Maps 🗺️"
                           >
-                            <MapPin size={16} className="text-magozi-800 group-hover:scale-110 transition-transform" />
+                            <MapPin size={16} className="text-magozi-800 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
                             <span>Location</span>
                           </button>
                         </td>
 
                         <td className="py-4 px-5 max-w-xs">
-                          <span className="font-semibold text-slate-800 line-clamp-2">
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 line-clamp-2">
                             {ord.items && ord.items.length > 0 ? ord.items.map((i) => `${i.quantity}x ${i.name}`).join(", ") : "N/A"}
                           </span>
                         </td>
 
                         <td className="py-4 px-5">
                           <div className="space-y-0.5">
-                            <p className="text-xs font-semibold text-slate-700">
-                              Delivery: <strong className="text-slate-900">{ord.deliveryFee ? formatCurrency(ord.deliveryFee) : "FREE"}</strong>
+                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              Delivery: <strong className="text-slate-900 dark:text-white">{ord.deliveryFee ? formatCurrency(ord.deliveryFee) : "FREE"}</strong>
                             </p>
                             {ord.discount ? (
-                              <p className="text-[11px] font-bold text-emerald-600">
+                              <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                                 Discount: -{formatCurrency(ord.discount)}
                               </p>
                             ) : (
@@ -559,10 +561,10 @@ export default function OrdersPage() {
                         </td>
 
                         <td className="py-4 px-5">
-                          <p className="font-extrabold text-magozi-900 text-sm">
+                          <p className="font-extrabold text-magozi-900 dark:text-emerald-400 text-sm">
                             {formatCurrency(ord.totalAmount)}
                           </p>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                             {ord.paymentStatus}
                           </span>
                         </td>
@@ -573,16 +575,16 @@ export default function OrdersPage() {
                             onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value as OrderStatus)}
                             className={`px-3 py-1.5 rounded-xl text-xs font-bold outline-none cursor-pointer border ${
                               ord.status === "PLACED"
-                                ? "bg-blue-50 text-blue-800 border-blue-200"
+                                ? "bg-blue-50 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800"
                                 : ord.status === "PACKING"
-                                ? "bg-amber-50 text-amber-800 border-amber-200"
+                                ? "bg-amber-50 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800"
                                 : ord.status === "OUT_FOR_DELIVERY"
-                                ? "bg-purple-50 text-purple-800 border-purple-200"
+                                ? "bg-purple-50 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800"
                                 : ord.status === "AT_DOORSTEPS"
-                                ? "bg-indigo-50 text-indigo-800 border-indigo-200"
+                                ? "bg-indigo-50 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
                                 : ord.status === "DELIVERED"
-                                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                                : "bg-rose-50 text-rose-800 border-rose-200"
+                                ? "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                                : "bg-rose-50 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800"
                             }`}
                           >
                             <option value="PLACED">1. PLACED</option>

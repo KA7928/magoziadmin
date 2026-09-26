@@ -101,34 +101,34 @@ export default function UserDetailDrawer({
 
           {/* Contact Details & Join Date */}
           <div className="space-y-3 mb-6">
-            <div className="flex items-center gap-3 text-xs text-slate-700 font-medium p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <Mail size={16} className="text-magozi-800 flex-shrink-0" />
+            <div className="flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300 font-medium p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <Mail size={16} className="text-magozi-800 dark:text-emerald-400 flex-shrink-0" />
               <span className="truncate">{user.email}</span>
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-slate-700 font-medium p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <Phone size={16} className="text-magozi-800 flex-shrink-0" />
+            <div className="flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300 font-medium p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <Phone size={16} className="text-magozi-800 dark:text-emerald-400 flex-shrink-0" />
               <span>{user.phone}</span>
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-slate-700 font-medium p-3 rounded-xl bg-slate-50 border border-slate-100">
-              <Calendar size={16} className="text-magozi-800 flex-shrink-0" />
-              <span>Registration Date (registrationDate): <strong className="text-slate-900">{user.registrationDate || user.registeredDate || user.createdAt || "N/A"}</strong></span>
+            <div className="flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300 font-medium p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <Calendar size={16} className="text-magozi-800 dark:text-emerald-400 flex-shrink-0" />
+              <span>Registration Date (registrationDate): <strong className="text-slate-900 dark:text-white">{user.registrationDate || user.registeredDate || user.createdAt || "N/A"}</strong></span>
             </div>
           </div>
 
           {/* Location & Delivery Addresses */}
           <div className="mb-6">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center justify-between">
+            <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
               <span>Location & Delivery Addresses (deliveryAddresses)</span>
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-extrabold text-[11px]">
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-extrabold text-[11px]">
                 {user.addressesCount || (user.location ? 1 : 0)} Saved
               </span>
             </h4>
 
             {user.location && (
-              <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 flex items-start gap-2.5 mb-3">
-                <MapPin size={16} className="text-magozi-800 flex-shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs font-medium text-slate-800 dark:text-slate-200 flex items-start gap-2.5 mb-3">
+                <MapPin size={16} className="text-magozi-800 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Primary Location</span>
                   <p className="leading-relaxed font-semibold">{user.location}</p>
@@ -140,9 +140,9 @@ export default function UserDetailDrawer({
               <div className="space-y-2">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">All deliveryAddresses:</span>
                 {(user.deliveryAddresses || user.savedAddresses || user.addresses)!.map((addr: any, i: number) => (
-                  <div key={i} className="p-3 rounded-xl border border-slate-100 bg-white text-xs font-medium text-slate-700 flex items-start gap-2">
-                    <MapPin size={14} className="text-magozi-800 flex-shrink-0 mt-0.5" />
-                    <span className="leading-relaxed font-semibold text-slate-800">{formatAddressItem(addr)}</span>
+                  <div key={i} className="p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-xs font-medium text-slate-700 dark:text-slate-300 flex items-start gap-2">
+                    <MapPin size={14} className="text-magozi-800 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span className="leading-relaxed font-semibold text-slate-800 dark:text-slate-200">{formatAddressItem(addr)}</span>
                   </div>
                 ))}
               </div>

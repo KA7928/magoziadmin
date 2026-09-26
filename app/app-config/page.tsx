@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import { AppConfigSettings, SupportConfigSettings, AppOpenCloseSettings, Product, CategoryItem } from "@/lib/types";
+import { AppConfigSettings, SupportConfigSettings, AppOpenCloseSettings } from "@/lib/types";
 import { INITIAL_APP_CONFIG, INITIAL_SUPPORT_CONFIG, INITIAL_APP_OPEN_CLOSE } from "@/lib/mock-data";
 import { db, doc, onSnapshot, setDoc, collection, getDocs } from "@/lib/firebase";
 import { 
@@ -32,16 +32,7 @@ import {
   XCircle,
   Sparkles,
   ToggleLeft,
-  ToggleRight,
-  Star,
-  Search,
-  Plus,
-  Trash2,
-  Check,
-  Grid,
-  Layers,
-  LayoutGrid,
-  Hash
+  ToggleRight
 } from "lucide-react";
 
 const getInitialAppOpenClose = (): AppOpenCloseSettings => {
@@ -73,31 +64,12 @@ export default function AppConfigPage() {
   const [openingHoursInput, setOpeningHoursInput] = useState<string>(appOpenClose.openingHours || "06:00 AM - 11:30 PM");
   const [closedMessageInput, setClosedMessageInput] = useState<string>(appOpenClose.closedMessage || "We are currently closed for orders.");
 
-  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "dailyspecial" | "homecategory" | "customhome" | "policies" | "support">("charges");
+  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "policies" | "support">("charges");
   const [policySubTab, setPolicySubTab] = useState<"terms" | "privacy" | "refund" | "shipping" | "about">("terms");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentTimeStr, setCurrentTimeStr] = useState<string>("");
-
-  // Today's Special (Daily Special) Products State
-  const [productsList, setProductsList] = useState<Product[]>([]);
-  const [dailySpecialProductIds, setDailySpecialProductIds] = useState<string[]>([]);
-  const [dailySpecialSearch, setDailySpecialSearch] = useState<string>("");
-  const [savingDailySpecial, setSavingDailySpecial] = useState<boolean>(false);
-
-  // Home Category UI State (max 5 categories)
-  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>([]);
-  const [homeCategoryShowIds, setHomeCategoryShowIds] = useState<string[]>([]);
-  const [homeCategorySearch, setHomeCategorySearch] = useState<string>("");
-  const [savingHomeCategory, setSavingHomeCategory] = useState<boolean>(false);
-
-  // Custom Home Show Products State (customproductshome)
-  const [customHomeProductIds, setCustomHomeProductIds] = useState<string[]>([]);
-  const [customHomeHeading, setCustomHomeHeading] = useState<string>("");
-  const [customHomePriority, setCustomHomePriority] = useState<number | string>(1);
-  const [customHomeSearch, setCustomHomeSearch] = useState<string>("");
-  const [savingCustomHome, setSavingCustomHome] = useState<boolean>(false);
 
   // Sync client-side localStorage on initial client mount to guarantee immediate persistence across restarts
   useEffect(() => {
@@ -118,7 +90,7 @@ export default function AppConfigPage() {
     }
   }, []);
 
-  // Function to persist App Open/Close settings to Firestore using ONLY clean single fields (no duplicate field aliases)
+  // Function to persist App Open/Close settings to Firestore using ONLY clean single fields
   const saveAppOpenCloseToFirestore = async (override: Partial<{
     isStoreOpen: boolean;
     openTime: string;
@@ -167,7 +139,6 @@ export default function AppConfigPage() {
       } catch (e) {}
     }
 
-    // 1. Write ONLY the exact required fields to `app_config/app_open_close` (merge: false ensures no old duplicate aliases remain)
     const openClosePayload = {
       isStoreOpen: finalIsOpen,
       openTime: openT,
@@ -179,7 +150,6 @@ export default function AppConfigPage() {
       lastUpdated: Date.now(),
     };
 
-    // 2. Write to `app_config/global_settings`
     const globalPayload = {
       isStoreOpen: finalIsOpen,
       openTime: openT,
@@ -193,7 +163,6 @@ export default function AppConfigPage() {
     await setDoc(doc(db, "app_config", "app_open_close"), openClosePayload, { merge: false });
     await setDoc(doc(db, "app_config", "global_settings"), globalPayload, { merge: true });
 
-    // 3. Sync to all documents in the `stores` collection
     try {
       const storesSnap = await getDocs(collection(db, "stores"));
       if (!storesSnap.empty) {
@@ -311,12 +280,12 @@ export default function AppConfigPage() {
     }
   }, []);
 
-  // Automatic Open/Close Scheduler — Evaluates openTime & closeTime against current system time ONLY if autoTimingEnabled is true AND Firestore data has completed initial load
+  // Automatic Open/Close Scheduler
   useEffect(() => {
-    if (!isFirestoreLoaded) return; // Prevent race conditions with initial default state on page reload/restart!
+    if (!isFirestoreLoaded) return;
 
     const isAuto = appOpenClose.autoTimingEnabled ?? true;
-    if (!isAuto) return; // Automatic calculation is disabled when user manually sets open/close status
+    if (!isAuto) return;
 
     const checkAndSyncAutoStatus = async () => {
       const calculatedIsOpen = isCurrentTimeWithinOperatingHours(
@@ -363,227 +332,6 @@ export default function AppConfigPage() {
       console.warn("Error subscribing to app_config/supportpage in Firestore:", e);
     }
   }, []);
-
-  // Realtime Cloud Firestore Listener for app_config/dailyspecial
-  useEffect(() => {
-    try {
-      const unsub = onSnapshot(doc(db, "app_config", "dailyspecial"), (snap) => {
-        if (snap.exists()) {
-          const d = snap.data();
-          const pIds = d.DailySPCLproducts || d.daily_spcl_products || d.products || [];
-          if (Array.isArray(pIds)) {
-            setDailySpecialProductIds(pIds.map((id: any) => String(id)));
-          }
-        }
-      }, (err) => {
-        console.warn("Firestore app_config/dailyspecial listener warning:", err);
-      });
-
-      return () => unsub();
-    } catch (e) {
-      console.warn("Error subscribing to app_config/dailyspecial in Firestore:", e);
-    }
-  }, []);
-
-  // Realtime Cloud Firestore Listener for products collection
-  useEffect(() => {
-    try {
-      const unsub = onSnapshot(collection(db, "products"), (snap) => {
-        const loaded: Product[] = snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        } as Product));
-        setProductsList(loaded);
-      }, (err) => {
-        console.warn("Firestore products collection listener warning:", err);
-      });
-
-      return () => unsub();
-    } catch (e) {
-      console.warn("Error subscribing to products collection in Firestore:", e);
-    }
-  }, []);
-
-  // Dedicated Handler to Save Daily Special Products
-  const handleSaveDailySpecial = async () => {
-    setSavingDailySpecial(true);
-    setSaveMessage(null);
-    setErrorMessage(null);
-
-    try {
-      const payload = {
-        DailySPCLproducts: dailySpecialProductIds,
-        updatedAt: new Date().toISOString(),
-        lastUpdated: Date.now(),
-      };
-
-      await setDoc(doc(db, "app_config", "dailyspecial"), payload, { merge: true });
-
-      setSaveMessage(`Successfully saved ${dailySpecialProductIds.length} Daily Special product IDs to Cloud Firestore (app_config/dailyspecial -> DailySPCLproducts)!`);
-      setTimeout(() => setSaveMessage(null), 5000);
-    } catch (err: any) {
-      console.error("Error saving Daily Special products to Firestore:", err);
-      setErrorMessage(err.message || "Failed to save Daily Special products to Cloud Firestore.");
-    } finally {
-      setSavingDailySpecial(false);
-    }
-  };
-
-  const handleToggleDailySpecialProduct = (prodId: string) => {
-    if (dailySpecialProductIds.includes(prodId)) {
-      setDailySpecialProductIds(dailySpecialProductIds.filter((id) => id !== prodId));
-    } else {
-      setDailySpecialProductIds([...dailySpecialProductIds, prodId]);
-    }
-  };
-
-  // Realtime Cloud Firestore Listener for app_config/homeCatogaryUI
-  useEffect(() => {
-    try {
-      const unsub = onSnapshot(doc(db, "app_config", "homeCatogaryUI"), (snap) => {
-        if (snap.exists()) {
-          const d = snap.data();
-          const cIds = d.homecatogaryshow || d.homeCatogaryShow || d.home_category_show || d.categories || [];
-          if (Array.isArray(cIds)) {
-            setHomeCategoryShowIds(cIds.slice(0, 5).map((id: any) => String(id)));
-          }
-        }
-      }, (err) => {
-        console.warn("Firestore app_config/homeCatogaryUI listener warning:", err);
-      });
-
-      return () => unsub();
-    } catch (e) {
-      console.warn("Error subscribing to app_config/homeCatogaryUI in Firestore:", e);
-    }
-  }, []);
-
-  // Realtime Cloud Firestore Listener for categories collection
-  useEffect(() => {
-    try {
-      const unsub = onSnapshot(collection(db, "categories"), (snap) => {
-        const loaded: CategoryItem[] = snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        } as CategoryItem));
-        setCategoriesList(loaded);
-      }, (err) => {
-        console.warn("Firestore categories collection listener warning:", err);
-      });
-
-      return () => unsub();
-    } catch (e) {
-      console.warn("Error subscribing to categories collection in Firestore:", e);
-    }
-  }, []);
-
-  // Dedicated Handler to Save Home Category UI (max 5 categories)
-  const handleSaveHomeCategoryUI = async () => {
-    if (homeCategoryShowIds.length > 5) {
-      setErrorMessage("Maximum limit exceeded: Only up to 5 categories can be saved to Home Category UI!");
-      return;
-    }
-
-    setSavingHomeCategory(true);
-    setSaveMessage(null);
-    setErrorMessage(null);
-
-    try {
-      const payload = {
-        homecatogaryshow: homeCategoryShowIds.slice(0, 5),
-        updatedAt: new Date().toISOString(),
-        lastUpdated: Date.now(),
-      };
-
-      await setDoc(doc(db, "app_config", "homeCatogaryUI"), payload, { merge: true });
-
-      setSaveMessage(`Successfully saved ${homeCategoryShowIds.length} Home Category IDs to Cloud Firestore (app_config/homeCatogaryUI -> homecatogaryshow)!`);
-      setTimeout(() => setSaveMessage(null), 5000);
-    } catch (err: any) {
-      console.error("Error saving Home Category UI to Firestore:", err);
-      setErrorMessage(err.message || "Failed to save Home Category UI to Cloud Firestore.");
-    } finally {
-      setSavingHomeCategory(false);
-    }
-  };
-
-  const handleToggleHomeCategory = (catId: string) => {
-    if (homeCategoryShowIds.includes(catId)) {
-      setHomeCategoryShowIds(homeCategoryShowIds.filter((id) => id !== catId));
-    } else {
-      if (homeCategoryShowIds.length >= 5) {
-        setErrorMessage("Maximum 5 Categories Allowed! Remove an existing category before adding a new one.");
-        setTimeout(() => setErrorMessage(null), 4000);
-        return;
-      }
-      setHomeCategoryShowIds([...homeCategoryShowIds, catId]);
-    }
-  };
-
-  // Realtime Cloud Firestore Listener for app_config/customproductshome
-  useEffect(() => {
-    try {
-      const unsub = onSnapshot(doc(db, "app_config", "customproductshome"), (snap) => {
-        if (snap.exists()) {
-          const d = snap.data();
-          const pIds = d.customProducts || d.custom_products || d.products || [];
-          if (Array.isArray(pIds)) {
-            setCustomHomeProductIds(pIds.map((id: any) => String(id)));
-          }
-          if (d.Heading !== undefined) {
-            setCustomHomeHeading(String(d.Heading));
-          } else if (d.heading !== undefined) {
-            setCustomHomeHeading(String(d.heading));
-          }
-          if (d.priority !== undefined) {
-            setCustomHomePriority(d.priority);
-          }
-        }
-      }, (err) => {
-        console.warn("Firestore app_config/customproductshome listener warning:", err);
-      });
-
-      return () => unsub();
-    } catch (e) {
-      console.warn("Error subscribing to app_config/customproductshome in Firestore:", e);
-    }
-  }, []);
-
-  // Dedicated Handler to Save Custom Home Show Products
-  const handleSaveCustomHomeProducts = async () => {
-    setSavingCustomHome(true);
-    setSaveMessage(null);
-    setErrorMessage(null);
-
-    try {
-      const priorityVal = Number(customHomePriority);
-      const payload = {
-        customProducts: customHomeProductIds,
-        Heading: customHomeHeading.trim(),
-        priority: isNaN(priorityVal) ? 1 : priorityVal,
-        updatedAt: new Date().toISOString(),
-        lastUpdated: Date.now(),
-      };
-
-      await setDoc(doc(db, "app_config", "customproductshome"), payload, { merge: true });
-
-      setSaveMessage(`Successfully saved ${customHomeProductIds.length} custom home products, Heading ("${customHomeHeading}"), and Priority (${priorityVal}) to Cloud Firestore (app_config/customproductshome)!`);
-      setTimeout(() => setSaveMessage(null), 5000);
-    } catch (err: any) {
-      console.error("Error saving Custom Home products to Firestore:", err);
-      setErrorMessage(err.message || "Failed to save Custom Home products to Cloud Firestore.");
-    } finally {
-      setSavingCustomHome(false);
-    }
-  };
-
-  const handleToggleCustomHomeProduct = (prodId: string) => {
-    if (customHomeProductIds.includes(prodId)) {
-      setCustomHomeProductIds(customHomeProductIds.filter((id) => id !== prodId));
-    } else {
-      setCustomHomeProductIds([...customHomeProductIds, prodId]);
-    }
-  };
 
   // Handle Toggle Auto Scheduler ON / OFF
   const handleToggleAutoScheduler = async () => {
@@ -690,11 +438,7 @@ export default function AppConfigPage() {
     } catch (err: any) {
       console.error("Error saving app config to Firestore:", err);
       setSaving(false);
-      if (err.code === "permission-denied" || err.message?.includes("permissions")) {
-        setErrorMessage("Firebase Permission Error: Cloud Firestore Rules in Firebase Console are blocking writes. Please update Firestore Rules.");
-      } else {
-        setErrorMessage(err.message || "Failed to save configuration to Cloud Firestore.");
-      }
+      setErrorMessage(err.message || "Failed to save configuration to Cloud Firestore.");
     }
   };
 
@@ -706,7 +450,7 @@ export default function AppConfigPage() {
     try {
       await saveAppOpenCloseToFirestore({
         isStoreOpen: newOpenState,
-        autoTimingEnabled: false, // Turn off auto scheduler for manual override
+        autoTimingEnabled: false,
         openTime: openTimeInput,
         closeTime: closeTimeInput,
         openingHours: openingHoursInput,
@@ -714,7 +458,7 @@ export default function AppConfigPage() {
       });
 
       setSaveMessage(
-        `App status manually set to ${newOpenState ? "OPEN (isStoreOpen = true)" : "CLOSED (isStoreOpen = false)"} in Cloud Firestore! (Auto-Scheduler paused for manual control)`
+        `App status manually set to ${newOpenState ? "OPEN (isStoreOpen = true)" : "CLOSED (isStoreOpen = false)"} in Cloud Firestore!`
       );
       setTimeout(() => setSaveMessage(null), 4000);
     } catch (err: any) {
@@ -742,7 +486,7 @@ export default function AppConfigPage() {
       });
 
       setSaveMessage(
-        `Successfully saved Open Time (${openTimeInput}), Close Time (${closeTimeInput}) & Operating Hours to Cloud Firestore! Status: ${finalIsOpen ? "OPEN (isStoreOpen = true)" : "CLOSED (isStoreOpen = false)"}`
+        `Successfully saved Open Time (${openTimeInput}), Close Time (${closeTimeInput}) & Operating Hours to Cloud Firestore!`
       );
       setTimeout(() => setSaveMessage(null), 5000);
     } catch (err: any) {
@@ -754,7 +498,7 @@ export default function AppConfigPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       <Sidebar />
 
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
@@ -783,13 +527,13 @@ export default function AppConfigPage() {
           )}
 
           {/* Settings Tabs */}
-          <div className="flex items-center flex-wrap gap-2 border-b border-slate-200 pb-3">
+          <div className="flex items-center flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
             <button
               onClick={() => setActiveTab("charges")}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
                 activeTab === "charges"
                   ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
             >
               <IndianRupee size={15} />
@@ -801,7 +545,7 @@ export default function AppConfigPage() {
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
                 activeTab === "openclose"
                   ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
             >
               <Store size={15} />
@@ -813,7 +557,7 @@ export default function AppConfigPage() {
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
                 activeTab === "canceltimer"
                   ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
             >
               <Clock size={15} />
@@ -821,48 +565,11 @@ export default function AppConfigPage() {
             </button>
 
             <button
-              onClick={() => setActiveTab("dailyspecial")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                activeTab === "dailyspecial"
-                  ? "bg-amber-600 text-white shadow-md shadow-amber-600/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <Star size={15} className={activeTab === "dailyspecial" ? "fill-white text-white" : "fill-amber-400 text-amber-500"} />
-              <span>Today's Special Products</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("homecategory")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                activeTab === "homecategory"
-                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <Layers size={15} />
-              <span>Home Category UI</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("customhome")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-                activeTab === "customhome"
-                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <LayoutGrid size={15} />
-              <span>Custom Home Show</span>
-            </button>
-
-            <button
               onClick={() => setActiveTab("policies")}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
                 activeTab === "policies"
                   ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
             >
               <FileText size={15} />
@@ -874,7 +581,7 @@ export default function AppConfigPage() {
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
                 activeTab === "support"
                   ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
               }`}
             >
               <Headphones size={15} />
@@ -882,18 +589,18 @@ export default function AppConfigPage() {
             </button>
           </div>
 
-          <form onSubmit={handleSaveConfig} className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-6">
+          <form onSubmit={handleSaveConfig} className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
             {/* App Open / Close Status & Timing Section */}
             {activeTab === "openclose" && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
-                      <Store className="text-magozi-800" size={22} />
+                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
+                      <Store className="text-magozi-800 dark:text-emerald-400" size={22} />
                       <span>App Open / Close Status & Automatic Operating Hours</span>
                     </h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Syncs live app availability with Cloud Firestore collection <code className="font-mono font-bold text-slate-700">app_config</code> — document <code className="font-mono font-bold text-slate-700">app_open_close</code>.
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Syncs live app availability with Cloud Firestore collection <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config</code> — document <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_open_close</code>.
                     </p>
                   </div>
 
@@ -907,15 +614,15 @@ export default function AppConfigPage() {
                 </div>
 
                 {/* Auto-Schedule Switch Banner */}
-                <div className="p-4 rounded-2xl bg-magozi-50/70 border border-magozi-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-magozi-50/70 dark:bg-magozi-950/40 border border-magozi-200 dark:border-magozi-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <Sparkles size={20} className="text-magozi-800 flex-shrink-0" />
+                    <Sparkles size={20} className="text-magozi-800 dark:text-emerald-400 flex-shrink-0" />
                     <div>
-                      <h4 className="text-xs font-extrabold text-slate-900">
+                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">
                         Automatic Time-Based Open / Close Scheduler
                       </h4>
-                      <p className="text-[11px] text-slate-600 font-medium">
-                        Automatically opens app at <code className="font-bold text-slate-900">{openTimeInput}</code> and closes at <code className="font-bold text-slate-900">{closeTimeInput}</code> based on live system clock.
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                        Automatically opens app at <code className="font-bold text-slate-900 dark:text-white">{openTimeInput}</code> and closes at <code className="font-bold text-slate-900 dark:text-white">{closeTimeInput}</code> based on live system clock.
                       </p>
                     </div>
                   </div>
@@ -926,7 +633,7 @@ export default function AppConfigPage() {
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
                       appOpenClose.autoTimingEnabled ?? true
                         ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                        : "bg-slate-200 hover:bg-slate-300 text-slate-700"
+                        : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-300"
                     }`}
                   >
                     {(appOpenClose.autoTimingEnabled ?? true) ? (
@@ -946,8 +653,8 @@ export default function AppConfigPage() {
                 {/* Live Status Card & 1-Click Toggle */}
                 <div className={`p-6 rounded-3xl border-2 transition flex flex-col md:flex-row items-center justify-between gap-4 ${
                   appOpenClose.isStoreOpen
-                    ? "bg-emerald-50/80 border-emerald-300"
-                    : "bg-rose-50/80 border-rose-300"
+                    ? "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800/60"
+                    : "bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800/60"
                 }`}>
                   <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg flex-shrink-0 ${
@@ -962,20 +669,20 @@ export default function AppConfigPage() {
                         }`}>
                           {appOpenClose.isStoreOpen ? "APP IS OPEN NOW" : "APP IS CLOSED"}
                         </span>
-                        <span className="text-xs font-mono font-extrabold text-slate-700">
+                        <span className="text-xs font-mono font-extrabold text-slate-700 dark:text-slate-300">
                           (isStoreOpen = {String(appOpenClose.isStoreOpen)})
                         </span>
                         {!(appOpenClose.autoTimingEnabled ?? true) ? (
-                          <span className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                          <span className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 flex items-center gap-1">
                             ⚡ MANUAL MODE (You can open/close at any time)
                           </span>
                         ) : (
-                          <span className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                          <span className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
                             ⏰ AUTO SCHEDULER ACTIVE
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-600 font-medium mt-1">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">
                         {appOpenClose.isStoreOpen
                           ? `App is OPEN and accepting orders.`
                           : `App is CLOSED. Checkout is disabled for users.`}
@@ -1009,8 +716,8 @@ export default function AppConfigPage() {
 
                 {/* Operating Hours & Notice Form Inputs */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
                       App Opening Time (`openTime`)
                     </label>
 
@@ -1028,7 +735,7 @@ export default function AppConfigPage() {
                             openingHours: newOpHours,
                           }).catch((e) => console.warn(e));
                         }}
-                        className="px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                        className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                       />
                       <input
                         type="text"
@@ -1046,14 +753,14 @@ export default function AppConfigPage() {
                           }).catch((e) => console.warn(e));
                         }}
                         placeholder="e.g. 06:00 AM"
-                        className="flex-1 px-4 py-2 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
+                        className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-extrabold text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
                       />
                     </div>
-                    <p className="text-[11px] text-slate-500">Auto-opens app at this time when scheduler is ON.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Auto-opens app at this time when scheduler is ON.</p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
                       App Closing Time (`closeTime`)
                     </label>
 
@@ -1071,7 +778,7 @@ export default function AppConfigPage() {
                             openingHours: newOpHours,
                           }).catch((e) => console.warn(e));
                         }}
-                        className="px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                        className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                       />
                       <input
                         type="text"
@@ -1089,14 +796,14 @@ export default function AppConfigPage() {
                           }).catch((e) => console.warn(e));
                         }}
                         placeholder="e.g. 11:30 PM"
-                        className="flex-1 px-4 py-2 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
+                        className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-extrabold text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-magozi-800 outline-none"
                       />
                     </div>
-                    <p className="text-[11px] text-slate-500">Auto-closes app at this time when scheduler is ON.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Auto-closes app at this time when scheduler is ON.</p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 md:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2 md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
                       Full Operating Hours Display Text (`openingHours`)
                     </label>
                     <input
@@ -1110,13 +817,13 @@ export default function AppConfigPage() {
                         }).catch((e) => console.warn(e));
                       }}
                       placeholder="e.g. 06:00 AM - 11:30 PM (Daily)"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-bold text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-magozi-800 outline-none"
                     />
-                    <p className="text-[11px] text-slate-500">Combined store operating hours string synced to Android App.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Combined store operating hours string synced to Android App.</p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 md:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2 md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
                       App Closed Notice Message (`closedMessage`)
                     </label>
                     <textarea
@@ -1129,9 +836,9 @@ export default function AppConfigPage() {
                         }).catch((e) => console.warn(e));
                       }}
                       placeholder="e.g. We are currently closed for online orders. Our operating hours are 06:00 AM to 11:30 PM."
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-semibold text-slate-900 text-xs focus:ring-2 focus:ring-magozi-800 outline-none resize-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-magozi-800 outline-none resize-none"
                     />
-                    <p className="text-[11px] text-slate-500">Notice displayed to users in mobile app when app status is CLOSED.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Notice displayed to users in mobile app when app status is CLOSED.</p>
                   </div>
                 </div>
 
@@ -1153,15 +860,15 @@ export default function AppConfigPage() {
             {activeTab === "charges" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-900">In-App Delivery & Cart Charges</h3>
-                  <p className="text-xs text-slate-500">
-                    Values configured here write to Cloud Firestore document <code className="font-mono font-bold text-slate-700">app_config/global_settings</code> and dictate cart calculations on Android App
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">In-App Delivery & Cart Charges</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Values configured here write to Cloud Firestore document <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config/global_settings</code> and dictate cart calculations on Android App
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
                       Minimum Order Amount (₹)
                     </label>
                     <input
@@ -1170,13 +877,13 @@ export default function AppConfigPage() {
                       min={0}
                       value={config.minOrderAmount}
                       onChange={(e) => setConfig({ ...config, minOrderAmount: Number(e.target.value) })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-base focus:ring-2 focus:ring-magozi-800 outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-extrabold text-slate-900 dark:text-white text-base focus:ring-2 focus:ring-magozi-800 outline-none"
                     />
-                    <p className="text-[11px] text-slate-500">Orders under this amount cannot checkout on mobile app.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Orders under this amount cannot checkout on mobile app.</p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
                       Fixed Handling Fee (₹)
                     </label>
                     <input
@@ -1185,13 +892,13 @@ export default function AppConfigPage() {
                       min={0}
                       value={config.handlingFee}
                       onChange={(e) => setConfig({ ...config, handlingFee: Number(e.target.value) })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-base focus:ring-2 focus:ring-magozi-800 outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-extrabold text-slate-900 dark:text-white text-base focus:ring-2 focus:ring-magozi-800 outline-none"
                     />
-                    <p className="text-[11px] text-slate-500">Added to every cart for packaging & dark store operations.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Added to every cart for packaging & dark store operations.</p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
                       Standard Delivery Fee (₹)
                     </label>
                     <input
@@ -1200,13 +907,13 @@ export default function AppConfigPage() {
                       min={0}
                       value={config.deliveryFee}
                       onChange={(e) => setConfig({ ...config, deliveryFee: Number(e.target.value) })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-extrabold text-slate-900 text-base focus:ring-2 focus:ring-magozi-800 outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-extrabold text-slate-900 dark:text-white text-base focus:ring-2 focus:ring-magozi-800 outline-none"
                     />
-                    <p className="text-[11px] text-slate-500">Flat fee charged for 8-minute delivery fulfillment.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Flat fee charged for 8-minute delivery fulfillment.</p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
                       Free Delivery Threshold (₹)
                     </label>
                     <input
@@ -1215,58 +922,33 @@ export default function AppConfigPage() {
                       min={0}
                       value={config.freeDeliveryThreshold}
                       onChange={(e) => setConfig({ ...config, freeDeliveryThreshold: Number(e.target.value) })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-extrabold text-magozi-800 text-base focus:ring-2 focus:ring-magozi-800 outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-extrabold text-magozi-800 dark:text-emerald-400 text-base focus:ring-2 focus:ring-magozi-800 outline-none"
                     />
-                    <p className="text-[11px] font-bold text-emerald-600">
+                    <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                       Standard delivery fee becomes ₹0 for orders above ₹{config.freeDeliveryThreshold}!
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-2 sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-800 uppercase flex items-center gap-2">
-                      <Clock size={16} className="text-amber-700" />
-                      <span>Order Cancel Timer (In Seconds)</span>
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        required
-                        min={0}
-                        max={7200}
-                        value={config.cancelOrderTimer}
-                        onChange={(e) => setConfig({ ...config, cancelOrderTimer: Number(e.target.value) })}
-                        className="w-full max-w-xs px-4 py-2.5 rounded-xl border border-slate-200 font-extrabold text-amber-900 text-base focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
-                      />
-                      <span className="text-xs font-bold text-slate-700">Seconds</span>
-                      <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200">
-                        = {(config.cancelOrderTimer / 60).toFixed(1)} Mins
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-600 font-medium">
-                      Cancellation window in seconds. Writes to Firestore <code className="font-mono text-slate-800 font-bold">cancelOrderTimer</code>.
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Order Cancel Timer Editor */}
+            {/* Order Cancel Timer Section */}
             {activeTab === "canceltimer" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                    <Clock className="text-amber-600" size={22} />
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Clock className="text-amber-600 dark:text-amber-400" size={22} />
                     <span>App Order Cancellation Timer Settings (In Seconds)</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Configures the maximum time window (in seconds) a customer has to cancel their placed order from the mobile app. Updates Firestore field <code className="font-mono font-bold text-slate-700">cancelOrderTimer</code>.
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Configures the maximum time window (in seconds) a customer has to cancel their placed order from the mobile app. Updates Firestore field <code className="font-mono font-bold text-slate-700 dark:text-slate-300">cancelOrderTimer</code>.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="md:col-span-2 p-6 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-4">
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                      <Timer size={16} className="text-amber-700" />
+                  <div className="md:col-span-2 p-6 rounded-2xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 space-y-4">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <Timer size={16} className="text-amber-700 dark:text-amber-400" />
                       <span>Order Cancel Time Limit (Seconds)</span>
                     </label>
 
@@ -1278,20 +960,20 @@ export default function AppConfigPage() {
                         max={7200}
                         value={config.cancelOrderTimer}
                         onChange={(e) => setConfig({ ...config, cancelOrderTimer: Number(e.target.value) })}
-                        className="w-full max-w-xs px-4 py-3 rounded-xl border border-amber-300 font-black text-slate-900 text-xl focus:ring-2 focus:ring-magozi-800 outline-none bg-white shadow-inner"
+                        className="w-full max-w-xs px-4 py-3 rounded-xl border border-amber-300 dark:border-amber-700 font-black text-slate-900 dark:text-white text-xl focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-900 shadow-inner"
                       />
-                      <span className="text-sm font-extrabold text-slate-700">Seconds</span>
-                      <span className="text-xs font-bold text-amber-900 bg-amber-200/80 px-3 py-1.5 rounded-xl border border-amber-300">
+                      <span className="text-sm font-extrabold text-slate-700 dark:text-slate-300">Seconds</span>
+                      <span className="text-xs font-bold text-amber-900 dark:text-amber-300 bg-amber-200/80 dark:bg-amber-900/60 px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700">
                         = {(config.cancelOrderTimer / 60).toFixed(1)} Minutes
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-600 leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                       Customers will see a countdown timer during checkout & order details. Once this time window (in seconds) elapses, the cancel order button automatically disables.
                     </p>
 
                     <div>
-                      <span className="block text-xs font-bold text-slate-700 uppercase mb-2">Quick Presets (Seconds):</span>
+                      <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-2">Quick Presets (Seconds):</span>
                       <div className="flex items-center flex-wrap gap-2">
                         {[
                           { sec: 30, label: "30s" },
@@ -1309,7 +991,7 @@ export default function AppConfigPage() {
                             className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${
                               config.cancelOrderTimer === preset.sec
                                 ? "bg-amber-600 text-white border-amber-600 shadow-sm"
-                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                                : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                             }`}
                           >
                             {preset.label}
@@ -1352,627 +1034,31 @@ export default function AppConfigPage() {
               </div>
             )}
 
-            {/* Today's Special Products Section */}
-            {activeTab === "dailyspecial" && (
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
-                      <Star className="text-amber-500 fill-amber-500" size={22} />
-                      <span>Today's Special Products Configuration</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Configure products featured in "Today's Special" on the mobile app home page. Saves product IDs to Cloud Firestore collection <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config</code> — document <code className="font-mono font-bold text-slate-700 dark:text-slate-300">dailyspecial</code>, field <code className="font-mono font-bold text-amber-600 dark:text-amber-400">DailySPCLproducts</code>.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSaveDailySpecial}
-                    disabled={savingDailySpecial}
-                    className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md shadow-amber-600/20 transition flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
-                  >
-                    {savingDailySpecial ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-                    <span>{savingDailySpecial ? "Saving..." : "Save Today's Special"}</span>
-                  </button>
-                </div>
-
-                {/* Selected Today's Special Products List */}
-                <div className="p-5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-extrabold text-slate-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-2">
-                      <Star size={16} className="text-amber-600 fill-amber-600" />
-                      <span>Selected Special Products ({dailySpecialProductIds.length})</span>
-                    </h4>
-                    {dailySpecialProductIds.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setDailySpecialProductIds([])}
-                        className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 transition"
-                      >
-                        Clear All Selected
-                      </button>
-                    )}
-                  </div>
-
-                  {dailySpecialProductIds.length === 0 ? (
-                    <div className="p-6 text-center rounded-xl bg-white/70 dark:bg-slate-900/50 border border-dashed border-amber-300 dark:border-amber-800/70">
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No products selected for Today's Special yet.</p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Pick products from the available products catalog below to add them!</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                      {dailySpecialProductIds.map((pId) => {
-                        const prod = productsList.find((p) => p.id === pId);
-                        return (
-                          <div
-                            key={pId}
-                            className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 shadow-sm flex items-center justify-between gap-3"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <img
-                                src={prod?.image || "https://placehold.co/100x100?text=Product"}
-                                alt={prod?.name || pId}
-                                className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                                  {prod?.name || `ID: ${pId}`}
-                                </p>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                                  {prod ? `₹${prod.price} • ${prod.category}` : pId}
-                                </p>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleToggleDailySpecialProduct(pId)}
-                              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition flex-shrink-0"
-                              title="Remove from Today's Special"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Available Products Selector / Catalog */}
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                      Available Products Catalog ({productsList.length} Products)
-                    </h4>
-
-                    {/* Search Input */}
-                    <div className="relative max-w-xs w-full">
-                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        value={dailySpecialSearch}
-                        onChange={(e) => setDailySpecialSearch(e.target.value)}
-                        placeholder="Search products..."
-                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto pr-1">
-                    {productsList
-                      .filter((p) => {
-                        if (!dailySpecialSearch.trim()) return true;
-                        const q = dailySpecialSearch.toLowerCase();
-                        return (
-                          p.name?.toLowerCase().includes(q) ||
-                          p.category?.toLowerCase().includes(q) ||
-                          p.brand?.toLowerCase().includes(q)
-                        );
-                      })
-                      .map((prod) => {
-                        const isSelected = dailySpecialProductIds.includes(prod.id);
-                        return (
-                          <div
-                            key={prod.id}
-                            onClick={() => handleToggleDailySpecialProduct(prod.id)}
-                            className={`p-3 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 ${
-                              isSelected
-                                ? "bg-amber-50/80 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 shadow-sm"
-                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-amber-300"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <img
-                                src={prod.image || "https://placehold.co/100x100?text=Product"}
-                                alt={prod.name}
-                                className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                                  {prod.name}
-                                </p>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                                  ₹{prod.price} {prod.weight ? `• ${prod.weight}` : ""}
-                                </p>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleDailySpecialProduct(prod.id);
-                              }}
-                              className={`px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition flex items-center gap-1 flex-shrink-0 ${
-                                isSelected
-                                  ? "bg-amber-600 text-white"
-                                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100"
-                              }`}
-                            >
-                              {isSelected ? (
-                                <>
-                                  <Check size={14} />
-                                  <span>Selected</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Plus size={14} />
-                                  <span>Add</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Home Category UI Section (Max 5 Categories) */}
-            {activeTab === "homecategory" && (
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
-                      <Grid className="text-magozi-800 dark:text-emerald-400" size={22} />
-                      <span>Home Category UI Configuration (Max 5 Categories)</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Configure top categories featured on the mobile app home screen. Saves category IDs to Cloud Firestore collection <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config</code> — document <code className="font-mono font-bold text-slate-700 dark:text-slate-300">homeCatogaryUI</code>, field <code className="font-mono font-bold text-magozi-800 dark:text-emerald-400">homecatogaryshow</code>.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSaveHomeCategoryUI}
-                    disabled={savingHomeCategory}
-                    className="px-5 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 transition flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
-                  >
-                    {savingHomeCategory ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-                    <span>{savingHomeCategory ? "Saving Home Categories..." : "Save Home Categories"}</span>
-                  </button>
-                </div>
-
-                {/* Selected Categories Counter & List */}
-                <div className="p-5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-2">
-                        <Layers size={16} className="text-magozi-800 dark:text-emerald-400" />
-                        <span>Selected Home Categories</span>
-                      </h4>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
-                        homeCategoryShowIds.length >= 5
-                          ? "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800"
-                          : "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-700"
-                      }`}>
-                        {homeCategoryShowIds.length} / 5 Selected {homeCategoryShowIds.length >= 5 ? "(Max Limit Reached)" : ""}
-                      </span>
-                    </div>
-
-                    {homeCategoryShowIds.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setHomeCategoryShowIds([])}
-                        className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 transition"
-                      >
-                        Clear All Selected
-                      </button>
-                    )}
-                  </div>
-
-                  {homeCategoryShowIds.length === 0 ? (
-                    <div className="p-6 text-center rounded-xl bg-white/70 dark:bg-slate-900/50 border border-dashed border-emerald-300 dark:border-emerald-800/70">
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No categories selected for Home Category UI yet.</p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Pick up to 5 categories from the catalog below to display on the mobile app home screen!</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                      {homeCategoryShowIds.map((cId, idx) => {
-                        const cat = categoriesList.find((c) => c.id === cId);
-                        return (
-                          <div
-                            key={cId}
-                            className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/60 shadow-sm flex items-center justify-between gap-2"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="w-5 h-5 rounded-full bg-emerald-800 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                                {idx + 1}
-                              </span>
-                              <img
-                                src={cat?.imageUrl || "https://placehold.co/80x80?text=Category"}
-                                alt={cat?.name || cId}
-                                className="w-9 h-9 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                                  {cat?.name || `ID: ${cId}`}
-                                </p>
-                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                                  {cat?.subCategories?.length || 0} sub-cats
-                                </p>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleToggleHomeCategory(cId)}
-                              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition flex-shrink-0"
-                              title="Remove Category"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Available Categories Selector / Catalog */}
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                      Available Categories Catalog ({categoriesList.length} Categories)
-                    </h4>
-
-                    {/* Search Input */}
-                    <div className="relative max-w-xs w-full">
-                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        value={homeCategorySearch}
-                        onChange={(e) => setHomeCategorySearch(e.target.value)}
-                        placeholder="Search categories..."
-                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto pr-1">
-                    {categoriesList
-                      .filter((c) => {
-                        if (!homeCategorySearch.trim()) return true;
-                        return c.name?.toLowerCase().includes(homeCategorySearch.toLowerCase());
-                      })
-                      .map((cat) => {
-                        const isSelected = homeCategoryShowIds.includes(cat.id);
-                        const isMaxReached = !isSelected && homeCategoryShowIds.length >= 5;
-
-                        return (
-                          <div
-                            key={cat.id}
-                            onClick={() => {
-                              if (!isMaxReached) handleToggleHomeCategory(cat.id);
-                            }}
-                            className={`p-3 rounded-xl border transition flex items-center justify-between gap-3 ${
-                              isSelected
-                                ? "bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600 shadow-sm"
-                                : isMaxReached
-                                ? "bg-slate-50/50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-60 cursor-not-allowed"
-                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-300 cursor-pointer"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <img
-                                src={cat.imageUrl || "https://placehold.co/80x80?text=Category"}
-                                alt={cat.name}
-                                className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                                  {cat.name}
-                                </p>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                                  {cat.subCategories?.length || 0} sub-categories
-                                </p>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              disabled={isMaxReached}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleHomeCategory(cat.id);
-                              }}
-                              className={`px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition flex items-center gap-1 flex-shrink-0 ${
-                                isSelected
-                                  ? "bg-emerald-700 text-white"
-                                  : isMaxReached
-                                  ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
-                                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-emerald-100"
-                              }`}
-                            >
-                              {isSelected ? (
-                                <>
-                                  <Check size={14} />
-                                  <span>Selected</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Plus size={14} />
-                                  <span>Add</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Custom Home Show Products Section */}
-            {activeTab === "customhome" && (
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
-                      <LayoutGrid className="text-magozi-800 dark:text-emerald-400" size={22} />
-                      <span>Custom Home Show Products</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Configure custom products showcase for the mobile app home screen. Saves data to Cloud Firestore collection <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config</code> — document <code className="font-mono font-bold text-slate-700 dark:text-slate-300">customproductshome</code>, fields: <code className="font-mono font-bold text-magozi-800 dark:text-emerald-400">customProducts</code>, <code className="font-mono font-bold text-magozi-800 dark:text-emerald-400">Heading</code>, and <code className="font-mono font-bold text-magozi-800 dark:text-emerald-400">priority</code>.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSaveCustomHomeProducts}
-                    disabled={savingCustomHome}
-                    className="px-5 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 transition flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
-                  >
-                    {savingCustomHome ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-                    <span>{savingCustomHome ? "Saving Custom Home..." : "Save Custom Home Products"}</span>
-                  </button>
-                </div>
-
-                {/* Section Settings: Heading & Priority */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-                  <div className="space-y-2">
-                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                      <FileText size={14} className="text-magozi-800 dark:text-emerald-400" />
-                      <span>Section Heading / Title</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={customHomeHeading}
-                      onChange={(e) => setCustomHomeHeading(e.target.value)}
-                      placeholder="e.g. Featured Products, Trending Today..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
-                    />
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                      Saved to Firestore field: <code className="font-bold text-slate-700 dark:text-slate-300">Heading</code>
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                      <Hash size={14} className="text-magozi-800 dark:text-emerald-400" />
-                      <span>Priority (Number Value)</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={customHomePriority}
-                      onChange={(e) => setCustomHomePriority(e.target.value)}
-                      placeholder="e.g. 1"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
-                    />
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                      Saved to Firestore field: <code className="font-bold text-slate-700 dark:text-slate-300">priority</code>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Selected Custom Home Products List */}
-                <div className="p-5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-indigo-300 uppercase tracking-wider flex items-center gap-2">
-                        <LayoutGrid size={16} className="text-indigo-600 dark:text-indigo-400" />
-                        <span>Selected Custom Home Products</span>
-                      </h4>
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-900/60 dark:text-indigo-300 dark:border-indigo-700">
-                        {customHomeProductIds.length} Products Selected
-                      </span>
-                    </div>
-
-                    {customHomeProductIds.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setCustomHomeProductIds([])}
-                        className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 transition"
-                      >
-                        Clear All Selected
-                      </button>
-                    )}
-                  </div>
-
-                  {customHomeProductIds.length === 0 ? (
-                    <div className="p-6 text-center rounded-xl bg-white/70 dark:bg-slate-900/50 border border-dashed border-indigo-300 dark:border-indigo-800/70">
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-400">No products selected for Custom Home Show yet.</p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Pick products from the catalog below to display in the custom home section on the mobile app!</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {customHomeProductIds.map((pId, idx) => {
-                        const prod = productsList.find((p) => p.id === pId);
-                        return (
-                          <div
-                            key={pId}
-                            className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800/60 shadow-sm flex items-center justify-between gap-2"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                                {idx + 1}
-                              </span>
-                              <img
-                                src={prod?.image || "https://placehold.co/100x100?text=Product"}
-                                alt={prod?.name || pId}
-                                className="w-9 h-9 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                                  {prod?.name || `ID: ${pId}`}
-                                </p>
-                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                                  ₹{prod?.price || 0} {prod?.weight ? `• ${prod.weight}` : ""}
-                                </p>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleToggleCustomHomeProduct(pId)}
-                              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition flex-shrink-0"
-                              title="Remove Product"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Available Products Selector / Catalog */}
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                      Available Products Catalog ({productsList.length} Products)
-                    </h4>
-
-                    {/* Search Input */}
-                    <div className="relative max-w-xs w-full">
-                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        value={customHomeSearch}
-                        onChange={(e) => setCustomHomeSearch(e.target.value)}
-                        placeholder="Search products..."
-                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto pr-1">
-                    {productsList
-                      .filter((p) => {
-                        if (!customHomeSearch.trim()) return true;
-                        return p.name?.toLowerCase().includes(customHomeSearch.toLowerCase());
-                      })
-                      .map((prod) => {
-                        const isSelected = customHomeProductIds.includes(prod.id);
-
-                        return (
-                          <div
-                            key={prod.id}
-                            onClick={() => handleToggleCustomHomeProduct(prod.id)}
-                            className={`p-3 rounded-xl border transition flex items-center justify-between gap-3 cursor-pointer ${
-                              isSelected
-                                ? "bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-600 shadow-sm"
-                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <img
-                                src={prod.image || "https://placehold.co/100x100?text=Product"}
-                                alt={prod.name}
-                                className="w-10 h-10 rounded-lg object-contain bg-slate-50 border border-slate-100 flex-shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                                  {prod.name}
-                                </p>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                                  ₹{prod.price} {prod.weight ? `• ${prod.weight}` : ""}
-                                </p>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleCustomHomeProduct(prod.id);
-                              }}
-                              className={`px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition flex items-center gap-1 flex-shrink-0 ${
-                                isSelected
-                                  ? "bg-indigo-600 text-white"
-                                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-100"
-                              }`}
-                            >
-                              {isSelected ? (
-                                <>
-                                  <Check size={14} />
-                                  <span>Selected</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Plus size={14} />
-                                  <span>Add</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Unified Policies & Legal Documents Section */}
             {activeTab === "policies" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                    <FileText className="text-magozi-800" size={22} />
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <FileText className="text-magozi-800 dark:text-emerald-400" size={22} />
                     <span>Policies & Legal Documents</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Manage terms & conditions, privacy policy, refund policy, shipping policy, and about us info. All content syncs to Cloud Firestore document <code className="font-mono font-bold text-slate-700">app_config/global_settings</code>.
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Manage terms & conditions, privacy policy, refund policy, shipping policy, and about us info. All content syncs to Cloud Firestore document <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config/global_settings</code>.
                   </p>
                 </div>
 
                 {/* Policy Sub-Tabs / Sub-Navigation */}
-                <div className="flex items-center flex-wrap gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
+                <div className="flex items-center flex-wrap gap-2 p-1.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
                   <button
                     type="button"
                     onClick={() => setPolicySubTab("terms")}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                       policySubTab === "terms"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50"
                     }`}
                   >
-                    <FileText size={14} className={policySubTab === "terms" ? "text-magozi-800" : "text-slate-400"} />
+                    <FileText size={14} className={policySubTab === "terms" ? "text-magozi-800 dark:text-emerald-400" : "text-slate-400"} />
                     <span>Terms & Conditions</span>
                   </button>
 
@@ -1981,11 +1067,11 @@ export default function AppConfigPage() {
                     onClick={() => setPolicySubTab("privacy")}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                       policySubTab === "privacy"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50"
                     }`}
                   >
-                    <ShieldCheck size={14} className={policySubTab === "privacy" ? "text-magozi-800" : "text-slate-400"} />
+                    <ShieldCheck size={14} className={policySubTab === "privacy" ? "text-magozi-800 dark:text-emerald-400" : "text-slate-400"} />
                     <span>Privacy Policy</span>
                   </button>
 
@@ -1994,11 +1080,11 @@ export default function AppConfigPage() {
                     onClick={() => setPolicySubTab("refund")}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                       policySubTab === "refund"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50"
                     }`}
                   >
-                    <FileText size={14} className={policySubTab === "refund" ? "text-magozi-800" : "text-slate-400"} />
+                    <FileText size={14} className={policySubTab === "refund" ? "text-magozi-800 dark:text-emerald-400" : "text-slate-400"} />
                     <span>Refund & Return Policy</span>
                   </button>
 
@@ -2007,11 +1093,11 @@ export default function AppConfigPage() {
                     onClick={() => setPolicySubTab("shipping")}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                       policySubTab === "shipping"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50"
                     }`}
                   >
-                    <Truck size={14} className={policySubTab === "shipping" ? "text-magozi-800" : "text-slate-400"} />
+                    <Truck size={14} className={policySubTab === "shipping" ? "text-magozi-800 dark:text-emerald-400" : "text-slate-400"} />
                     <span>Shipping & Delivery</span>
                   </button>
 
@@ -2020,11 +1106,11 @@ export default function AppConfigPage() {
                     onClick={() => setPolicySubTab("about")}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                       policySubTab === "about"
-                        ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50"
                     }`}
                   >
-                    <HelpCircle size={14} className={policySubTab === "about" ? "text-magozi-800" : "text-slate-400"} />
+                    <HelpCircle size={14} className={policySubTab === "about" ? "text-magozi-800 dark:text-emerald-400" : "text-slate-400"} />
                     <span>About Us Information</span>
                   </button>
                 </div>
@@ -2033,12 +1119,12 @@ export default function AppConfigPage() {
                 {policySubTab === "terms" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                        <FileText size={16} className="text-magozi-800" />
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileText size={16} className="text-magozi-800 dark:text-emerald-400" />
                         <span>Terms & Conditions Policy</span>
                       </h4>
-                      <span className="text-[11px] text-slate-500 font-mono">
-                        Fields: <code className="font-bold text-slate-700">termsAndConditions</code> & <code className="font-bold text-slate-700">terms_and_conditions</code>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                        Fields: <code className="font-bold text-slate-700 dark:text-slate-300">termsAndConditions</code> & <code className="font-bold text-slate-700 dark:text-slate-300">terms_and_conditions</code>
                       </span>
                     </div>
                     <textarea
@@ -2046,7 +1132,7 @@ export default function AppConfigPage() {
                       value={config.termsAndConditions}
                       onChange={(e) => setConfig({ ...config, termsAndConditions: e.target.value })}
                       placeholder="Enter terms and conditions text here..."
-                      className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white"
+                      className="w-full p-4 rounded-2xl border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white dark:bg-slate-900"
                     />
                   </div>
                 )}
@@ -2055,12 +1141,12 @@ export default function AppConfigPage() {
                 {policySubTab === "privacy" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                        <ShieldCheck size={16} className="text-magozi-800" />
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-magozi-800 dark:text-emerald-400" />
                         <span>Privacy Policy</span>
                       </h4>
-                      <span className="text-[11px] text-slate-500 font-mono">
-                        Fields: <code className="font-bold text-slate-700">privacyPolicy</code> & <code className="font-bold text-slate-700">privacy_policy</code>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                        Fields: <code className="font-bold text-slate-700 dark:text-slate-300">privacyPolicy</code> & <code className="font-bold text-slate-700 dark:text-slate-300">privacy_policy</code>
                       </span>
                     </div>
                     <textarea
@@ -2068,7 +1154,7 @@ export default function AppConfigPage() {
                       value={config.privacyPolicy}
                       onChange={(e) => setConfig({ ...config, privacyPolicy: e.target.value })}
                       placeholder="Enter privacy policy text here..."
-                      className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white"
+                      className="w-full p-4 rounded-2xl border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white dark:bg-slate-900"
                     />
                   </div>
                 )}
@@ -2077,12 +1163,12 @@ export default function AppConfigPage() {
                 {policySubTab === "refund" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                        <FileText size={16} className="text-magozi-800" />
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileText size={16} className="text-magozi-800 dark:text-emerald-400" />
                         <span>Refund & Return Policy</span>
                       </h4>
-                      <span className="text-[11px] text-slate-500 font-mono">
-                        Fields: <code className="font-bold text-slate-700">refundPolicy</code> & <code className="font-bold text-slate-700">refund_policy</code>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                        Fields: <code className="font-bold text-slate-700 dark:text-slate-300">refundPolicy</code> & <code className="font-bold text-slate-700 dark:text-slate-300">refund_policy</code>
                       </span>
                     </div>
                     <textarea
@@ -2090,7 +1176,7 @@ export default function AppConfigPage() {
                       value={config.refundPolicy}
                       onChange={(e) => setConfig({ ...config, refundPolicy: e.target.value })}
                       placeholder="Enter refund & return policy text here..."
-                      className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white"
+                      className="w-full p-4 rounded-2xl border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white dark:bg-slate-900"
                     />
                   </div>
                 )}
@@ -2099,12 +1185,12 @@ export default function AppConfigPage() {
                 {policySubTab === "shipping" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                        <Truck size={16} className="text-magozi-800" />
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Truck size={16} className="text-magozi-800 dark:text-emerald-400" />
                         <span>Shipping & Delivery Policy</span>
                       </h4>
-                      <span className="text-[11px] text-slate-500 font-mono">
-                        Fields: <code className="font-bold text-slate-700">shippingPolicy</code> & <code className="font-bold text-slate-700">shipping_policy</code>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                        Fields: <code className="font-bold text-slate-700 dark:text-slate-300">shippingPolicy</code> & <code className="font-bold text-slate-700 dark:text-slate-300">shipping_policy</code>
                       </span>
                     </div>
                     <textarea
@@ -2112,7 +1198,7 @@ export default function AppConfigPage() {
                       value={config.shippingPolicy}
                       onChange={(e) => setConfig({ ...config, shippingPolicy: e.target.value })}
                       placeholder="Enter shipping & delivery policy text here..."
-                      className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white"
+                      className="w-full p-4 rounded-2xl border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white dark:bg-slate-900"
                     />
                   </div>
                 )}
@@ -2121,12 +1207,12 @@ export default function AppConfigPage() {
                 {policySubTab === "about" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                        <HelpCircle size={16} className="text-magozi-800" />
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <HelpCircle size={16} className="text-magozi-800 dark:text-emerald-400" />
                         <span>About Us Information</span>
                       </h4>
-                      <span className="text-[11px] text-slate-500 font-mono">
-                        Fields: <code className="font-bold text-slate-700">aboutUs</code> & <code className="font-bold text-slate-700">about_us</code>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                        Fields: <code className="font-bold text-slate-700 dark:text-slate-300">aboutUs</code> & <code className="font-bold text-slate-700 dark:text-slate-300">about_us</code>
                       </span>
                     </div>
                     <textarea
@@ -2134,7 +1220,7 @@ export default function AppConfigPage() {
                       value={config.aboutUs}
                       onChange={(e) => setConfig({ ...config, aboutUs: e.target.value })}
                       placeholder="Enter about us information here..."
-                      className="w-full p-4 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white"
+                      className="w-full p-4 rounded-2xl border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-magozi-800 outline-none leading-relaxed bg-white dark:bg-slate-900"
                     />
                   </div>
                 )}
@@ -2145,20 +1231,20 @@ export default function AppConfigPage() {
             {activeTab === "support" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                    <Headphones className="text-magozi-800" size={22} />
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Headphones className="text-magozi-800 dark:text-emerald-400" size={22} />
                     <span>Customer Support & Help Desk Settings</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Configures contact channels for the Android App support screen. Writes directly to Cloud Firestore document <code className="font-mono font-bold text-slate-700">app_config/supportpage</code>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Configures contact channels for the Android App support screen. Writes directly to Cloud Firestore document <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config/supportpage</code>
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Phone Number Field */}
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase flex items-center gap-2">
-                      <Phone size={14} className="text-magozi-800" />
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase flex items-center gap-2">
+                      <Phone size={14} className="text-magozi-800 dark:text-emerald-400" />
                       <span>Support Phone Number</span>
                     </label>
                     <input
@@ -2166,17 +1252,17 @@ export default function AppConfigPage() {
                       value={supportConfig.phone}
                       onChange={(e) => setSupportConfig({ ...supportConfig, phone: e.target.value })}
                       placeholder="+91 98765 43210"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-900"
                     />
-                    <p className="text-[11px] text-slate-500">
-                      Saved to Firestore <code className="font-mono font-bold text-slate-700">phone</code> field
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Saved to Firestore <code className="font-mono font-bold text-slate-700 dark:text-slate-300">phone</code> field
                     </p>
                   </div>
 
                   {/* Email Address Field */}
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase flex items-center gap-2">
-                      <Mail size={14} className="text-magozi-800" />
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase flex items-center gap-2">
+                      <Mail size={14} className="text-magozi-800 dark:text-emerald-400" />
                       <span>Support Email Address</span>
                     </label>
                     <input
@@ -2184,17 +1270,17 @@ export default function AppConfigPage() {
                       value={supportConfig.email}
                       onChange={(e) => setSupportConfig({ ...supportConfig, email: e.target.value })}
                       placeholder="support@magozi.com"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-900"
                     />
-                    <p className="text-[11px] text-slate-500">
-                      Saved to Firestore <code className="font-mono font-bold text-slate-700">email</code> field
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Saved to Firestore <code className="font-mono font-bold text-slate-700 dark:text-slate-300">email</code> field
                     </p>
                   </div>
 
                   {/* WhatsApp Link Field */}
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase flex items-center gap-2">
-                      <MessageSquare size={14} className="text-emerald-600" />
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase flex items-center gap-2">
+                      <MessageSquare size={14} className="text-emerald-600 dark:text-emerald-400" />
                       <span>WhatsApp Support Link</span>
                     </label>
                     <input
@@ -2202,17 +1288,17 @@ export default function AppConfigPage() {
                       value={supportConfig.whatsapp}
                       onChange={(e) => setSupportConfig({ ...supportConfig, whatsapp: e.target.value })}
                       placeholder="https://wa.me/919876543210"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-900"
                     />
-                    <p className="text-[11px] text-slate-500">
-                      Saved to Firestore <code className="font-mono font-bold text-slate-700">whatsapp</code> field for WhatsApp link
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Saved to Firestore <code className="font-mono font-bold text-slate-700 dark:text-slate-300">whatsapp</code> field for WhatsApp link
                     </p>
                   </div>
 
                   {/* Telegram Link Field */}
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase flex items-center gap-2">
-                      <Send size={14} className="text-sky-600" />
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase flex items-center gap-2">
+                      <Send size={14} className="text-sky-600 dark:text-sky-400" />
                       <span>Telegram Support Channel Link</span>
                     </label>
                     <input
@@ -2220,10 +1306,10 @@ export default function AppConfigPage() {
                       value={supportConfig.telegram}
                       onChange={(e) => setSupportConfig({ ...supportConfig, telegram: e.target.value })}
                       placeholder="https://t.me/magozisupport"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-900"
                     />
-                    <p className="text-[11px] text-slate-500">
-                      Saved to Firestore <code className="font-mono font-bold text-slate-700">telegram</code> field for Telegram link
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Saved to Firestore <code className="font-mono font-bold text-slate-700 dark:text-slate-300">telegram</code> field for Telegram link
                     </p>
                   </div>
                 </div>
@@ -2231,9 +1317,9 @@ export default function AppConfigPage() {
             )}
 
             {/* Save & Deploy Button */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <span className="text-xs text-slate-400 font-medium">
-                Writes to Cloud Firestore <code className="font-mono text-slate-700 font-bold">app_config/global_settings</code>
+                Writes to Cloud Firestore <code className="font-mono text-slate-700 dark:text-slate-300 font-bold">app_config/global_settings</code>
               </span>
               <button
                 type="submit"

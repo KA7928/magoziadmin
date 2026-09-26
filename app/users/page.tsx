@@ -148,7 +148,7 @@ export default function UsersPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       <Sidebar />
 
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
@@ -158,7 +158,7 @@ export default function UsersPage() {
         />
 
         <div className="p-3 md:p-6 space-y-6">
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="relative flex-1 max-w-md">
               <Search size={18} className="absolute left-3.5 top-3 text-slate-400" />
               <input
@@ -166,19 +166,19 @@ export default function UsersPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by Magozi ID, Name, Email, Phone, or Location..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
               />
             </div>
-            <div className="text-xs font-bold text-slate-500">
-              Registered App Users: <span className="text-slate-900 font-extrabold">{users.length}</span>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              Registered App Users: <span className="text-slate-900 dark:text-white font-extrabold">{users.length}</span>
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-extrabold uppercase text-slate-400">
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-[11px] font-extrabold uppercase text-slate-400 dark:text-slate-400">
                     <th className="py-4 px-5">User Profile & Magozi ID</th>
                     <th className="py-4 px-5">Contact Details</th>
                     <th className="py-4 px-5">Location & Delivery Addresses</th>
@@ -187,10 +187,10 @@ export default function UsersPage() {
                     <th className="py-4 px-5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300">
                   {filteredUsers.length > 0 ? (
                     filteredUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-slate-50/60 transition">
+                      <tr key={u.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
                         {/* Profile Picture, Name, Magozi ID */}
                         <td className="py-4 px-5">
                           <div className="flex items-center gap-3">
@@ -198,22 +198,22 @@ export default function UsersPage() {
                               <img 
                                 src={u.photoUrl} 
                                 alt={u.fullName}
-                                className="w-10 h-10 rounded-full object-cover border border-slate-200 flex-shrink-0 shadow-xs"
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0 shadow-xs"
                                 onError={(e) => {
                                   (e.target as HTMLElement).style.display = 'none';
                                 }}
                               />
                             ) : (
-                              <div className="w-10 h-10 rounded-full bg-emerald-100 text-magozi-800 font-extrabold flex items-center justify-center text-sm border border-emerald-200 flex-shrink-0 shadow-xs">
+                              <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950 text-magozi-800 dark:text-emerald-300 font-extrabold flex items-center justify-center text-sm border border-emerald-200 dark:border-emerald-800 flex-shrink-0 shadow-xs">
                                 {u.fullName.charAt(0).toUpperCase()}
                               </div>
                             )}
 
                             <div>
-                              <p className="font-extrabold text-slate-900 text-sm leading-snug">{u.fullName}</p>
+                              <p className="font-extrabold text-slate-900 dark:text-white text-sm leading-snug">{u.fullName}</p>
                               <div className="flex items-center gap-1 mt-0.5">
-                                <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[10px] font-mono font-bold flex items-center gap-1">
-                                  <Hash size={10} className="text-emerald-600" />
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 text-[10px] font-mono font-bold flex items-center gap-1">
+                                  <Hash size={10} className="text-emerald-600 dark:text-emerald-400" />
                                   <span>{u.magoziId || u.id}</span>
                                 </span>
                               </div>
@@ -223,33 +223,33 @@ export default function UsersPage() {
 
                         {/* Email & Phone */}
                         <td className="py-4 px-5">
-                          <p className="font-semibold text-slate-800">{u.email}</p>
-                          <p className="text-[11px] text-slate-500 font-mono mt-0.5">{u.phone}</p>
+                          <p className="font-semibold text-slate-800 dark:text-slate-200">{u.email}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">{u.phone}</p>
                         </td>
 
                         {/* Location & Delivery Addresses */}
                         <td className="py-4 px-5 max-w-xs">
                           {u.location ? (
                             <div>
-                              <div className="flex items-start gap-1.5 text-slate-700">
-                                <MapPin size={14} className="text-magozi-800 flex-shrink-0 mt-0.5" />
+                              <div className="flex items-start gap-1.5 text-slate-700 dark:text-slate-300">
+                                <MapPin size={14} className="text-magozi-800 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                                 <span className="line-clamp-2 text-xs leading-relaxed font-medium">{u.location}</span>
                               </div>
                               {u.deliveryAddresses && u.deliveryAddresses.length > 1 && (
-                                <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                                <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                                   +{u.deliveryAddresses.length - 1} more addresses
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-400 italic text-[11px]">No location saved</span>
+                            <span className="text-slate-400 dark:text-slate-400 italic text-[11px]">No location saved</span>
                           )}
                         </td>
 
                         {/* Registration Date */}
-                        <td className="py-4 px-5 text-slate-600 font-medium">
+                        <td className="py-4 px-5 text-slate-600 dark:text-slate-400 font-medium">
                           <div className="flex items-center gap-1.5">
-                            <Calendar size={13} className="text-magozi-800 flex-shrink-0" />
+                            <Calendar size={13} className="text-magozi-800 dark:text-emerald-400 flex-shrink-0" />
                             <span>{u.registrationDate || u.registeredDate || u.createdAt || "N/A"}</span>
                           </div>
                         </td>
@@ -260,14 +260,14 @@ export default function UsersPage() {
                             onClick={() => handleToggleAdminRole(u)}
                             className={`px-3 py-1 rounded-full text-xs font-extrabold transition flex items-center gap-1.5 ${
                               u.role === "admin"
-                                ? "bg-emerald-100 text-emerald-800 hover:bg-rose-100 hover:text-rose-800"
-                                : "bg-slate-100 text-slate-700 hover:bg-emerald-100 hover:text-emerald-800"
+                                ? "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-rose-100 dark:hover:bg-rose-950 hover:text-rose-800 dark:hover:text-rose-300"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-emerald-100 dark:hover:bg-emerald-950 hover:text-emerald-800 dark:hover:text-emerald-300"
                             }`}
                             title="Click to toggle Admin permissions in Firestore `admins` collection"
                           >
                             {u.role === "admin" ? (
                               <>
-                                <ShieldCheck size={14} className="text-emerald-700" />
+                                <ShieldCheck size={14} className="text-emerald-700 dark:text-emerald-400" />
                                 <span>ADMINISTRATOR</span>
                               </>
                             ) : (
@@ -283,7 +283,7 @@ export default function UsersPage() {
                         <td className="py-4 px-5 text-right space-x-1">
                           <button
                             onClick={() => setSelectedUser(u)}
-                            className="p-2 rounded-xl text-slate-500 hover:text-magozi-800 hover:bg-magozi-50 transition"
+                            className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-magozi-800 dark:hover:text-white hover:bg-magozi-50 dark:hover:bg-slate-800 transition"
                             title="Open User Detail Drawer"
                           >
                             <Eye size={18} />
@@ -294,7 +294,7 @@ export default function UsersPage() {
                                 handleDeleteUser(u.id);
                               }
                             }}
-                            className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
+                            className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition"
                             title="Delete User from Firestore"
                           >
                             <Trash2 size={18} />
@@ -305,7 +305,7 @@ export default function UsersPage() {
                   ) : (
                     <tr>
                       <td colSpan={6} className="py-12 text-center text-slate-400 italic">
-                        No users found in Cloud Firestore <code className="font-mono text-slate-600 font-bold">users</code> collection.
+                        No users found in Cloud Firestore <code className="font-mono text-slate-400 font-bold">users</code> collection.
                       </td>
                     </tr>
                   )}

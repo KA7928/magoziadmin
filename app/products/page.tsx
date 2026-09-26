@@ -267,7 +267,7 @@ function ProductsContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       <Sidebar />
 
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
@@ -278,7 +278,7 @@ function ProductsContent() {
 
         <div className="p-3 md:p-6 space-y-6">
           {/* Top Bar: Search, Category Filter, Store Filter, Sort By & Add Product */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
               {/* Search Bar */}
               <div className="relative flex-1 w-full">
@@ -288,7 +288,7 @@ function ProductsContent() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search products by name, sub-category, or ID..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 

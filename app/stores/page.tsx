@@ -399,7 +399,7 @@ export default function StoresPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
       <Sidebar />
 
       <main className="flex-1 md:ml-64 min-w-0 pb-12 w-full overflow-x-hidden">
@@ -410,7 +410,7 @@ export default function StoresPage() {
 
         <div className="p-3 md:p-6 space-y-6">
           {/* Top Bar Actions */}
-          <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center flex-wrap gap-3 w-full md:w-auto flex-1">
               <div className="relative flex-1 min-w-[240px]">
                 <Search size={18} className="absolute left-3.5 top-3 text-slate-400" />
@@ -419,12 +419,12 @@ export default function StoresPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search stores by name, location, CoreLocation or ID..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-xs font-medium focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-2.5 rounded-xl border border-emerald-200">
-                <Store size={16} className="text-emerald-600" />
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3.5 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60">
+                <Store size={16} className="text-emerald-600 dark:text-emerald-400" />
                 <span>Stores OPEN: {stores.filter((s) => s.isOpen).length} / {stores.length}</span>
               </div>
             </div>
@@ -447,11 +447,11 @@ export default function StoresPage() {
               filteredStores.map((store) => (
                 <div
                   key={store.id}
-                  className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden hover:shadow-md transition flex flex-col justify-between"
+                  className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md dark:hover:border-slate-700 transition flex flex-col justify-between"
                 >
                   <div>
                     {/* Store Image & Badges */}
-                    <div className="relative h-48 w-full bg-slate-100 overflow-hidden group">
+                    <div className="relative h-48 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden group">
                       <img
                         src={store.imageUrl}
                         alt={store.name}
@@ -534,32 +534,32 @@ export default function StoresPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2.5 min-w-0">
                           {store.logoUrl && (
-                            <div className="w-9 h-9 rounded-xl border border-slate-200 overflow-hidden bg-white flex-shrink-0 flex items-center justify-center p-0.5 shadow-sm">
+                            <div className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-800 flex-shrink-0 flex items-center justify-center p-0.5 shadow-sm">
                               <img src={store.logoUrl} alt="Store Logo" className="w-full h-full object-contain" />
                             </div>
                           )}
                           <div className="min-w-0">
-                            <h3 className="font-extrabold text-slate-900 text-base leading-snug truncate">{store.name}</h3>
+                            <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-snug truncate">{store.name}</h3>
                             <span className="text-[11px] font-mono font-bold text-slate-400">ID: {store.id}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200 flex-shrink-0">
+                        <div className="flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-1 rounded-xl border border-amber-200 dark:border-amber-800/60 flex-shrink-0">
                           <Star size={14} className="fill-amber-500 text-amber-500" />
                           <span>{store.rating}</span>
                         </div>
                       </div>
 
-                      <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
                         {store.description}
                       </p>
 
-                      <div className="space-y-2 pt-1 text-xs text-slate-600 font-medium">
+                      <div className="space-y-2 pt-1 text-xs text-slate-600 dark:text-slate-300 font-medium">
                         {/* CoreLocation Badge Display */}
-                        <div className="flex items-start gap-2 text-xs text-slate-800 font-semibold bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-200/80">
-                          <Navigation size={15} className="text-emerald-700 flex-shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-2 text-xs text-slate-800 dark:text-slate-200 font-semibold bg-emerald-50/80 dark:bg-emerald-950/50 p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/60">
+                          <Navigation size={15} className="text-emerald-700 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                           <div className="min-w-0 flex-1">
-                            <span className="text-[10px] font-extrabold uppercase text-emerald-800 tracking-wider block leading-none mb-0.5">Core Location (`CoreLocation`)</span>
-                            <span className="text-xs font-bold text-slate-900 truncate block">
+                            <span className="text-[10px] font-extrabold uppercase text-emerald-800 dark:text-emerald-300 tracking-wider block leading-none mb-0.5">Core Location (`CoreLocation`)</span>
+                            <span className="text-xs font-bold text-slate-900 dark:text-white truncate block">
                               {store.CoreLocation || store.coreLocation || store.location || "Default Core Hub"}
                             </span>
                           </div>
@@ -567,12 +567,12 @@ export default function StoresPage() {
 
                         {/* Location / Full Address */}
                         <div className="flex items-start gap-2">
-                          <MapPin size={15} className="text-magozi-800 flex-shrink-0 mt-0.5" />
+                          <MapPin size={15} className="text-magozi-800 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                           <a
                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.location || store.fullAddress || "")}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="hover:text-magozi-800 hover:underline font-bold truncate flex items-center gap-1"
+                            className="hover:text-magozi-800 dark:hover:text-emerald-400 hover:underline font-bold truncate flex items-center gap-1"
                             title="Open Store Location in Google Maps"
                           >
                             <span className="truncate">{store.location || store.fullAddress || "View Location"}</span>
@@ -581,30 +581,30 @@ export default function StoresPage() {
                         </div>
 
                         {/* Store Open & Close Timings */}
-                        <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-200/80 space-y-1">
+                        <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2.5 border border-slate-200/80 dark:border-slate-700 space-y-1">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-slate-700">
-                              <Clock size={14} className="text-magozi-800" />
+                            <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-slate-700 dark:text-slate-300">
+                              <Clock size={14} className="text-magozi-800 dark:text-emerald-400" />
                               <span>Store Operating Hours</span>
                             </div>
                             <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
                               store.autoTimingEnabled !== false
-                                ? "bg-amber-100 text-amber-900 border border-amber-300"
-                                : "bg-slate-200 text-slate-700 border border-slate-300"
+                                ? "bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800"
+                                : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600"
                             }`}>
                               {store.autoTimingEnabled !== false ? "⚡ Auto Scheduler" : "🔒 Manual Mode"}
                             </span>
                           </div>
-                          <div className="text-[11px] font-mono font-bold text-slate-800 flex items-center justify-between pt-0.5">
-                            <span>Open: <strong className="text-emerald-700">{store.openTime || "07:00 AM"}</strong></span>
-                            <span>Close: <strong className="text-rose-700">{store.closeTime || "11:00 PM"}</strong></span>
+                          <div className="text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between pt-0.5">
+                            <span>Open: <strong className="text-emerald-700 dark:text-emerald-400">{store.openTime || "07:00 AM"}</strong></span>
+                            <span>Close: <strong className="text-rose-700 dark:text-rose-400">{store.closeTime || "11:00 PM"}</strong></span>
                           </div>
                         </div>
 
                         {store.contactNumber && store.contactNumber !== "N/A" && (
                           <div className="flex items-center gap-2 pt-0.5">
                             <Phone size={15} className="text-slate-400 flex-shrink-0" />
-                            <a href={`tel:${store.contactNumber}`} className="text-[11px] text-slate-500 font-mono font-bold hover:text-slate-900">
+                            <a href={`tel:${store.contactNumber}`} className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-bold hover:text-slate-900 dark:hover:text-white">
                               {store.contactNumber}
                             </a>
                           </div>
@@ -615,15 +615,15 @@ export default function StoresPage() {
 
                   {/* Card Bottom Action Controls */}
                   <div className="p-5 pt-0 space-y-2">
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
                       {/* Manual Open/Closed Toggle Button */}
                       <button
                         type="button"
                         onClick={() => handleToggleStoreOpenStatus(store)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                           store.isOpen
-                            ? "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
-                            : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                            ? "bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900 border border-rose-200 dark:border-rose-800"
+                            : "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 border border-emerald-200 dark:border-emerald-800"
                         }`}
                       >
                         {store.isOpen ? (
@@ -645,26 +645,26 @@ export default function StoresPage() {
                         onClick={() => handleToggleStoreAutoTiming(store)}
                         className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 border ${
                           store.autoTimingEnabled !== false
-                            ? "bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-300"
-                            : "bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300"
+                            ? "bg-amber-50 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900 border-amber-300 dark:border-amber-800"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-700"
                         }`}
                         title="Toggle Auto Timing for this store"
                       >
-                        <Sparkles size={13} className="text-amber-600" />
+                        <Sparkles size={13} className="text-amber-600 dark:text-amber-400" />
                         <span>Auto: {store.autoTimingEnabled !== false ? "ON" : "OFF"}</span>
                       </button>
 
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleEditStore(store)}
-                          className="p-2 rounded-xl text-slate-500 hover:text-magozi-800 hover:bg-magozi-50 border border-slate-200 transition"
+                          className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-magozi-800 dark:hover:text-white hover:bg-magozi-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition"
                           title="Edit Store Branch Details & Timing"
                         >
                           <Edit3 size={16} />
                         </button>
                         <button
                           onClick={() => handleDeleteStore(store)}
-                          className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition"
+                          className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 border border-slate-200 dark:border-slate-700 transition"
                           title="Delete Store Branch"
                         >
                           <Trash2 size={16} />
@@ -688,15 +688,15 @@ export default function StoresPage() {
       {/* Add / Edit Store Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Store size={20} className="text-magozi-800" />
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Store size={20} className="text-magozi-800 dark:text-emerald-400" />
                 <span>{editingStoreId ? "Edit Store Branch" : "Add New Store Branch"}</span>
               </h3>
               <button
                 onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 text-sm font-bold"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 text-sm font-bold"
               >
                 ✕
               </button>
@@ -704,7 +704,7 @@ export default function StoresPage() {
 
             <form onSubmit={handleSaveStore} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Store Name <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -718,13 +718,13 @@ export default function StoresPage() {
                     }
                   }}
                   placeholder="e.g. Magozi Express Store - Gurgaon Sector 14"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Store ID (Firestore Key)
                   </label>
                   <input
@@ -733,12 +733,12 @@ export default function StoresPage() {
                     value={storeId}
                     onChange={(e) => setStoreId(e.target.value)}
                     placeholder="st_magozi_express"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono font-bold bg-slate-50 focus:ring-2 focus:ring-magozi-800 outline-none disabled:opacity-60"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none disabled:opacity-60"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Emoji Badge
                   </label>
                   <input
@@ -746,32 +746,32 @@ export default function StoresPage() {
                     value={storeEmoji}
                     onChange={(e) => setStoreEmoji(e.target.value)}
                     placeholder="🏪 or 🥦 or 🥟"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none"
                   />
                 </div>
               </div>
 
               {/* Core Location Field */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
                   <span>Core Location (`CoreLocation`)</span>
-                  <span className="text-[10px] text-emerald-700 font-bold">Main Zone / Hub Area</span>
+                  <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">Main Zone / Hub Area</span>
                 </label>
                 <input
                   type="text"
                   value={storeCoreLocation}
                   onChange={(e) => setStoreCoreLocation(e.target.value)}
                   placeholder="e.g. Gurgaon Sector 14 Dark Store Hub / Cyber City Zone"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none bg-emerald-50/30"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none bg-emerald-50/30 dark:bg-emerald-950/30 text-slate-900 dark:text-white"
                 />
               </div>
 
               {/* Store Open/Close Timing & Auto-Scheduler Section */}
-              <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 space-y-3 shadow-inner">
+              <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700 rounded-2xl p-4 space-y-3 shadow-inner">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <Clock size={16} className="text-magozi-800" />
-                    <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">
+                    <Clock size={16} className="text-magozi-800 dark:text-emerald-400" />
+                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
                       Store Timing & Auto Scheduler
                     </span>
                   </div>
@@ -783,7 +783,7 @@ export default function StoresPage() {
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm border ${
                       storeAutoTimingEnabled
                         ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-600"
-                        : "bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300"
+                        : "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600"
                     }`}
                   >
                     <Sparkles size={14} />
@@ -791,7 +791,7 @@ export default function StoresPage() {
                   </button>
                 </div>
 
-                <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                   {storeAutoTimingEnabled
                     ? "When Auto Scheduler is ON, this store will automatically open and close according to set Operating Hours."
                     : "When Auto Scheduler is OFF, you can manually open or close this store at any time without automatic overrides."}
@@ -799,40 +799,40 @@ export default function StoresPage() {
 
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                       Store Open Time
                     </label>
                     <input
                       type="time"
                       value={convertTo24HourInput(storeOpenTime)}
                       onChange={(e) => setStoreOpenTime(convert24To12Hour(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-bold bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
                     />
-                    <span className="text-[10px] font-bold text-emerald-700 mt-1 block">
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 mt-1 block">
                       Formatted: {storeOpenTime}
                     </span>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                       Store Close Time
                     </label>
                     <input
                       type="time"
                       value={convertTo24HourInput(storeCloseTime)}
                       onChange={(e) => setStoreCloseTime(convert24To12Hour(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-bold bg-white focus:ring-2 focus:ring-magozi-800 outline-none"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none"
                     />
-                    <span className="text-[10px] font-bold text-rose-700 mt-1 block">
+                    <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 mt-1 block">
                       Formatted: {storeCloseTime}
                     </span>
                   </div>
                 </div>
 
                 {/* Manual Open Status Switch */}
-                <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-2">
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700">
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
                       Store Open Status
                     </label>
                     <span className="text-[10px] text-slate-400 font-medium">
@@ -843,7 +843,7 @@ export default function StoresPage() {
                     value={storeOpenStatus ? "open" : "closed"}
                     onChange={(e) => setStoreOpenStatus(e.target.value === "open")}
                     disabled={storeAutoTimingEnabled}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer disabled:opacity-60 disabled:bg-slate-100"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer disabled:opacity-60 disabled:bg-slate-100 dark:disabled:bg-slate-800"
                   >
                     <option value="open">OPEN NOW</option>
                     <option value="closed">STORE CLOSED</option>
@@ -853,13 +853,13 @@ export default function StoresPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Veg / Non-Veg Type
                   </label>
                   <select
                     value={storeVegType}
                     onChange={(e) => setStoreVegType(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none cursor-pointer"
                   >
                     <option value="Pure Veg">Pure Veg</option>
                     <option value="Veg & Non-Veg">Veg & Non-Veg</option>
@@ -867,7 +867,7 @@ export default function StoresPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Rating Label
                   </label>
                   <input
@@ -875,13 +875,13 @@ export default function StoresPage() {
                     value={storeRating}
                     onChange={(e) => setStoreRating(e.target.value)}
                     placeholder="4.9 ★ (2.5k+)"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold focus:ring-2 focus:ring-magozi-800 outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Contact Phone Number
                 </label>
                 <input
@@ -889,12 +889,12 @@ export default function StoresPage() {
                   value={storeContact}
                   onChange={(e) => setStoreContact(e.target.value)}
                   placeholder="+91 9288585939"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Full Location / Address <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -903,12 +903,12 @@ export default function StoresPage() {
                   value={storeLocation}
                   onChange={(e) => setStoreLocation(e.target.value)}
                   placeholder="Sector 14, MG Road, Cyber City, Gurgaon, 122001"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Store Description
                 </label>
                 <textarea
@@ -916,30 +916,30 @@ export default function StoresPage() {
                   value={storeDescription}
                   onChange={(e) => setStoreDescription(e.target.value)}
                   placeholder="Official Magozi express superstore delivering organic fruits, vegetables, dairy, bakery, and household items..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-magozi-800 outline-none resize-none"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
                 {/* Store Cover Photo */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Store Cover Photo (`imageUrl`)
                   </label>
                   <div className="space-y-2">
                     {storeImage ? (
-                      <div className="relative h-28 w-full rounded-2xl border border-slate-200 overflow-hidden bg-slate-100">
+                      <div className="relative h-28 w-full rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800">
                         <img src={storeImage} alt="Cover Preview" className="w-full h-full object-cover" />
                       </div>
                     ) : (
-                      <div className="h-28 w-full rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400 text-xs font-semibold">
+                      <div className="h-28 w-full rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 text-xs font-semibold">
                         No Cover Selected
                       </div>
                     )}
 
-                    <label className="flex items-center justify-center gap-1.5 w-full p-2.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-magozi-800 cursor-pointer bg-slate-50 hover:bg-magozi-50/50 transition">
-                      <Upload size={15} className="text-magozi-800" />
-                      <span className="text-[11px] font-bold text-slate-700 truncate">
+                    <label className="flex items-center justify-center gap-1.5 w-full p-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-magozi-800 cursor-pointer bg-slate-50 dark:bg-slate-800/60 hover:bg-magozi-50/50 transition">
+                      <Upload size={15} className="text-magozi-800 dark:text-emerald-400" />
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate">
                         {storeFile ? storeFile.name : "Upload Cover Photo"}
                       </span>
                       <input
@@ -954,23 +954,23 @@ export default function StoresPage() {
 
                 {/* Store Logo */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Store Logo (`logoUrl`)
                   </label>
                   <div className="space-y-2">
                     {storeLogoImage ? (
-                      <div className="relative h-28 w-full rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center p-2">
+                      <div className="relative h-28 w-full rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center p-2">
                         <img src={storeLogoImage} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
                       </div>
                     ) : (
-                      <div className="h-28 w-full rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400 text-xs font-semibold">
+                      <div className="h-28 w-full rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 text-xs font-semibold">
                         No Logo Selected
                       </div>
                     )}
 
-                    <label className="flex items-center justify-center gap-1.5 w-full p-2.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-magozi-800 cursor-pointer bg-slate-50 hover:bg-magozi-50/50 transition">
-                      <Upload size={15} className="text-magozi-800" />
-                      <span className="text-[11px] font-bold text-slate-700 truncate">
+                    <label className="flex items-center justify-center gap-1.5 w-full p-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-magozi-800 cursor-pointer bg-slate-50 dark:bg-slate-800/60 hover:bg-magozi-50/50 transition">
+                      <Upload size={15} className="text-magozi-800 dark:text-emerald-400" />
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate">
                         {storeLogoFile ? storeLogoFile.name : "Upload Store Logo"}
                       </span>
                       <input
@@ -984,11 +984,11 @@ export default function StoresPage() {
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Cancel
                 </button>
