@@ -19,7 +19,8 @@ import {
   ShieldCheck,
   Menu,
   X,
-  Smartphone
+  Smartphone,
+  Wallet
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { db, collection, onSnapshot } from "@/lib/firebase";
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { name: "Push Notifications", href: "/notifications", icon: BellRing },
   { name: "Users & Roles", href: "/users", icon: Users },
   { name: "App Charges & Config", href: "/app-config", icon: Sliders },
+  { name: "Wallet & Offers", href: "/wallet-offers", icon: Wallet },
   { name: "Banners Management", href: "/banners", icon: ImageIcon },
   { name: "Superstores", href: "/stores", icon: Store },
 ];
