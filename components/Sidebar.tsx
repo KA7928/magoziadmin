@@ -18,13 +18,15 @@ import {
   ChevronRight, 
   ShieldCheck,
   Menu,
-  X
+  X,
+  Smartphone
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { db, collection, onSnapshot } from "@/lib/firebase";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Home View", href: "/home-view", icon: Smartphone },
   { name: "Products", href: "/products", icon: ShoppingBag },
   { name: "Categories", href: "/categories", icon: Layers },
   { name: "Orders", href: "/orders", icon: PackageCheck, badge: "Live" },
