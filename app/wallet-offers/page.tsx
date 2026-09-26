@@ -58,6 +58,9 @@ export interface CouponItem {
 }
 
 export default function WalletOffersPage() {
+  // Sub-Tab Navigation State ('wallet' | 'coupons')
+  const [activeTab, setActiveTab] = useState<"wallet" | "coupons">("wallet");
+
   // ----------------------------------------------------
   // 1. Magozi Wallet State (offers_and_wallets/Magoziwallet)
   // ----------------------------------------------------
@@ -407,6 +410,7 @@ export default function WalletOffersPage() {
   // Coupon Actions (Edit & Delete)
   // ----------------------------------------------------
   const handleEditCoupon = (coupon: CouponItem) => {
+    setActiveTab("coupons");
     setEditingCouponId(coupon.id);
     setCouponDetails(coupon.couponDetails);
     setCouponDetailsText(coupon.couponDetailsText || "");
@@ -442,705 +446,821 @@ export default function WalletOffersPage() {
 
       <main className="flex-1 md:ml-64 min-w-0 pb-16 w-full overflow-x-hidden">
         <Header
-          title="Wallet & Coupon Offers Config"
-          subtitle="Manage Magozi Coins wallet rate, rewards, minimum cart coins, and custom coupon offers (offers_and_wallets)"
+          title="Wallet & Offers Config"
+          subtitle="Configure Magozi Coins wallet rate, cashback rewards, and custom coupon offers (offers_and_wallets)"
         />
 
-        <div className="p-3 md:p-6 space-y-8">
-          {/* Quick Stats Header */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-                <Coins size={24} />
-              </div>
-              <div>
-                <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Conversion Rate</p>
-                <p className="text-lg font-black text-slate-900 dark:text-white">1 ₹ = {coinPerRupees} Coins</p>
-              </div>
-            </div>
+        <div className="p-3 md:p-6 space-y-6">
+          {/* Sub-Tab Navigation Bar inside Wallet & Offers Page */}
+          <div className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-2">
+            <div className="flex items-center gap-2 p-1.5 bg-slate-200/70 dark:bg-slate-900 rounded-2xl border border-slate-300/60 dark:border-slate-800 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setActiveTab("wallet")}
+                className={`flex-1 sm:flex-initial px-6 py-3 rounded-xl font-extrabold text-xs transition flex items-center justify-center gap-2.5 ${
+                  activeTab === "wallet"
+                    ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/50 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Wallet size={18} />
+                <span>Magozi Wallet Configuration</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/20 dark:bg-slate-800 text-white font-black">
+                  1 ₹ = {coinPerRupees} Coins
+                </span>
+              </button>
 
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                <Percent size={24} />
-              </div>
-              <div>
-                <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Order Reward %</p>
-                <p className="text-lg font-black text-slate-900 dark:text-white">{rewardPercentage}% Cashback</p>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold">
-                <ShoppingBag size={24} />
-              </div>
-              <div>
-                <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Min Coins Apply</p>
-                <p className="text-lg font-black text-slate-900 dark:text-white">{minMagoziCoinApply} Coins</p>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
-                <Ticket size={24} />
-              </div>
-              <div>
-                <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Active Coupon</p>
-                <p className="text-sm font-extrabold text-purple-700 dark:text-purple-400 truncate max-w-[110px]">
-                  {couponDetails || "None"}
-                </p>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
-                {magoziimageURL ? (
-                  <img src={magoziimageURL} alt="Coin" className="w-8 h-8 object-contain rounded-lg" />
-                ) : (
-                  <ImageIcon size={24} />
+              <button
+                type="button"
+                onClick={() => setActiveTab("coupons")}
+                className={`flex-1 sm:flex-initial px-6 py-3 rounded-xl font-extrabold text-xs transition flex items-center justify-center gap-2.5 ${
+                  activeTab === "coupons"
+                    ? "bg-purple-700 text-white shadow-md shadow-purple-700/20"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/50 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Ticket size={18} />
+                <span>Custom Coupon Offers</span>
+                {couponsList.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/20 dark:bg-purple-950 text-white font-black">
+                    {couponsList.length} Active
+                  </span>
                 )}
-              </div>
-              <div>
-                <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Magozi Coin Icon</p>
-                <p className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[110px]">
-                  {magoziimageURL ? "Icon Uploaded" : "No Icon Set"}
-                </p>
-              </div>
+              </button>
             </div>
           </div>
 
-          {/* SECTION 1: MAGOZI WALLET CONFIGURATION */}
-          <form onSubmit={handleSaveWalletSettings} className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
-            {walletMessage && (
-              <div className="p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-xl flex items-center gap-2">
-                <CheckCircle2 size={18} />
-                <span>{walletMessage}</span>
-              </div>
-            )}
-            {walletError && (
-              <div className="p-4 rounded-2xl bg-rose-600 text-white text-xs font-bold shadow-xl flex items-center gap-2">
-                <AlertCircle size={18} />
-                <span>{walletError}</span>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div>
-                <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
-                  <Wallet className="text-magozi-800 dark:text-emerald-400" size={22} />
-                  <span>1. Magozi Wallet Configuration</span>
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Saves directly to Firestore document <code className="font-mono font-bold text-magozi-800 dark:text-emerald-400">offers_and_wallets/Magoziwallet</code>
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                disabled={savingWallet}
-                className="px-6 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 transition flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
-              >
-                {savingWallet ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-                <span>{savingWallet ? "Saving..." : "Save Wallet Settings"}</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* 1. Coin Conversion Rate */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
-                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <Coins size={16} className="text-amber-500" />
-                  <span>Coins Per Rupee (1 RS = Magozi Coins)</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹1 =</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={coinPerRupees}
-                    onChange={(e) => setCoinPerRupees(e.target.value)}
-                    placeholder="Enter coins per rupee..."
-                    className="w-full pl-14 pr-16 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Coins</span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Field: <code className="font-bold text-slate-700 dark:text-slate-300">coinPerRupees</code> (Number)
-                </p>
-              </div>
-
-              {/* 2. Reward Percentage */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
-                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <Percent size={16} className="text-emerald-500" />
-                  <span>Reward Per Order (Percentage %)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="any"
-                    value={rewardPercentage}
-                    onChange={(e) => setRewardPercentage(e.target.value)}
-                    placeholder="Enter reward percentage..."
-                    className="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">%</span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Field: <code className="font-bold text-slate-700 dark:text-slate-300">rewardPercentage</code> (Number)
-                </p>
-              </div>
-
-              {/* 3. Min Coins for Discount */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
-                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <ShoppingBag size={16} className="text-sky-500" />
-                  <span>Min Coins Required for Cart Discount</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={minMagoziCoinApply}
-                    onChange={(e) => setMinMagoziCoinApply(e.target.value)}
-                    placeholder="Enter min coins to apply..."
-                    className="w-full pl-4 pr-16 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Coins</span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Field: <code className="font-bold text-slate-700 dark:text-slate-300">minMagoziCoinApply</code> (Number)
-                </p>
-              </div>
-
-              {/* 4. Reward Status Toggle */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 md:col-span-3">
-                <div className="flex items-center justify-between flex-wrap gap-4">
+          {/* TAB 1: MAGOZI WALLET CONFIGURATION */}
+          {activeTab === "wallet" && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              {/* Quick Summary Header for Wallet */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                    <Coins size={24} />
+                  </div>
                   <div>
-                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                      <Sparkles size={16} className={ongoing ? "text-emerald-500" : "text-slate-400"} />
-                      <span>Order to Receive Magozi Coins Button (ON / OFF)</span>
-                    </label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Enable or disable coin rewards distribution for customer orders.
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Conversion Rate</p>
+                    <p className="text-lg font-black text-slate-900 dark:text-white">1 ₹ = {coinPerRupees} Coins</p>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                    <Percent size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Order Reward %</p>
+                    <p className="text-lg font-black text-slate-900 dark:text-white">{rewardPercentage}% Cashback</p>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold">
+                    <ShoppingBag size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Min Coins Apply</p>
+                    <p className="text-lg font-black text-slate-900 dark:text-white">{minMagoziCoinApply} Coins</p>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${
+                    ongoing 
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
+                      : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                  }`}>
+                    <Sparkles size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Coin Earning Status</p>
+                    <p className={`text-lg font-black ${ongoing ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                      {ongoing ? "ACTIVE (ON)" : "PAUSED (OFF)"}
                     </p>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setOngoing(!ongoing)}
-                    className={`px-5 py-2.5 rounded-xl font-extrabold text-xs transition flex items-center gap-2 ${
-                      ongoing
-                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
-                        : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
-                    }`}
-                  >
-                    {ongoing ? (
-                      <>
-                        <ToggleRight size={22} className="text-white" />
-                        <span>Rewards Enabled (ongoing = true)</span>
-                      </>
-                    ) : (
-                      <>
-                        <ToggleLeft size={22} className="text-slate-400" />
-                        <span>Rewards Disabled (ongoing = false)</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Field: <code className="font-bold text-slate-700 dark:text-slate-300">ongoing</code> (Boolean <code className="text-emerald-600 dark:text-emerald-400 font-bold">{String(ongoing)}</code>)
-                </p>
-              </div>
-
-              {/* 5. Coin Image Upload */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 md:col-span-3">
-                <div>
-                  <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                    <ImageIcon size={16} className="text-indigo-500" />
-                    <span>Magozi Coin Image Upload (Firebase Storage: "miscellaneous" Folder)</span>
-                  </label>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Upload custom coin icon saved to Storage folder <code className="font-mono font-bold text-indigo-600 dark:text-indigo-400">miscellaneous</code>.
-                  </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <div className="w-20 h-20 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-2 flex flex-col items-center justify-center relative shadow-sm flex-shrink-0">
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
                     {magoziimageURL ? (
-                      <img src={magoziimageURL} alt="Magozi Coin" className="w-14 h-14 object-contain rounded-xl" />
+                      <img src={magoziimageURL} alt="Coin" className="w-8 h-8 object-contain rounded-lg" />
                     ) : (
-                      <div className="flex flex-col items-center text-slate-400">
-                        <ImageIcon size={24} />
-                        <span className="text-[9px] font-bold mt-1">No Image</span>
-                      </div>
+                      <ImageIcon size={24} />
                     )}
                   </div>
-
-                  <div className="flex-1 space-y-2 w-full">
-                    <label className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 cursor-pointer transition disabled:opacity-50">
-                      {uploadingImage ? <RefreshCw size={16} className="animate-spin" /> : <UploadCloud size={16} />}
-                      <span>{uploadingImage ? "Uploading..." : "Upload Magozi Coin Image"}</span>
-                      <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} className="hidden" />
-                    </label>
-
-                    {magoziimageURL && (
-                      <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate">
-                        URL: <span className="font-mono text-slate-500 dark:text-slate-400">{magoziimageURL}</span>
-                      </p>
-                    )}
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                      Field: <code className="font-bold text-slate-700 dark:text-slate-300">magoziimageURL</code> (String)
+                  <div>
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Magozi Coin Icon</p>
+                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[110px]">
+                      {magoziimageURL ? "Icon Uploaded" : "No Icon Set"}
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
-          </form>
 
-          {/* SECTION 2: CUSTOM COUPON OFFERS CONFIGURATION */}
-          <form onSubmit={handleSaveCouponOffer} className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
-            {couponMessage && (
-              <div className="p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-xl flex items-center gap-2">
-                <CheckCircle2 size={18} />
-                <span>{couponMessage}</span>
-              </div>
-            )}
-            {couponError && (
-              <div className="p-4 rounded-2xl bg-rose-600 text-white text-xs font-bold shadow-xl flex items-center gap-2">
-                <AlertCircle size={18} />
-                <span>{couponError}</span>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div>
-                <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
-                  <Ticket className="text-purple-600 dark:text-purple-400" size={22} />
-                  <span>2. Custom Coupon Offers Configuration</span>
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Saves directly to Firestore document <code className="font-mono font-bold text-purple-600 dark:text-purple-400">offers_and_wallets/coupon_offers</code>
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {editingCouponId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingCouponId(null);
-                      setCouponDetails("WELCOME50");
-                      setDiscountPrice(50);
-                      setMinCartPrice(299);
-                    }}
-                    className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs"
-                  >
-                    Cancel Edit
-                  </button>
+              {/* Form Card for Wallet Settings */}
+              <form onSubmit={handleSaveWalletSettings} className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
+                {walletMessage && (
+                  <div className="p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-xl flex items-center gap-2">
+                    <CheckCircle2 size={18} />
+                    <span>{walletMessage}</span>
+                  </div>
                 )}
-                <button
-                  type="submit"
-                  disabled={savingCoupon}
-                  className="px-6 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md shadow-purple-700/20 transition flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
-                >
-                  {savingCoupon ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-                  <span>{savingCoupon ? "Saving Coupon..." : editingCouponId ? "Update Coupon" : "Save Coupon Offer"}</span>
-                </button>
-              </div>
-            </div>
+                {walletError && (
+                  <div className="p-4 rounded-2xl bg-rose-600 text-white text-xs font-bold shadow-xl flex items-center gap-2">
+                    <AlertCircle size={18} />
+                    <span>{walletError}</span>
+                  </div>
+                )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* 1. Coupon Details Code */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
-                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <Tag size={16} className="text-purple-500" />
-                  <span>Coupon Code / Details (String)</span>
-                </label>
-                <input
-                  type="text"
-                  value={couponDetails}
-                  onChange={(e) => setCouponDetails(e.target.value)}
-                  placeholder="e.g. WELCOME50, FESTIVE100..."
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600 uppercase"
-                />
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">couponDetails</code> (String)
-                </p>
-              </div>
-
-              {/* 1b. Written Coupon Details & Conditions Text */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 md:col-span-2">
-                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <FileText size={16} className="text-purple-500" />
-                  <span>Written Details & Conditions Text (String)</span>
-                </label>
-                <textarea
-                  rows={2}
-                  value={couponDetailsText}
-                  onChange={(e) => setCouponDetailsText(e.target.value)}
-                  placeholder="Enter written description, terms, and conditions for this coupon offer..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600 resize-y"
-                />
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">couponDetailsText</code> (String value saved to Firestore)
-                </p>
-              </div>
-
-              {/* 2. Discount Price */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
-                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <IndianRupee size={16} className="text-emerald-500" />
-                  <span>Discount Price (₹ Amount)</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={discountPrice}
-                    onChange={(e) => setDiscountPrice(e.target.value)}
-                    placeholder="Enter discount amount..."
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">discountPrice</code> (Number)
-                </p>
-              </div>
-
-              {/* 3. Minimum Cart Price */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
-                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <ShoppingBag size={16} className="text-sky-500" />
-                  <span>Min Requirement of Cart Price</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={minCartPrice}
-                    onChange={(e) => setMinCartPrice(e.target.value)}
-                    placeholder="Enter minimum cart price..."
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">minCartPrice</code> (Number)
-                </p>
-              </div>
-
-              {/* 4. User Condition */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
-                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <Users size={16} className="text-indigo-500" />
-                  <span>User Condition</span>
-                </label>
-                <select
-                  value={userCondition}
-                  onChange={(e) => setUserCondition(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
-                >
-                  <option value="new_user">New Users Only (new user)</option>
-                  <option value="regular_user">Regular Users Only (regular user)</option>
-                  <option value="all_users">All Customers (all users)</option>
-                </select>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">userCondition</code> (String)
-                </p>
-              </div>
-
-              {/* 5. Payment Condition */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
-                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <CreditCard size={16} className="text-amber-500" />
-                  <span>Payment Condition</span>
-                </label>
-                <select
-                  value={paymentCondition}
-                  onChange={(e) => setPaymentCondition(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
-                >
-                  <option value="cod">Cash On Delivery (cod)</option>
-                  <option value="all_payment">All Payment Methods</option>
-                </select>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">paymentCondition</code> (String)
-                </p>
-              </div>
-
-              {/* 6. Coupon Validity (in Days) */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
-                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <Calendar size={16} className="text-rose-500" />
-                  <span>Coupon Validity (Days / Number)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={couponValidity}
-                    onChange={(e) => setCouponValidity(e.target.value)}
-                    placeholder="Enter validity duration in days..."
-                    className="w-full pl-4 pr-16 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Days</span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">couponValidity</code> (Number)
-                </p>
-              </div>
-
-              {/* 7. Active / Inactive Status Toggle */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 md:col-span-3">
-                <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
                   <div>
-                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                      <Sparkles size={16} className={isCouponActive ? "text-emerald-500" : "text-slate-400"} />
-                      <span>Coupon Active or Inactive Status</span>
-                    </label>
+                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
+                      <Wallet className="text-magozi-800 dark:text-emerald-400" size={22} />
+                      <span>Magozi Wallet Configuration</span>
+                    </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Set whether customers can apply this custom coupon code during checkout.
+                      Saves directly to Firestore document <code className="font-mono font-bold text-magozi-800 dark:text-emerald-400">offers_and_wallets/Magoziwallet</code>
                     </p>
                   </div>
 
                   <button
-                    type="button"
-                    onClick={() => setIsCouponActive(!isCouponActive)}
-                    className={`px-5 py-2.5 rounded-xl font-extrabold text-xs transition flex items-center gap-2 ${
-                      isCouponActive
-                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
-                        : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
-                    }`}
+                    type="submit"
+                    disabled={savingWallet}
+                    className="px-6 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white font-bold text-xs shadow-md shadow-magozi-800/20 transition flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
                   >
-                    {isCouponActive ? (
-                      <>
-                        <ToggleRight size={22} className="text-white" />
-                        <span>Coupon Active (isActive = true)</span>
-                      </>
-                    ) : (
-                      <>
-                        <ToggleLeft size={22} className="text-slate-400" />
-                        <span>Coupon Inactive (isActive = false)</span>
-                      </>
-                    )}
+                    {savingWallet ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+                    <span>{savingWallet ? "Saving..." : "Save Wallet Settings"}</span>
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">isActive</code> (Boolean <code className="text-emerald-600 dark:text-emerald-400 font-bold">{String(isCouponActive)}</code>)
-                </p>
-              </div>
 
-              {/* 8. Stores Condition (Synced from Firebase "stores" collection) */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 md:col-span-3">
-                <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200/60 dark:border-slate-800 pb-3">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* 1. Coin Conversion Rate */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
                     <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                      <Store size={16} className="text-blue-500" />
-                      <span>Stores Condition (Synced Live from Firebase)</span>
+                      <Coins size={16} className="text-amber-500" />
+                      <span>Coins Per Rupee (1 RS = Magozi Coins)</span>
                     </label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Choose "All Stores" or check particular stores where this coupon applies.
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹1 =</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={coinPerRupees}
+                        onChange={(e) => setCoinPerRupees(e.target.value)}
+                        placeholder="Enter coins per rupee..."
+                        className="w-full pl-14 pr-16 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Coins</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Field: <code className="font-bold text-slate-700 dark:text-slate-300">coinPerRupees</code> (Number)
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => toggleStoreSelection("all_stores")}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                      selectedStores.includes("all_stores")
-                        ? "bg-blue-600 text-white"
-                        : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                    }`}
-                  >
-                    <Check size={14} />
-                    <span>All Stores</span>
-                  </button>
-                </div>
+                  {/* 2. Reward Percentage */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <Percent size={16} className="text-emerald-500" />
+                      <span>Reward Per Order (Percentage %)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="any"
+                        value={rewardPercentage}
+                        onChange={(e) => setRewardPercentage(e.target.value)}
+                        placeholder="Enter reward percentage..."
+                        className="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">%</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Field: <code className="font-bold text-slate-700 dark:text-slate-300">rewardPercentage</code> (Number)
+                    </p>
+                  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-48 overflow-y-auto pr-1">
-                  {availableStores.map((st) => {
-                    const isSelected = selectedStores.includes(st.id);
-                    return (
+                  {/* 3. Min Coins for Discount */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <ShoppingBag size={16} className="text-sky-500" />
+                      <span>Min Coins Required for Cart Discount</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={minMagoziCoinApply}
+                        onChange={(e) => setMinMagoziCoinApply(e.target.value)}
+                        placeholder="Enter min coins to apply..."
+                        className="w-full pl-4 pr-16 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-magozi-800"
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Coins</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Field: <code className="font-bold text-slate-700 dark:text-slate-300">minMagoziCoinApply</code> (Number)
+                    </p>
+                  </div>
+
+                  {/* 4. Reward Status Toggle */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 md:col-span-3">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div>
+                        <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                          <Sparkles size={16} className={ongoing ? "text-emerald-500" : "text-slate-400"} />
+                          <span>Order to Receive Magozi Coins Button (ON / OFF)</span>
+                        </label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Enable or disable coin rewards distribution for customer orders.
+                        </p>
+                      </div>
+
                       <button
                         type="button"
-                        key={st.id}
-                        onClick={() => toggleStoreSelection(st.id)}
-                        className={`p-3 rounded-xl border text-left text-xs font-bold transition flex items-center justify-between ${
-                          isSelected && !selectedStores.includes("all_stores")
-                            ? "bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-700 dark:text-blue-400 shadow-sm"
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                        onClick={() => setOngoing(!ongoing)}
+                        className={`px-5 py-2.5 rounded-xl font-extrabold text-xs transition flex items-center gap-2 ${
+                          ongoing
+                            ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
+                            : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
                         }`}
                       >
-                        <span className="truncate">{st.name}</span>
-                        <div className={`w-4 h-4 rounded flex items-center justify-center text-white text-[10px] ${
-                          isSelected && !selectedStores.includes("all_stores") ? "bg-blue-600" : "border border-slate-300 dark:border-slate-700"
-                        }`}>
-                          {isSelected && !selectedStores.includes("all_stores") && <Check size={12} />}
-                        </div>
+                        {ongoing ? (
+                          <>
+                            <ToggleRight size={22} className="text-white" />
+                            <span>Rewards Enabled (ongoing = true)</span>
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft size={22} className="text-slate-400" />
+                            <span>Rewards Disabled (ongoing = false)</span>
+                          </>
+                        )}
                       </button>
-                    );
-                  })}
-
-                  {availableStores.length === 0 && (
-                    <p className="text-xs text-slate-400 font-medium italic col-span-full">
-                      No branch stores loaded yet (or default "All Stores" selected).
-                    </p>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">stores</code> (Array: <span className="text-blue-600 dark:text-blue-400">{JSON.stringify(selectedStores)}</span>)
-                </p>
-              </div>
-
-              {/* 9. Category Condition (Synced from Firebase "categories" collection) */}
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 md:col-span-3">
-                <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200/60 dark:border-slate-800 pb-3">
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                      <Layers size={16} className="text-teal-500" />
-                      <span>Category Condition (Synced Live from Firebase)</span>
-                    </label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Choose "All Categories" or pick specific categories for which this coupon is valid.
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Field: <code className="font-bold text-slate-700 dark:text-slate-300">ongoing</code> (Boolean <code className="text-emerald-600 dark:text-emerald-400 font-bold">{String(ongoing)}</code>)
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => toggleCategorySelection("all_categories")}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                      selectedCategories.includes("all_categories")
-                        ? "bg-teal-600 text-white"
-                        : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                    }`}
-                  >
-                    <Check size={14} />
-                    <span>All Categories</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-48 overflow-y-auto pr-1">
-                  {availableCategories.map((cat) => {
-                    const isSelected = selectedCategories.includes(cat.id);
-                    return (
-                      <button
-                        type="button"
-                        key={cat.id}
-                        onClick={() => toggleCategorySelection(cat.id)}
-                        className={`p-3 rounded-xl border text-left text-xs font-bold transition flex items-center justify-between ${
-                          isSelected && !selectedCategories.includes("all_categories")
-                            ? "bg-teal-50 dark:bg-teal-950/40 border-teal-500 text-teal-700 dark:text-teal-400 shadow-sm"
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300"
-                        }`}
-                      >
-                        <span className="truncate">{cat.name}</span>
-                        <div className={`w-4 h-4 rounded flex items-center justify-center text-white text-[10px] ${
-                          isSelected && !selectedCategories.includes("all_categories") ? "bg-teal-600" : "border border-slate-300 dark:border-slate-700"
-                        }`}>
-                          {isSelected && !selectedCategories.includes("all_categories") && <Check size={12} />}
-                        </div>
-                      </button>
-                    );
-                  })}
-
-                  {availableCategories.length === 0 && (
-                    <p className="text-xs text-slate-400 font-medium italic col-span-full">
-                      No categories loaded yet (or default "All Categories" selected).
-                    </p>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">categoryCondition</code> (Array: <span className="text-teal-600 dark:text-teal-400">{JSON.stringify(selectedCategories)}</span>)
-                </p>
-              </div>
-            </div>
-
-            {/* Bottom Save Coupon Button */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">
-                Cloud Firestore: <code className="font-mono text-purple-600 dark:text-purple-400 font-bold">offers_and_wallets/coupon_offers</code>
-              </span>
-              <button
-                type="submit"
-                disabled={savingCoupon}
-                className="px-6 py-3 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md shadow-purple-700/20 transition flex items-center gap-2 disabled:opacity-50"
-              >
-                {savingCoupon ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-                <span>{savingCoupon ? "Saving Coupon..." : editingCouponId ? "Update Coupon" : "Save Custom Coupon Offer"}</span>
-              </button>
-            </div>
-          </form>
-
-          {/* LIST OF CREATED CUSTOM COUPONS */}
-          {couponsList.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
-              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <Ticket className="text-purple-600 dark:text-purple-400" size={18} />
-                <span>Active Custom Coupons ({couponsList.length})</span>
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {couponsList.map((cp) => (
-                  <div key={cp.id} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-3 relative">
-                    <div className="flex items-center justify-between">
-                      <span className="px-3 py-1 rounded-lg bg-purple-600 text-white font-black text-xs uppercase tracking-wider">
-                        {cp.couponDetails}
-                      </span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                        cp.isActive ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400" : "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400"
-                      }`}>
-                        {cp.isActive ? "Active" : "Inactive"}
-                      </span>
+                  {/* 5. Coin Image Upload */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 md:col-span-3">
+                    <div>
+                      <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                        <ImageIcon size={16} className="text-indigo-500" />
+                        <span>Magozi Coin Image Upload (Firebase Storage: "miscellaneous" Folder)</span>
+                      </label>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Upload custom coin icon saved to Storage folder <code className="font-mono font-bold text-indigo-600 dark:text-indigo-400">miscellaneous</code>.
+                      </p>
                     </div>
 
-                    <div className="text-xs space-y-1 text-slate-600 dark:text-slate-300">
-                      {cp.couponDetailsText && (
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium italic bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200/80 dark:border-slate-800 line-clamp-2">
-                          "{cp.couponDetailsText}"
+                    <div className="flex flex-col sm:flex-row items-center gap-6">
+                      <div className="w-20 h-20 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-2 flex flex-col items-center justify-center relative shadow-sm flex-shrink-0">
+                        {magoziimageURL ? (
+                          <img src={magoziimageURL} alt="Magozi Coin" className="w-14 h-14 object-contain rounded-xl" />
+                        ) : (
+                          <div className="flex flex-col items-center text-slate-400">
+                            <ImageIcon size={24} />
+                            <span className="text-[9px] font-bold mt-1">No Image</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 space-y-2 w-full">
+                        <label className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 cursor-pointer transition disabled:opacity-50">
+                          {uploadingImage ? <RefreshCw size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                          <span>{uploadingImage ? "Uploading..." : "Upload Magozi Coin Image"}</span>
+                          <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} className="hidden" />
+                        </label>
+
+                        {magoziimageURL && (
+                          <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate">
+                            URL: <span className="font-mono text-slate-500 dark:text-slate-400">{magoziimageURL}</span>
+                          </p>
+                        )}
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                          Field: <code className="font-bold text-slate-700 dark:text-slate-300">magoziimageURL</code> (String)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* TAB 2: CUSTOM COUPON OFFERS */}
+          {activeTab === "coupons" && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              {/* Quick Summary Header for Coupons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                    <Ticket size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Active Coupon</p>
+                    <p className="text-lg font-black text-purple-700 dark:text-purple-400 truncate max-w-[110px]">
+                      {couponDetails || "None"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                    <IndianRupee size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Discount Amount</p>
+                    <p className="text-lg font-black text-slate-900 dark:text-white">₹{discountPrice}</p>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold">
+                    <ShoppingBag size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Min Cart Req.</p>
+                    <p className="text-lg font-black text-slate-900 dark:text-white">₹{minCartPrice}</p>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                    <Users size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">User Eligibility</p>
+                    <p className="text-xs font-black text-slate-900 dark:text-white capitalize">
+                      {userCondition.replace("_", " ")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${
+                    isCouponActive
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                  }`}>
+                    <Sparkles size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Coupon Status</p>
+                    <p className={`text-lg font-black ${isCouponActive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                      {isCouponActive ? "ACTIVE" : "INACTIVE"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Coupon Offers Form Card */}
+              <form onSubmit={handleSaveCouponOffer} className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
+                {couponMessage && (
+                  <div className="p-4 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-xl flex items-center gap-2">
+                    <CheckCircle2 size={18} />
+                    <span>{couponMessage}</span>
+                  </div>
+                )}
+                {couponError && (
+                  <div className="p-4 rounded-2xl bg-rose-600 text-white text-xs font-bold shadow-xl flex items-center gap-2">
+                    <AlertCircle size={18} />
+                    <span>{couponError}</span>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white">
+                      <Ticket className="text-purple-600 dark:text-purple-400" size={22} />
+                      <span>Custom Coupon Offers Configuration</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Saves directly to Firestore document <code className="font-mono font-bold text-purple-600 dark:text-purple-400">offers_and_wallets/coupon_offers</code>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {editingCouponId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingCouponId(null);
+                          setCouponDetails("WELCOME50");
+                          setDiscountPrice(50);
+                          setMinCartPrice(299);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={savingCoupon}
+                      className="px-6 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md shadow-purple-700/20 transition flex items-center gap-2 flex-shrink-0 disabled:opacity-50"
+                    >
+                      {savingCoupon ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+                      <span>{savingCoupon ? "Saving Coupon..." : editingCouponId ? "Update Coupon" : "Save Coupon Offer"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* 1. Coupon Details Code */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <Tag size={16} className="text-purple-500" />
+                      <span>Coupon Code / Details (String)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={couponDetails}
+                      onChange={(e) => setCouponDetails(e.target.value)}
+                      placeholder="e.g. WELCOME50, FESTIVE100..."
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600 uppercase"
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">couponDetails</code> (String)
+                    </p>
+                  </div>
+
+                  {/* 1b. Written Coupon Details & Conditions Text */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 md:col-span-2">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <FileText size={16} className="text-purple-500" />
+                      <span>Written Details & Conditions Text (String)</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={couponDetailsText}
+                      onChange={(e) => setCouponDetailsText(e.target.value)}
+                      placeholder="Enter written description, terms, and conditions for this coupon offer..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600 resize-y"
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">couponDetailsText</code> (String value saved to Firestore)
+                    </p>
+                  </div>
+
+                  {/* 2. Discount Price */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <IndianRupee size={16} className="text-emerald-500" />
+                      <span>Discount Price (₹ Amount)</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={discountPrice}
+                        onChange={(e) => setDiscountPrice(e.target.value)}
+                        placeholder="Enter discount amount..."
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">discountPrice</code> (Number)
+                    </p>
+                  </div>
+
+                  {/* 3. Minimum Cart Price */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <ShoppingBag size={16} className="text-sky-500" />
+                      <span>Min Requirement of Cart Price</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={minCartPrice}
+                        onChange={(e) => setMinCartPrice(e.target.value)}
+                        placeholder="Enter minimum cart price..."
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">minCartPrice</code> (Number)
+                    </p>
+                  </div>
+
+                  {/* 4. User Condition */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <Users size={16} className="text-indigo-500" />
+                      <span>User Condition</span>
+                    </label>
+                    <select
+                      value={userCondition}
+                      onChange={(e) => setUserCondition(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
+                    >
+                      <option value="new_user">New Users Only (new user)</option>
+                      <option value="regular_user">Regular Users Only (regular user)</option>
+                      <option value="all_users">All Customers (all users)</option>
+                    </select>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">userCondition</code> (String)
+                    </p>
+                  </div>
+
+                  {/* 5. Payment Condition */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <CreditCard size={16} className="text-amber-500" />
+                      <span>Payment Condition</span>
+                    </label>
+                    <select
+                      value={paymentCondition}
+                      onChange={(e) => setPaymentCondition(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
+                    >
+                      <option value="cod">Cash On Delivery (cod)</option>
+                      <option value="all_payment">All Payment Methods</option>
+                    </select>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">paymentCondition</code> (String)
+                    </p>
+                  </div>
+
+                  {/* 6. Coupon Validity (in Days) */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <Calendar size={16} className="text-rose-500" />
+                      <span>Coupon Validity (Days / Number)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={couponValidity}
+                        onChange={(e) => setCouponValidity(e.target.value)}
+                        placeholder="Enter validity duration in days..."
+                        className="w-full pl-4 pr-16 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600"
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Days</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">couponValidity</code> (Number)
+                    </p>
+                  </div>
+
+                  {/* 7. Active / Inactive Status Toggle */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 md:col-span-3">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div>
+                        <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                          <Sparkles size={16} className={isCouponActive ? "text-emerald-500" : "text-slate-400"} />
+                          <span>Coupon Active or Inactive Status</span>
+                        </label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Set whether customers can apply this custom coupon code during checkout.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsCouponActive(!isCouponActive)}
+                        className={`px-5 py-2.5 rounded-xl font-extrabold text-xs transition flex items-center gap-2 ${
+                          isCouponActive
+                            ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30"
+                            : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300"
+                        }`}
+                      >
+                        {isCouponActive ? (
+                          <>
+                            <ToggleRight size={22} className="text-white" />
+                            <span>Coupon Active (isActive = true)</span>
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft size={22} className="text-slate-400" />
+                            <span>Coupon Inactive (isActive = false)</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">isActive</code> (Boolean <code className="text-emerald-600 dark:text-emerald-400 font-bold">{String(isCouponActive)}</code>)
+                    </p>
+                  </div>
+
+                  {/* 8. Stores Condition (Synced from Firebase "stores" collection) */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 md:col-span-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200/60 dark:border-slate-800 pb-3">
+                      <div>
+                        <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                          <Store size={16} className="text-blue-500" />
+                          <span>Stores Condition (Synced Live from Firebase)</span>
+                        </label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Choose "All Stores" or check particular stores where this coupon applies.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleStoreSelection("all_stores")}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                          selectedStores.includes("all_stores")
+                            ? "bg-blue-600 text-white"
+                            : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        <Check size={14} />
+                        <span>All Stores</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-48 overflow-y-auto pr-1">
+                      {availableStores.map((st) => {
+                        const isSelected = selectedStores.includes(st.id);
+                        return (
+                          <button
+                            type="button"
+                            key={st.id}
+                            onClick={() => toggleStoreSelection(st.id)}
+                            className={`p-3 rounded-xl border text-left text-xs font-bold transition flex items-center justify-between ${
+                              isSelected && !selectedStores.includes("all_stores")
+                                ? "bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-700 dark:text-blue-400 shadow-sm"
+                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                            }`}
+                          >
+                            <span className="truncate">{st.name}</span>
+                            <div className={`w-4 h-4 rounded flex items-center justify-center text-white text-[10px] ${
+                              isSelected && !selectedStores.includes("all_stores") ? "bg-blue-600" : "border border-slate-300 dark:border-slate-700"
+                            }`}>
+                              {isSelected && !selectedStores.includes("all_stores") && <Check size={12} />}
+                            </div>
+                          </button>
+                        );
+                      })}
+
+                      {availableStores.length === 0 && (
+                        <p className="text-xs text-slate-400 font-medium italic col-span-full">
+                          No branch stores loaded yet (or default "All Stores" selected).
                         </p>
                       )}
-                      <p>Discount: <strong className="text-emerald-600 dark:text-emerald-400">₹{cp.discountPrice}</strong></p>
-                      <p>Min Cart: <strong>₹{cp.minCartPrice}</strong></p>
-                      <p>User Condition: <span className="capitalize font-medium">{cp.userCondition}</span></p>
-                      <p>Payment: <span className="uppercase font-medium">{cp.paymentCondition}</span></p>
-                      <p>Validity: <strong>{cp.couponValidity} Days</strong></p>
-                      <p className="truncate text-[10px] text-slate-400">
-                        Stores: {Array.isArray(cp.stores) ? cp.stores.join(", ") : "all_stores"}
-                      </p>
-                      <p className="truncate text-[10px] text-slate-400">
-                        Categories: {Array.isArray(cp.categoryCondition) ? cp.categoryCondition.join(", ") : "all_categories"}
-                      </p>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">stores</code> (Array: <span className="text-blue-600 dark:text-blue-400">{JSON.stringify(selectedStores)}</span>)
+                    </p>
+                  </div>
+
+                  {/* 9. Category Condition (Synced from Firebase "categories" collection) */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4 md:col-span-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200/60 dark:border-slate-800 pb-3">
+                      <div>
+                        <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                          <Layers size={16} className="text-teal-500" />
+                          <span>Category Condition (Synced Live from Firebase)</span>
+                        </label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Choose "All Categories" or pick specific categories for which this coupon is valid.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleCategorySelection("all_categories")}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                          selectedCategories.includes("all_categories")
+                            ? "bg-teal-600 text-white"
+                            : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        <Check size={14} />
+                        <span>All Categories</span>
+                      </button>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEditCoupon(cp)}
-                        className="px-3 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-purple-100 text-slate-700 dark:text-slate-300 font-bold text-[11px] flex items-center gap-1"
-                      >
-                        <Edit3 size={12} />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCoupon(cp.id)}
-                        className="px-3 py-1 rounded-lg bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 text-rose-700 dark:text-rose-400 font-bold text-[11px] flex items-center gap-1"
-                      >
-                        <Trash2 size={12} />
-                        <span>Delete</span>
-                      </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-48 overflow-y-auto pr-1">
+                      {availableCategories.map((cat) => {
+                        const isSelected = selectedCategories.includes(cat.id);
+                        return (
+                          <button
+                            type="button"
+                            key={cat.id}
+                            onClick={() => toggleCategorySelection(cat.id)}
+                            className={`p-3 rounded-xl border text-left text-xs font-bold transition flex items-center justify-between ${
+                              isSelected && !selectedCategories.includes("all_categories")
+                                ? "bg-teal-50 dark:bg-teal-950/40 border-teal-500 text-teal-700 dark:text-teal-400 shadow-sm"
+                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300"
+                            }`}
+                          >
+                            <span className="truncate">{cat.name}</span>
+                            <div className={`w-4 h-4 rounded flex items-center justify-center text-white text-[10px] ${
+                              isSelected && !selectedCategories.includes("all_categories") ? "bg-teal-600" : "border border-slate-300 dark:border-slate-700"
+                            }`}>
+                              {isSelected && !selectedCategories.includes("all_categories") && <Check size={12} />}
+                            </div>
+                          </button>
+                        );
+                      })}
+
+                      {availableCategories.length === 0 && (
+                        <p className="text-xs text-slate-400 font-medium italic col-span-full">
+                          No categories loaded yet (or default "All Categories" selected).
+                        </p>
+                      )}
                     </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">categoryCondition</code> (Array: <span className="text-teal-600 dark:text-teal-400">{JSON.stringify(selectedCategories)}</span>)
+                    </p>
                   </div>
-                ))}
-              </div>
+                </div>
+
+                {/* Bottom Save Coupon Button */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-medium">
+                    Cloud Firestore: <code className="font-mono text-purple-600 dark:text-purple-400 font-bold">offers_and_wallets/coupon_offers</code>
+                  </span>
+                  <button
+                    type="submit"
+                    disabled={savingCoupon}
+                    className="px-6 py-3 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-md shadow-purple-700/20 transition flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {savingCoupon ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+                    <span>{savingCoupon ? "Saving Coupon..." : editingCouponId ? "Update Coupon" : "Save Custom Coupon Offer"}</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* LIST OF CREATED CUSTOM COUPONS */}
+              {couponsList.length > 0 && (
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <Ticket className="text-purple-600 dark:text-purple-400" size={18} />
+                    <span>Active Custom Coupons ({couponsList.length})</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {couponsList.map((cp) => (
+                      <div key={cp.id} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-3 relative">
+                        <div className="flex items-center justify-between">
+                          <span className="px-3 py-1 rounded-lg bg-purple-600 text-white font-black text-xs uppercase tracking-wider">
+                            {cp.couponDetails}
+                          </span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                            cp.isActive ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400" : "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400"
+                          }`}>
+                            {cp.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+
+                        <div className="text-xs space-y-1 text-slate-600 dark:text-slate-300">
+                          {cp.couponDetailsText && (
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium italic bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200/80 dark:border-slate-800 line-clamp-2">
+                              "{cp.couponDetailsText}"
+                            </p>
+                          )}
+                          <p>Discount: <strong className="text-emerald-600 dark:text-emerald-400">₹{cp.discountPrice}</strong></p>
+                          <p>Min Cart: <strong>₹{cp.minCartPrice}</strong></p>
+                          <p>User Condition: <span className="capitalize font-medium">{cp.userCondition}</span></p>
+                          <p>Payment: <span className="uppercase font-medium">{cp.paymentCondition}</span></p>
+                          <p>Validity: <strong>{cp.couponValidity} Days</strong></p>
+                          <p className="truncate text-[10px] text-slate-400">
+                            Stores: {Array.isArray(cp.stores) ? cp.stores.join(", ") : "all_stores"}
+                          </p>
+                          <p className="truncate text-[10px] text-slate-400">
+                            Categories: {Array.isArray(cp.categoryCondition) ? cp.categoryCondition.join(", ") : "all_categories"}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEditCoupon(cp)}
+                            className="px-3 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-purple-100 text-slate-700 dark:text-slate-300 font-bold text-[11px] flex items-center gap-1"
+                          >
+                            <Edit3 size={12} />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCoupon(cp.id)}
+                            className="px-3 py-1 rounded-lg bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 text-rose-700 dark:text-rose-400 font-bold text-[11px] flex items-center gap-1"
+                          >
+                            <Trash2 size={12} />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
