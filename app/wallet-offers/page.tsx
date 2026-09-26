@@ -38,12 +38,14 @@ import {
   Calendar,
   Check,
   Trash2,
-  Edit3
+  Edit3,
+  FileText
 } from "lucide-react";
 
 export interface CouponItem {
   id: string;
   couponDetails: string;
+  couponDetailsText?: string;
   discountPrice: number;
   minCartPrice: number;
   userCondition: string; // 'new_user' | 'regular_user' | 'all_users'
@@ -74,6 +76,7 @@ export default function WalletOffersPage() {
   // 2. Coupon Offers State (offers_and_wallets/coupon_offers)
   // ----------------------------------------------------
   const [couponDetails, setCouponDetails] = useState<string>("WELCOME50");
+  const [couponDetailsText, setCouponDetailsText] = useState<string>("Use code WELCOME50 on orders above ₹299 to get instant ₹50 discount. Valid for COD payments.");
   const [discountPrice, setDiscountPrice] = useState<number | string>(50);
   const [minCartPrice, setMinCartPrice] = useState<number | string>(299);
   const [userCondition, setUserCondition] = useState<string>("new_user");
@@ -127,6 +130,7 @@ export default function WalletOffersPage() {
         if (snap.exists()) {
           const d = snap.data();
           if (d.couponDetails !== undefined) setCouponDetails(d.couponDetails);
+          if (d.couponDetailsText !== undefined) setCouponDetailsText(d.couponDetailsText);
           if (d.discountPrice !== undefined) setDiscountPrice(d.discountPrice);
           if (d.minCartPrice !== undefined) setMinCartPrice(d.minCartPrice);
           if (d.userCondition !== undefined) setUserCondition(d.userCondition);
@@ -296,6 +300,7 @@ export default function WalletOffersPage() {
       const currentCouponObj: CouponItem = {
         id: editingCouponId || `coupon_${Date.now()}`,
         couponDetails: String(couponDetails).trim(),
+        couponDetailsText: String(couponDetailsText).trim(),
         discountPrice: dPrice,
         minCartPrice: mCart,
         userCondition: userCondition,
@@ -323,6 +328,7 @@ export default function WalletOffersPage() {
 
       const payload = {
         couponDetails: String(couponDetails).trim(),
+        couponDetailsText: String(couponDetailsText).trim(),
         discountPrice: dPrice,
         minCartPrice: mCart,
         userCondition: userCondition,
@@ -403,6 +409,7 @@ export default function WalletOffersPage() {
   const handleEditCoupon = (coupon: CouponItem) => {
     setEditingCouponId(coupon.id);
     setCouponDetails(coupon.couponDetails);
+    setCouponDetailsText(coupon.couponDetailsText || "");
     setDiscountPrice(coupon.discountPrice);
     setMinCartPrice(coupon.minCartPrice);
     setUserCondition(coupon.userCondition || "all_users");
@@ -747,7 +754,7 @@ export default function WalletOffersPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* 1. Coupon Details */}
+              {/* 1. Coupon Details Code */}
               <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
                 <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
                   <Tag size={16} className="text-purple-500" />
@@ -762,6 +769,24 @@ export default function WalletOffersPage() {
                 />
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                   Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">couponDetails</code> (String)
+                </p>
+              </div>
+
+              {/* 1b. Written Coupon Details & Conditions Text */}
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 md:col-span-2">
+                <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                  <FileText size={16} className="text-purple-500" />
+                  <span>Written Details & Conditions Text (String)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={couponDetailsText}
+                  onChange={(e) => setCouponDetailsText(e.target.value)}
+                  placeholder="Enter written description, terms, and conditions for this coupon offer..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-600 resize-y"
+                />
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                  Saved field: <code className="font-bold text-slate-700 dark:text-slate-300">couponDetailsText</code> (String value saved to Firestore)
                 </p>
               </div>
 
@@ -1077,6 +1102,11 @@ export default function WalletOffersPage() {
                     </div>
 
                     <div className="text-xs space-y-1 text-slate-600 dark:text-slate-300">
+                      {cp.couponDetailsText && (
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium italic bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200/80 dark:border-slate-800 line-clamp-2">
+                          "{cp.couponDetailsText}"
+                        </p>
+                      )}
                       <p>Discount: <strong className="text-emerald-600 dark:text-emerald-400">₹{cp.discountPrice}</strong></p>
                       <p>Min Cart: <strong>₹{cp.minCartPrice}</strong></p>
                       <p>User Condition: <span className="capitalize font-medium">{cp.userCondition}</span></p>
