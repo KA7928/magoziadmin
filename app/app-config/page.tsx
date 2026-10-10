@@ -32,7 +32,8 @@ import {
   XCircle,
   Sparkles,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Palette
 } from "lucide-react";
 
 const getInitialAppOpenClose = (): AppOpenCloseSettings => {
@@ -64,7 +65,10 @@ export default function AppConfigPage() {
   const [openingHoursInput, setOpeningHoursInput] = useState<string>(appOpenClose.openingHours || "06:00 AM - 11:30 PM");
   const [closedMessageInput, setClosedMessageInput] = useState<string>(appOpenClose.closedMessage || "We are currently closed for orders.");
 
-  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "policies" | "support">("charges");
+  const [primaryColorHex, setPrimaryColorHex] = useState<string>("#383bff");
+  const [savingThemeColor, setSavingThemeColor] = useState<boolean>(false);
+
+  const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "policies" | "support" | "themecolor">("charges");
   const [policySubTab, setPolicySubTab] = useState<"terms" | "privacy" | "refund" | "shipping" | "about">("terms");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -333,6 +337,54 @@ export default function AppConfigPage() {
     }
   }, []);
 
+  // Realtime Cloud Firestore Listener for app_config/theme_color
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(doc(db, "app_config", "theme_color"), (snap) => {
+        if (snap.exists()) {
+          const d = snap.data();
+          if (d.primaryColorHex) setPrimaryColorHex(d.primaryColorHex);
+          else if (d.primary_color_hex) setPrimaryColorHex(d.primary_color_hex);
+          else if (d.colorHex) setPrimaryColorHex(d.colorHex);
+        }
+      }, (err) => {
+        console.warn("Firestore app_config/theme_color listener warning:", err);
+      });
+
+      return () => unsub();
+    } catch (e) {
+      console.warn("Error subscribing to app_config/theme_color in Firestore:", e);
+    }
+  }, []);
+
+  // Dedicated Save Handler for Theme Color
+  const handleSaveThemeColor = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSavingThemeColor(true);
+    setSaveMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const colorVal = primaryColorHex.trim() || "#383bff";
+      const payload = {
+        primaryColorHex: colorVal,
+        primary_color_hex: colorVal,
+        updatedAt: new Date().toISOString(),
+        lastUpdated: Date.now(),
+      };
+
+      await setDoc(doc(db, "app_config", "theme_color"), payload, { merge: true });
+
+      setSaveMessage(`Successfully saved App Theme Color (${colorVal}) to Cloud Firestore (app_config/theme_color)!`);
+      setTimeout(() => setSaveMessage(null), 5000);
+    } catch (err: any) {
+      console.error("Error saving theme color to Firestore:", err);
+      setErrorMessage(err.message || "Failed to save theme color to Cloud Firestore.");
+    } finally {
+      setSavingThemeColor(false);
+    }
+  };
+
   // Handle Toggle Auto Scheduler ON / OFF
   const handleToggleAutoScheduler = async () => {
     const nextVal = !(appOpenClose.autoTimingEnabled ?? true);
@@ -422,6 +474,12 @@ export default function AppConfigPage() {
       await setDoc(doc(db, "app_config", "global_settings"), globalPayload, { merge: true });
       await setDoc(doc(db, "app_config", "orders"), ordersConfigPayload, { merge: true });
       await setDoc(doc(db, "app_config", "supportpage"), supportPayload, { merge: true });
+      await setDoc(doc(db, "app_config", "theme_color"), {
+        primaryColorHex: primaryColorHex.trim() || "#383bff",
+        primary_color_hex: primaryColorHex.trim() || "#383bff",
+        updatedAt: new Date().toISOString(),
+        lastUpdated: Date.now(),
+      }, { merge: true });
 
       const isAuto = appOpenClose.autoTimingEnabled ?? true;
       const finalIsOpen = await saveAppOpenCloseToFirestore({
@@ -586,6 +644,22 @@ export default function AppConfigPage() {
             >
               <Headphones size={15} />
               <span>Support Page Details</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("themecolor")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                activeTab === "themecolor"
+                  ? "bg-magozi-800 text-white shadow-md shadow-magozi-800/20"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+              }`}
+            >
+              <Palette size={15} />
+              <span>Theme Colour for App</span>
+              <span
+                className="w-3.5 h-3.5 rounded-full border border-white/50 shadow-xs flex-shrink-0"
+                style={{ backgroundColor: primaryColorHex }}
+              />
             </button>
           </div>
 
@@ -1311,6 +1385,191 @@ export default function AppConfigPage() {
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Saved to Firestore <code className="font-mono font-bold text-slate-700 dark:text-slate-300">telegram</code> field for Telegram link
                     </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Theme Colour for App Editor */}
+            {activeTab === "themecolor" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Palette className="text-magozi-800 dark:text-emerald-400" size={22} />
+                    <span>App Theme Primary Colour Configuration</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Select or enter a hex color code to set the primary brand theme color across the mobile app. Syncs directly to Cloud Firestore collection <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config</code> — document ID <code className="font-mono font-bold text-slate-700 dark:text-slate-300">theme_color</code> (field: <code className="font-mono font-bold text-slate-700 dark:text-slate-300">primaryColorHex</code>).
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Column: Color Controls */}
+                  <div className="space-y-6">
+                    <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-5">
+                      <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                        <Palette size={16} className="text-magozi-800 dark:text-emerald-400" />
+                        <span>Primary Theme Hex Color</span>
+                      </label>
+
+                      {/* Interactive Color Inputs */}
+                      <div className="flex items-center gap-4">
+                        <div className="relative flex-shrink-0">
+                          <input
+                            type="color"
+                            value={primaryColorHex.startsWith("#") ? primaryColorHex : `#${primaryColorHex}`}
+                            onChange={(e) => setPrimaryColorHex(e.target.value)}
+                            className="w-16 h-16 rounded-2xl border-2 border-slate-300 dark:border-slate-700 cursor-pointer p-1 bg-white dark:bg-slate-800 shadow-sm"
+                          />
+                        </div>
+
+                        <div className="flex-1 space-y-1">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase">
+                            Hex Code Input (e.g. #383bff)
+                          </span>
+                          <input
+                            type="text"
+                            value={primaryColorHex}
+                            onChange={(e) => setPrimaryColorHex(e.target.value)}
+                            placeholder="#383bff"
+                            className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 font-mono text-base font-extrabold text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-900 shadow-xs"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Color Presets */}
+                      <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block">
+                          Popular Palette Presets
+                        </span>
+                        <div className="flex items-center flex-wrap gap-2.5">
+                          {[
+                            { name: "Magozi Blue", hex: "#383bff" },
+                            { name: "Emerald Green", hex: "#16a34a" },
+                            { name: "Crimson Red", hex: "#e11d48" },
+                            { name: "Vibrant Orange", hex: "#ea580c" },
+                            { name: "Royal Purple", hex: "#9333ea" },
+                            { name: "Deep Cyan", hex: "#0284c7" },
+                            { name: "Teal Green", hex: "#059669" },
+                            { name: "Amber Gold", hex: "#d97706" },
+                          ].map((preset) => (
+                            <button
+                              key={preset.hex}
+                              type="button"
+                              onClick={() => setPrimaryColorHex(preset.hex)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${
+                                primaryColorHex.toLowerCase() === preset.hex.toLowerCase()
+                                  ? "border-slate-900 dark:border-white shadow-sm ring-2 ring-magozi-800/40 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              }`}
+                            >
+                              <span
+                                className="w-3.5 h-3.5 rounded-full shadow-xs flex-shrink-0 border border-black/10"
+                                style={{ backgroundColor: preset.hex }}
+                              />
+                              <span>{preset.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Explicit Save Theme Color Action */}
+                      <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                          Doc: <code className="font-bold text-slate-700 dark:text-slate-300">app_config/theme_color</code>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleSaveThemeColor}
+                          disabled={savingThemeColor}
+                          className="px-5 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white text-xs font-extrabold shadow-md shadow-magozi-800/20 transition flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {savingThemeColor ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
+                          <span>{savingThemeColor ? "Saving Color..." : "Save Theme Color"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Live Mobile UI Mockup Preview */}
+                  <div className="p-6 rounded-3xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center space-y-4">
+                    <div className="text-center space-y-1">
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                        Live Mobile App Interface Preview
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        See how <code className="font-mono font-bold text-slate-700 dark:text-slate-300">{primaryColorHex}</code> renders on key UI elements
+                      </p>
+                    </div>
+
+                    {/* Phone Frame Mockup */}
+                    <div className="w-full max-w-[280px] bg-white dark:bg-slate-950 rounded-3xl border-4 border-slate-800 dark:border-slate-700 shadow-2xl overflow-hidden text-slate-900 dark:text-white">
+                      {/* Top Bar with Primary Color */}
+                      <div
+                        className="px-4 py-3 text-white flex items-center justify-between transition-colors duration-300 shadow-sm"
+                        style={{ backgroundColor: primaryColorHex }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Store size={18} />
+                          <span className="text-xs font-extrabold tracking-wide">Magozi App</span>
+                        </div>
+                        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">
+                          🛒 3
+                        </div>
+                      </div>
+
+                      {/* Mockup Body Content */}
+                      <div className="p-4 space-y-3">
+                        {/* Search Bar / Banner */}
+                        <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-900 text-xs flex items-center justify-between">
+                          <span className="text-slate-400 text-[11px]">Search products...</span>
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: primaryColorHex }} />
+                        </div>
+
+                        {/* Category Chip */}
+                        <div className="flex gap-2">
+                          <span
+                            className="px-3 py-1 rounded-full text-[10px] font-bold text-white shadow-xs"
+                            style={{ backgroundColor: primaryColorHex }}
+                          >
+                            All Categories
+                          </span>
+                          <span className="px-3 py-1 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            Fresh Produce
+                          </span>
+                        </div>
+
+                        {/* Product Mock Card */}
+                        <div className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                          <div className="h-16 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs text-slate-400">
+                            Product Image
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="text-[11px] font-bold">Organic Mangoes</div>
+                              <div className="text-[10px] text-slate-500">₹120 / kg</div>
+                            </div>
+                            <button
+                              type="button"
+                              className="px-3 py-1 rounded-xl text-[10px] font-extrabold text-white shadow-xs"
+                              style={{ backgroundColor: primaryColorHex }}
+                            >
+                              ADD +
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Checkout Action Button */}
+                        <div className="pt-2">
+                          <div
+                            className="w-full py-2.5 rounded-xl text-xs font-extrabold text-white text-center shadow-md transition-colors duration-300"
+                            style={{ backgroundColor: primaryColorHex }}
+                          >
+                            View Cart • ₹360
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
