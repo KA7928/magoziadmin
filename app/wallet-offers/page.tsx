@@ -9,6 +9,8 @@ import {
   collection,
   onSnapshot, 
   setDoc, 
+  deleteDoc,
+  getDoc,
   storage, 
   ref, 
   uploadBytes, 
@@ -125,37 +127,81 @@ export default function WalletOffersPage() {
   }, []);
 
   // ----------------------------------------------------
-  // Realtime Listener 2: coupon_offers
+  // Realtime Listener 2: Separate 'coupons' Collection
   // ----------------------------------------------------
   useEffect(() => {
     try {
-      const unsub = onSnapshot(doc(db, "offers_and_wallets", "coupon_offers"), (snap) => {
-        if (snap.exists()) {
-          const d = snap.data();
-          if (d.couponDetails !== undefined) setCouponDetails(d.couponDetails);
-          if (d.couponDetailsText !== undefined) setCouponDetailsText(d.couponDetailsText);
-          if (d.discountPrice !== undefined) setDiscountPrice(d.discountPrice);
-          if (d.minCartPrice !== undefined) setMinCartPrice(d.minCartPrice);
-          if (d.userCondition !== undefined) setUserCondition(d.userCondition);
-          if (d.paymentCondition !== undefined) setPaymentCondition(d.paymentCondition);
-          if (d.isActive !== undefined) setIsCouponActive(Boolean(d.isActive));
-          if (d.couponValidity !== undefined) setCouponValidity(d.couponValidity);
-          else if (d.validityDays !== undefined) setCouponValidity(d.validityDays);
-
-          if (Array.isArray(d.stores)) setSelectedStores(d.stores);
-          if (Array.isArray(d.categoryCondition)) setSelectedCategories(d.categoryCondition);
-          else if (Array.isArray(d.categories)) setSelectedCategories(d.categories);
-
-          if (Array.isArray(d.coupons)) setCouponsList(d.coupons);
-        }
+      const unsub = onSnapshot(collection(db, "coupons"), (snap) => {
+        const list: CouponItem[] = [];
+        snap.forEach((docSnap) => {
+          const d = docSnap.data();
+          list.push({
+            id: docSnap.id,
+            couponDetails: d.couponDetails || d.code || docSnap.id,
+            couponDetailsText: d.couponDetailsText || d.description || "",
+            discountPrice: d.discountPrice ?? d.discount_price ?? 0,
+            minCartPrice: d.minCartPrice ?? d.min_cart_price ?? 0,
+            userCondition: d.userCondition || d.user_condition || "all_users",
+            stores: Array.isArray(d.stores) ? d.stores : ["all_stores"],
+            paymentCondition: d.paymentCondition || d.payment_condition || "cod",
+            isActive: d.isActive !== undefined ? Boolean(d.isActive) : (d.is_active !== undefined ? Boolean(d.is_active) : true),
+            categoryCondition: Array.isArray(d.categoryCondition) ? d.categoryCondition : (Array.isArray(d.categories) ? d.categories : ["all_categories"]),
+            couponValidity: d.couponValidity ?? d.validityDays ?? d.validity_days ?? 30,
+            createdAt: d.createdAt || new Date().toISOString()
+          });
+        });
+        setCouponsList(list);
       }, (err) => {
-        console.warn("Firestore offers_and_wallets/coupon_offers listener warning:", err);
+        console.warn("Firestore coupons collection listener warning:", err);
       });
 
       return () => unsub();
     } catch (e) {
-      console.warn("Error subscribing to offers_and_wallets/coupon_offers:", e);
+      console.warn("Error subscribing to coupons collection in Firestore:", e);
     }
+  }, []);
+
+  // ----------------------------------------------------
+  // Automatic One-Time Migration & Cleanup of legacy offers_and_wallets/coupon_offers
+  // ----------------------------------------------------
+  useEffect(() => {
+    const migrateAndCleanLegacyDoc = async () => {
+      try {
+        const legacyRef = doc(db, "offers_and_wallets", "coupon_offers");
+        const snap = await getDoc(legacyRef);
+        if (snap.exists()) {
+          const d = snap.data();
+          if (Array.isArray(d.coupons) && d.coupons.length > 0) {
+            for (const item of d.coupons) {
+              const docId = item.id || String(item.couponDetails || `coupon_${Date.now()}`).trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+              await setDoc(doc(db, "coupons", docId), {
+                id: docId,
+                couponDetails: String(item.couponDetails || item.code || "").trim(),
+                couponDetailsText: String(item.couponDetailsText || "").trim(),
+                discountPrice: Number(item.discountPrice) || 0,
+                minCartPrice: Number(item.minCartPrice) || 0,
+                userCondition: item.userCondition || "all_users",
+                stores: Array.isArray(item.stores) ? item.stores : ["all_stores"],
+                paymentCondition: item.paymentCondition || "cod",
+                isActive: Boolean(item.isActive),
+                categoryCondition: Array.isArray(item.categoryCondition) ? item.categoryCondition : ["all_categories"],
+                categories: Array.isArray(item.categoryCondition) ? item.categoryCondition : ["all_categories"],
+                couponValidity: Number(item.couponValidity) || 30,
+                createdAt: item.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }, { merge: true });
+            }
+          }
+          // Delete legacy single doc as requested
+          await deleteDoc(legacyRef);
+          console.log("Successfully migrated legacy coupon_offers to coupons collection and deleted offers_and_wallets/coupon_offers");
+        }
+      } catch (e) {
+        console.warn("Legacy coupon migration note:", e);
+      }
+    };
+
+    migrateAndCleanLegacyDoc();
   }, []);
 
   // ----------------------------------------------------
@@ -281,7 +327,7 @@ export default function WalletOffersPage() {
   };
 
   // ----------------------------------------------------
-  // Save Handler for Coupon Offers (offers_and_wallets/coupon_offers)
+  // Save Handler for Coupon Offers (Separate 'coupons' collection)
   // ----------------------------------------------------
   const handleSaveCouponOffer = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -290,7 +336,8 @@ export default function WalletOffersPage() {
     setCouponError(null);
 
     try {
-      if (!String(couponDetails).trim()) {
+      const codeStr = String(couponDetails).trim();
+      if (!codeStr) {
         setCouponError("Please enter valid coupon details/code.");
         setSavingCoupon(false);
         return;
@@ -300,37 +347,12 @@ export default function WalletOffersPage() {
       const mCart = isNaN(Number(minCartPrice)) ? 0 : Number(minCartPrice);
       const cValid = isNaN(Number(couponValidity)) ? 0 : Number(couponValidity);
 
-      const currentCouponObj: CouponItem = {
-        id: editingCouponId || `coupon_${Date.now()}`,
-        couponDetails: String(couponDetails).trim(),
-        couponDetailsText: String(couponDetailsText).trim(),
-        discountPrice: dPrice,
-        minCartPrice: mCart,
-        userCondition: userCondition,
-        stores: selectedStores.length === 0 ? ["all_stores"] : selectedStores,
-        paymentCondition: paymentCondition,
-        isActive: Boolean(isCouponActive),
-        categoryCondition: selectedCategories.length === 0 ? ["all_categories"] : selectedCategories,
-        couponValidity: cValid,
-        createdAt: new Date().toISOString()
-      };
-
-      let updatedList = [...couponsList];
-      if (editingCouponId) {
-        updatedList = updatedList.map((c) => (c.id === editingCouponId ? currentCouponObj : c));
-      } else {
-        const existingIdx = updatedList.findIndex(
-          (c) => c.couponDetails.toLowerCase() === currentCouponObj.couponDetails.toLowerCase()
-        );
-        if (existingIdx >= 0) {
-          updatedList[existingIdx] = currentCouponObj;
-        } else {
-          updatedList.unshift(currentCouponObj);
-        }
-      }
+      // Use sanitized coupon code or editing ID as document ID in root collection "coupons"
+      const couponDocId = editingCouponId || codeStr.replace(/[^a-zA-Z0-9_-]/g, "_") || `coupon_${Date.now()}`;
 
       const payload = {
-        couponDetails: String(couponDetails).trim(),
+        id: couponDocId,
+        couponDetails: codeStr,
         couponDetailsText: String(couponDetailsText).trim(),
         discountPrice: dPrice,
         minCartPrice: mCart,
@@ -342,19 +364,25 @@ export default function WalletOffersPage() {
         categories: selectedCategories.length === 0 ? ["all_categories"] : selectedCategories,
         couponValidity: cValid,
         validityDays: cValid,
-        coupons: updatedList,
         updatedAt: new Date().toISOString(),
         lastUpdated: Date.now(),
+        createdAt: new Date().toISOString()
       };
 
-      await setDoc(doc(db, "offers_and_wallets", "coupon_offers"), payload, { merge: true });
+      // 1. Save directly to separate root collection 'coupons' document
+      await setDoc(doc(db, "coupons", couponDocId), payload, { merge: true });
 
-      setCouponMessage(`Successfully saved Coupon Offer to Firestore (offers_and_wallets/coupon_offers)!`);
+      // 2. Delete legacy single document offers_and_wallets/coupon_offers if present
+      try {
+        await deleteDoc(doc(db, "offers_and_wallets", "coupon_offers"));
+      } catch (e) {}
+
+      setCouponMessage(`Successfully saved Coupon document (${couponDocId}) to Firestore 'coupons' collection!`);
       setEditingCouponId(null);
       setTimeout(() => setCouponMessage(null), 5000);
     } catch (err: any) {
-      console.error("Error saving Coupon Offer to Firestore:", err);
-      setCouponError(err.message || "Failed to save Coupon Offer to Cloud Firestore.");
+      console.error("Error saving Coupon to Firestore:", err);
+      setCouponError(err.message || "Failed to save Coupon document to Cloud Firestore.");
     } finally {
       setSavingCoupon(false);
     }
@@ -426,17 +454,21 @@ export default function WalletOffersPage() {
 
   const handleDeleteCoupon = async (couponId: string) => {
     try {
-      const updatedList = couponsList.filter((c) => c.id !== couponId);
-      setCouponsList(updatedList);
-      await setDoc(
-        doc(db, "offers_and_wallets", "coupon_offers"), 
-        { coupons: updatedList, updatedAt: new Date().toISOString() }, 
-        { merge: true }
-      );
-      setCouponMessage("Coupon deleted successfully!");
+      setSavingCoupon(true);
+      // Delete from separate 'coupons' collection
+      await deleteDoc(doc(db, "coupons", couponId));
+      // Also delete from legacy location if present
+      try {
+        await deleteDoc(doc(db, "offers_and_wallets", "coupon_offers"));
+      } catch (e) {}
+
+      setCouponMessage("Coupon document deleted successfully from 'coupons' collection!");
       setTimeout(() => setCouponMessage(null), 3000);
     } catch (e: any) {
-      setCouponError(e.message || "Failed to delete coupon.");
+      console.error("Error deleting coupon document:", e);
+      setCouponError(e.message || "Failed to delete coupon document.");
+    } finally {
+      setSavingCoupon(false);
     }
   };
 
@@ -841,7 +873,7 @@ export default function WalletOffersPage() {
                       <span>Custom Coupon Offers Configuration</span>
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Saves directly to Firestore document <code className="font-mono font-bold text-purple-600 dark:text-purple-400">offers_and_wallets/coupon_offers</code>
+                      Saves directly as individual documents inside separate Firestore collection <code className="font-mono font-bold text-purple-600 dark:text-purple-400">coupons</code>
                     </p>
                   </div>
 
@@ -1184,7 +1216,7 @@ export default function WalletOffersPage() {
                 {/* Bottom Save Coupon Button */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <span className="text-xs text-slate-400 font-medium">
-                    Cloud Firestore: <code className="font-mono text-purple-600 dark:text-purple-400 font-bold">offers_and_wallets/coupon_offers</code>
+                    Cloud Firestore: <code className="font-mono text-purple-600 dark:text-purple-400 font-bold">coupons</code> collection (separate document per coupon)
                   </span>
                   <button
                     type="submit"
