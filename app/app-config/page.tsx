@@ -33,7 +33,10 @@ import {
   Sparkles,
   ToggleLeft,
   ToggleRight,
-  Palette
+  Palette,
+  Type,
+  Square,
+  RotateCcw
 } from "lucide-react";
 
 const getInitialAppOpenClose = (): AppOpenCloseSettings => {
@@ -65,7 +68,9 @@ export default function AppConfigPage() {
   const [openingHoursInput, setOpeningHoursInput] = useState<string>(appOpenClose.openingHours || "06:00 AM - 11:30 PM");
   const [closedMessageInput, setClosedMessageInput] = useState<string>(appOpenClose.closedMessage || "We are currently closed for orders.");
 
-  const [primaryColorHex, setPrimaryColorHex] = useState<string>("#383bff");
+  const [primaryColorHex, setPrimaryColorHex] = useState<string>("#111827");
+  const [secondaryColorHex, setSecondaryColorHex] = useState<string>("#383bff");
+  const [tertiaryColorHex, setTertiaryColorHex] = useState<string>("#e2e8f0");
   const [savingThemeColor, setSavingThemeColor] = useState<boolean>(false);
 
   const [activeTab, setActiveTab] = useState<"charges" | "openclose" | "canceltimer" | "policies" | "support" | "themecolor">("charges");
@@ -346,6 +351,12 @@ export default function AppConfigPage() {
           if (d.primaryColorHex) setPrimaryColorHex(d.primaryColorHex);
           else if (d.primary_color_hex) setPrimaryColorHex(d.primary_color_hex);
           else if (d.colorHex) setPrimaryColorHex(d.colorHex);
+
+          if (d.secondaryColorHex) setSecondaryColorHex(d.secondaryColorHex);
+          else if (d.secondary_color_hex) setSecondaryColorHex(d.secondary_color_hex);
+
+          if (d.tertiaryColorHex) setTertiaryColorHex(d.tertiaryColorHex);
+          else if (d.tertiary_color_hex) setTertiaryColorHex(d.tertiary_color_hex);
         }
       }, (err) => {
         console.warn("Firestore app_config/theme_color listener warning:", err);
@@ -357,7 +368,7 @@ export default function AppConfigPage() {
     }
   }, []);
 
-  // Dedicated Save Handler for Theme Color
+  // Dedicated Save Handler for Theme Color (3-Colour System)
   const handleSaveThemeColor = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setSavingThemeColor(true);
@@ -365,21 +376,28 @@ export default function AppConfigPage() {
     setErrorMessage(null);
 
     try {
-      const colorVal = primaryColorHex.trim() || "#383bff";
+      const pColor = primaryColorHex.trim() || "#111827";
+      const sColor = secondaryColorHex.trim() || "#383bff";
+      const tColor = tertiaryColorHex.trim() || "#e2e8f0";
+
       const payload = {
-        primaryColorHex: colorVal,
-        primary_color_hex: colorVal,
+        primaryColorHex: pColor,
+        primary_color_hex: pColor,
+        secondaryColorHex: sColor,
+        secondary_color_hex: sColor,
+        tertiaryColorHex: tColor,
+        tertiary_color_hex: tColor,
         updatedAt: new Date().toISOString(),
         lastUpdated: Date.now(),
       };
 
       await setDoc(doc(db, "app_config", "theme_color"), payload, { merge: true });
 
-      setSaveMessage(`Successfully saved App Theme Color (${colorVal}) to Cloud Firestore (app_config/theme_color)!`);
+      setSaveMessage(`Successfully saved 3 App Theme Colours (Texts: ${pColor}, Buttons: ${sColor}, Borders: ${tColor}) to Cloud Firestore (app_config/theme_color)!`);
       setTimeout(() => setSaveMessage(null), 5000);
     } catch (err: any) {
       console.error("Error saving theme color to Firestore:", err);
-      setErrorMessage(err.message || "Failed to save theme color to Cloud Firestore.");
+      setErrorMessage(err.message || "Failed to save theme colors to Cloud Firestore.");
     } finally {
       setSavingThemeColor(false);
     }
@@ -475,8 +493,12 @@ export default function AppConfigPage() {
       await setDoc(doc(db, "app_config", "orders"), ordersConfigPayload, { merge: true });
       await setDoc(doc(db, "app_config", "supportpage"), supportPayload, { merge: true });
       await setDoc(doc(db, "app_config", "theme_color"), {
-        primaryColorHex: primaryColorHex.trim() || "#383bff",
-        primary_color_hex: primaryColorHex.trim() || "#383bff",
+        primaryColorHex: primaryColorHex.trim() || "#111827",
+        primary_color_hex: primaryColorHex.trim() || "#111827",
+        secondaryColorHex: secondaryColorHex.trim() || "#383bff",
+        secondary_color_hex: secondaryColorHex.trim() || "#383bff",
+        tertiaryColorHex: tertiaryColorHex.trim() || "#e2e8f0",
+        tertiary_color_hex: tertiaryColorHex.trim() || "#e2e8f0",
         updatedAt: new Date().toISOString(),
         lastUpdated: Date.now(),
       }, { merge: true });
@@ -655,11 +677,24 @@ export default function AppConfigPage() {
               }`}
             >
               <Palette size={15} />
-              <span>Theme Colour for App</span>
-              <span
-                className="w-3.5 h-3.5 rounded-full border border-white/50 shadow-xs flex-shrink-0"
-                style={{ backgroundColor: primaryColorHex }}
-              />
+              <span>Theme Colours for App</span>
+              <div className="flex items-center -space-x-1 flex-shrink-0">
+                <span
+                  className="w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 shadow-xs flex-shrink-0"
+                  style={{ backgroundColor: primaryColorHex }}
+                  title="Texts & Headings"
+                />
+                <span
+                  className="w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 shadow-xs flex-shrink-0"
+                  style={{ backgroundColor: secondaryColorHex }}
+                  title="App Buttons"
+                />
+                <span
+                  className="w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 shadow-xs flex-shrink-0"
+                  style={{ backgroundColor: tertiaryColorHex }}
+                  title="Borders & Outlines"
+                />
+              </div>
             </button>
           </div>
 
@@ -1390,81 +1425,155 @@ export default function AppConfigPage() {
               </div>
             )}
 
-            {/* Theme Colour for App Editor */}
+            {/* Theme Colours for App Editor (3-Colour System) */}
             {activeTab === "themecolor" && (
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Palette className="text-magozi-800 dark:text-emerald-400" size={22} />
-                    <span>App Theme Primary Colour Configuration</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Select or enter a hex color code to set the primary brand theme color across the mobile app. Syncs directly to Cloud Firestore collection <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config</code> — document ID <code className="font-mono font-bold text-slate-700 dark:text-slate-300">theme_color</code> (field: <code className="font-mono font-bold text-slate-700 dark:text-slate-300">primaryColorHex</code>).
-                  </p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Palette className="text-magozi-800 dark:text-emerald-400" size={22} />
+                      <span>App Theme Colours Configuration (3-Colour System)</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Configure individual brand colors for texts/headings, buttons, and borders/outlines. Syncs live to Cloud Firestore <code className="font-mono font-bold text-slate-700 dark:text-slate-300">app_config/theme_color</code>.
+                    </p>
+                  </div>
+
+                  {/* Quick Action Buttons */}
+                  <div className="flex items-center gap-2.5 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPrimaryColorHex("#111827");
+                        setSecondaryColorHex("#383bff");
+                        setTertiaryColorHex("#e2e8f0");
+                      }}
+                      className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5"
+                      title="Reset to default theme colors"
+                    >
+                      <RotateCcw size={14} />
+                      <span>Reset Defaults</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveThemeColor}
+                      disabled={savingThemeColor}
+                      className="px-5 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white text-xs font-extrabold shadow-md shadow-magozi-800/20 transition flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {savingThemeColor ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
+                      <span>{savingThemeColor ? "Saving..." : "Save Theme Colours"}</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Left Column: Color Controls */}
-                  <div className="space-y-6">
-                    <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-5">
-                      <label className="block text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                        <Palette size={16} className="text-magozi-800 dark:text-emerald-400" />
-                        <span>Primary Theme Hex Color</span>
-                      </label>
+                {/* 3 Color Overview Banner */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-xl shadow-xs border border-black/10 flex-shrink-0" style={{ backgroundColor: primaryColorHex }} />
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block">1. Texts & Headings</span>
+                      <span className="text-xs font-mono font-black text-slate-900 dark:text-white truncate block">{primaryColorHex}</span>
+                      <span className="text-[10px] text-slate-400 block truncate font-mono">Field: primaryColorHex</span>
+                    </div>
+                  </div>
 
-                      {/* Interactive Color Inputs */}
-                      <div className="flex items-center gap-4">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-xl shadow-xs border border-black/10 flex-shrink-0" style={{ backgroundColor: secondaryColorHex }} />
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block">2. App Buttons</span>
+                      <span className="text-xs font-mono font-black text-slate-900 dark:text-white truncate block">{secondaryColorHex}</span>
+                      <span className="text-[10px] text-slate-400 block truncate font-mono">Field: secondaryColorHex</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-xl shadow-xs border border-black/10 flex-shrink-0" style={{ backgroundColor: tertiaryColorHex }} />
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block">3. Borders & Outlines</span>
+                      <span className="text-xs font-mono font-black text-slate-900 dark:text-white truncate block">{tertiaryColorHex}</span>
+                      <span className="text-[10px] text-slate-400 block truncate font-mono">Field: tertiaryColorHex</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Column (7 cols): The 3 Color Selection Controls */}
+                  <div className="lg:col-span-7 space-y-5">
+                    {/* 1. TEXTS & HEADINGS COLOR */}
+                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-800 dark:text-slate-200 font-bold">
+                            <Type size={16} />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                              1. Texts & Headings Colour
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                              Screen titles, product headings, prices & primary body typography
+                            </p>
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          Field: primaryColorHex
+                        </span>
+                      </div>
+
+                      {/* Inputs */}
+                      <div className="flex items-center gap-3.5">
                         <div className="relative flex-shrink-0">
                           <input
                             type="color"
                             value={primaryColorHex.startsWith("#") ? primaryColorHex : `#${primaryColorHex}`}
                             onChange={(e) => setPrimaryColorHex(e.target.value)}
-                            className="w-16 h-16 rounded-2xl border-2 border-slate-300 dark:border-slate-700 cursor-pointer p-1 bg-white dark:bg-slate-800 shadow-sm"
+                            className="w-14 h-14 rounded-2xl border-2 border-slate-300 dark:border-slate-700 cursor-pointer p-1 bg-white dark:bg-slate-800 shadow-sm"
                           />
                         </div>
 
                         <div className="flex-1 space-y-1">
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase">
-                            Hex Code Input (e.g. #383bff)
-                          </span>
+                          <label className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase block">
+                            Hex Code Input
+                          </label>
                           <input
                             type="text"
                             value={primaryColorHex}
                             onChange={(e) => setPrimaryColorHex(e.target.value)}
-                            placeholder="#383bff"
-                            className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 font-mono text-base font-extrabold text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-900 shadow-xs"
+                            placeholder="#111827"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-mono text-sm font-extrabold text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-900 shadow-xs"
                           />
                         </div>
                       </div>
 
-                      {/* Color Presets */}
-                      <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block">
-                          Popular Palette Presets
+                      {/* Presets */}
+                      <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                          Presets for Headings & Text
                         </span>
-                        <div className="flex items-center flex-wrap gap-2.5">
+                        <div className="flex items-center flex-wrap gap-2">
                           {[
+                            { name: "Deep Charcoal", hex: "#111827" },
+                            { name: "Slate Black", hex: "#0f172a" },
+                            { name: "Midnight Navy", hex: "#1e3a8a" },
                             { name: "Magozi Blue", hex: "#383bff" },
-                            { name: "Emerald Green", hex: "#16a34a" },
-                            { name: "Crimson Red", hex: "#e11d48" },
-                            { name: "Vibrant Orange", hex: "#ea580c" },
-                            { name: "Royal Purple", hex: "#9333ea" },
-                            { name: "Deep Cyan", hex: "#0284c7" },
-                            { name: "Teal Green", hex: "#059669" },
-                            { name: "Amber Gold", hex: "#d97706" },
+                            { name: "Deep Violet", hex: "#4c1d95" },
+                            { name: "Forest Green", hex: "#064e3b" },
+                            { name: "Crimson Maroon", hex: "#881337" },
+                            { name: "Dark Neutral", hex: "#27272a" },
                           ].map((preset) => (
                             <button
                               key={preset.hex}
                               type="button"
                               onClick={() => setPrimaryColorHex(preset.hex)}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 border ${
                                 primaryColorHex.toLowerCase() === preset.hex.toLowerCase()
-                                  ? "border-slate-900 dark:border-white shadow-sm ring-2 ring-magozi-800/40 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                  ? "border-slate-900 dark:border-white shadow-sm ring-1 ring-magozi-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                   : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                               }`}
                             >
                               <span
-                                className="w-3.5 h-3.5 rounded-full shadow-xs flex-shrink-0 border border-black/10"
+                                className="w-3 h-3 rounded-full shadow-xs flex-shrink-0 border border-black/10"
                                 style={{ backgroundColor: preset.hex }}
                               />
                               <span>{preset.name}</span>
@@ -1472,100 +1581,416 @@ export default function AppConfigPage() {
                           ))}
                         </div>
                       </div>
+                    </div>
 
-                      {/* Explicit Save Theme Color Action */}
-                      <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                          Doc: <code className="font-bold text-slate-700 dark:text-slate-300">app_config/theme_color</code>
+                    {/* 2. APP BUTTONS COLOR */}
+                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold">
+                            <Sparkles size={16} />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                              2. App Buttons Colour
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                              Action buttons ("ADD +", "View Cart", "Checkout Now"), CTA banners & active tags
+                            </p>
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300">
+                          Field: secondaryColorHex
                         </span>
-                        <button
-                          type="button"
-                          onClick={handleSaveThemeColor}
-                          disabled={savingThemeColor}
-                          className="px-5 py-2.5 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white text-xs font-extrabold shadow-md shadow-magozi-800/20 transition flex items-center gap-2 disabled:opacity-50"
-                        >
-                          {savingThemeColor ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
-                          <span>{savingThemeColor ? "Saving Color..." : "Save Theme Color"}</span>
-                        </button>
                       </div>
+
+                      {/* Inputs */}
+                      <div className="flex items-center gap-3.5">
+                        <div className="relative flex-shrink-0">
+                          <input
+                            type="color"
+                            value={secondaryColorHex.startsWith("#") ? secondaryColorHex : `#${secondaryColorHex}`}
+                            onChange={(e) => setSecondaryColorHex(e.target.value)}
+                            className="w-14 h-14 rounded-2xl border-2 border-slate-300 dark:border-slate-700 cursor-pointer p-1 bg-white dark:bg-slate-800 shadow-sm"
+                          />
+                        </div>
+
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase block">
+                            Hex Code Input
+                          </label>
+                          <input
+                            type="text"
+                            value={secondaryColorHex}
+                            onChange={(e) => setSecondaryColorHex(e.target.value)}
+                            placeholder="#383bff"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-mono text-sm font-extrabold text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-900 shadow-xs"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Presets */}
+                      <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                          Presets for Interactive Buttons
+                        </span>
+                        <div className="flex items-center flex-wrap gap-2">
+                          {[
+                            { name: "Magozi Blue", hex: "#383bff" },
+                            { name: "Vivid Indigo", hex: "#4f46e5" },
+                            { name: "Emerald Green", hex: "#16a34a" },
+                            { name: "Vivid Orange", hex: "#ea580c" },
+                            { name: "Crimson Red", hex: "#e11d48" },
+                            { name: "Royal Purple", hex: "#9333ea" },
+                            { name: "Deep Cyan", hex: "#0284c7" },
+                            { name: "Teal Green", hex: "#059669" },
+                          ].map((preset) => (
+                            <button
+                              key={preset.hex}
+                              type="button"
+                              onClick={() => setSecondaryColorHex(preset.hex)}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 border ${
+                                secondaryColorHex.toLowerCase() === preset.hex.toLowerCase()
+                                  ? "border-slate-900 dark:border-white shadow-sm ring-1 ring-purple-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              }`}
+                            >
+                              <span
+                                className="w-3 h-3 rounded-full shadow-xs flex-shrink-0 border border-black/10"
+                                style={{ backgroundColor: preset.hex }}
+                              />
+                              <span>{preset.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. APPS BORDER & OUTLINES COLOR */}
+                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
+                            <Square size={16} />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                              3. Apps Border & Outlines Colour
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                              Card containers, search input borders, dividers, chip frames & component outlines
+                            </p>
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                          Field: tertiaryColorHex
+                        </span>
+                      </div>
+
+                      {/* Inputs */}
+                      <div className="flex items-center gap-3.5">
+                        <div className="relative flex-shrink-0">
+                          <input
+                            type="color"
+                            value={tertiaryColorHex.startsWith("#") ? tertiaryColorHex : `#${tertiaryColorHex}`}
+                            onChange={(e) => setTertiaryColorHex(e.target.value)}
+                            className="w-14 h-14 rounded-2xl border-2 border-slate-300 dark:border-slate-700 cursor-pointer p-1 bg-white dark:bg-slate-800 shadow-sm"
+                          />
+                        </div>
+
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold uppercase block">
+                            Hex Code Input
+                          </label>
+                          <input
+                            type="text"
+                            value={tertiaryColorHex}
+                            onChange={(e) => setTertiaryColorHex(e.target.value)}
+                            placeholder="#e2e8f0"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-mono text-sm font-extrabold text-slate-900 dark:text-white focus:ring-2 focus:ring-magozi-800 outline-none bg-white dark:bg-slate-900 shadow-xs"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Presets */}
+                      <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                          Presets for Borders & Outlines
+                        </span>
+                        <div className="flex items-center flex-wrap gap-2">
+                          {[
+                            { name: "Slate Border", hex: "#e2e8f0" },
+                            { name: "Light Zinc", hex: "#e4e4e7" },
+                            { name: "Subtle Gray", hex: "#d1d5db" },
+                            { name: "Soft Blue", hex: "#bfdbfe" },
+                            { name: "Soft Emerald", hex: "#a7f3d0" },
+                            { name: "Soft Amber", hex: "#fde68a" },
+                            { name: "Dark Slate", hex: "#334155" },
+                            { name: "Charcoal Outline", hex: "#475569" },
+                          ].map((preset) => (
+                            <button
+                              key={preset.hex}
+                              type="button"
+                              onClick={() => setTertiaryColorHex(preset.hex)}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 border ${
+                                tertiaryColorHex.toLowerCase() === preset.hex.toLowerCase()
+                                  ? "border-slate-900 dark:border-white shadow-sm ring-1 ring-blue-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              }`}
+                            >
+                              <span
+                                className="w-3 h-3 rounded-full shadow-xs flex-shrink-0 border border-black/10"
+                                style={{ backgroundColor: preset.hex }}
+                              />
+                              <span>{preset.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Save Action */}
+                    <div className="pt-2 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                        Target Document: <code className="font-bold text-slate-700 dark:text-slate-300">app_config/theme_color</code>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleSaveThemeColor}
+                        disabled={savingThemeColor}
+                        className="px-6 py-3 rounded-xl bg-magozi-800 hover:bg-magozi-900 text-white text-xs font-extrabold shadow-md shadow-magozi-800/20 transition flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {savingThemeColor ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
+                        <span>{savingThemeColor ? "Saving All 3 Colours..." : "Save All 3 Theme Colours"}</span>
+                      </button>
                     </div>
                   </div>
 
-                  {/* Right Column: Live Mobile UI Mockup Preview */}
-                  <div className="p-6 rounded-3xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center space-y-4">
-                    <div className="text-center space-y-1">
-                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                        Live Mobile App Interface Preview
-                      </span>
+                  {/* Right Column (5 cols): Live Side Example / Mockup Preview */}
+                  <div className="lg:col-span-5 p-6 rounded-3xl bg-slate-100/80 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 flex flex-col items-center space-y-5">
+                    <div className="text-center space-y-1 w-full">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[11px] font-extrabold">
+                        <Sparkles size={13} />
+                        <span>Real-Time Interactive Side Example</span>
+                      </div>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                        Live Mobile App UI Preview
+                      </h4>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        See how <code className="font-mono font-bold text-slate-700 dark:text-slate-300">{primaryColorHex}</code> renders on key UI elements
+                        See how your 3 selected colours harmonize in the mobile interface:
                       </p>
                     </div>
 
-                    {/* Phone Frame Mockup */}
-                    <div className="w-full max-w-[280px] bg-white dark:bg-slate-950 rounded-3xl border-4 border-slate-800 dark:border-slate-700 shadow-2xl overflow-hidden text-slate-900 dark:text-white">
-                      {/* Top Bar with Primary Color */}
+                    {/* Color Legend Breakdown */}
+                    <div className="w-full grid grid-cols-3 gap-2 p-2.5 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px]">
+                      <div className="flex flex-col items-center text-center p-1.5 rounded-xl bg-slate-50 dark:bg-slate-900">
+                        <span className="w-3.5 h-3.5 rounded-full border border-black/10 mb-1" style={{ backgroundColor: primaryColorHex }} />
+                        <span className="font-extrabold text-slate-800 dark:text-slate-200">Texts & Headings</span>
+                        <span className="font-mono text-slate-400 truncate max-w-[70px]">{primaryColorHex}</span>
+                      </div>
+                      <div className="flex flex-col items-center text-center p-1.5 rounded-xl bg-slate-50 dark:bg-slate-900">
+                        <span className="w-3.5 h-3.5 rounded-full border border-black/10 mb-1" style={{ backgroundColor: secondaryColorHex }} />
+                        <span className="font-extrabold text-slate-800 dark:text-slate-200">App Buttons</span>
+                        <span className="font-mono text-slate-400 truncate max-w-[70px]">{secondaryColorHex}</span>
+                      </div>
+                      <div className="flex flex-col items-center text-center p-1.5 rounded-xl bg-slate-50 dark:bg-slate-900">
+                        <span className="w-3.5 h-3.5 rounded-full border border-black/10 mb-1" style={{ backgroundColor: tertiaryColorHex }} />
+                        <span className="font-extrabold text-slate-800 dark:text-slate-200">Borders/Outlines</span>
+                        <span className="font-mono text-slate-400 truncate max-w-[70px]">{tertiaryColorHex}</span>
+                      </div>
+                    </div>
+
+                    {/* Smartphone Mockup */}
+                    <div
+                      className="w-full max-w-[310px] bg-white dark:bg-slate-950 rounded-[38px] shadow-2xl overflow-hidden transition-all duration-300"
+                      style={{
+                        border: `3px solid ${tertiaryColorHex}`,
+                        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+                      }}
+                    >
+                      {/* Notch & Status Bar */}
+                      <div className="px-5 pt-3 pb-2 flex items-center justify-between text-[10px] font-bold bg-white dark:bg-slate-950" style={{ color: primaryColorHex }}>
+                        <span>09:41</span>
+                        <div className="w-16 h-3.5 rounded-full bg-slate-800 mx-auto" />
+                        <span>5G 100%</span>
+                      </div>
+
+                      {/* Top App Header */}
                       <div
-                        className="px-4 py-3 text-white flex items-center justify-between transition-colors duration-300 shadow-sm"
-                        style={{ backgroundColor: primaryColorHex }}
+                        className="px-4 py-3 flex items-center justify-between bg-white dark:bg-slate-950"
+                        style={{ borderBottom: `1.5px solid ${tertiaryColorHex}` }}
                       >
                         <div className="flex items-center gap-2">
-                          <Store size={18} />
-                          <span className="text-xs font-extrabold tracking-wide">Magozi App</span>
+                          <Store size={18} style={{ color: primaryColorHex }} />
+                          <div>
+                            <span className="text-xs font-black tracking-tight block" style={{ color: primaryColorHex }}>
+                              Magozi Supermarket
+                            </span>
+                            <span className="text-[9px] opacity-70 block" style={{ color: primaryColorHex }}>
+                              Delivery in 10 mins
+                            </span>
+                          </div>
                         </div>
-                        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">
-                          🛒 3
+
+                        {/* Cart Button Pill (Button color) */}
+                        <div
+                          className="px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-xs flex items-center gap-1 text-white"
+                          style={{ backgroundColor: secondaryColorHex }}
+                        >
+                          <span>🛒 2</span>
                         </div>
                       </div>
 
                       {/* Mockup Body Content */}
-                      <div className="p-4 space-y-3">
-                        {/* Search Bar / Banner */}
-                        <div className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-900 text-xs flex items-center justify-between">
-                          <span className="text-slate-400 text-[11px]">Search products...</span>
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: primaryColorHex }} />
-                        </div>
-
-                        {/* Category Chip */}
-                        <div className="flex gap-2">
+                      <div className="p-3.5 space-y-3.5">
+                        {/* Search Input Box (Border: tertiaryColorHex, Text: primaryColorHex) */}
+                        <div
+                          className="px-3 py-2 rounded-xl flex items-center justify-between text-xs transition-colors"
+                          style={{
+                            border: `1.5px solid ${tertiaryColorHex}`,
+                            backgroundColor: "rgba(248, 250, 252, 0.7)"
+                          }}
+                        >
+                          <span className="text-[11px] opacity-60 font-medium" style={{ color: primaryColorHex }}>
+                            Search fresh vegetables, fruits...
+                          </span>
                           <span
-                            className="px-3 py-1 rounded-full text-[10px] font-bold text-white shadow-xs"
-                            style={{ backgroundColor: primaryColorHex }}
+                            className="px-2 py-0.5 rounded-lg text-[9px] font-bold text-white shadow-xs"
+                            style={{ backgroundColor: secondaryColorHex }}
                           >
-                            All Categories
-                          </span>
-                          <span className="px-3 py-1 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                            Fresh Produce
+                            SEARCH
                           </span>
                         </div>
 
-                        {/* Product Mock Card */}
-                        <div className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-2">
-                          <div className="h-16 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs text-slate-400">
-                            Product Image
-                          </div>
+                        {/* Category Row */}
+                        <div className="space-y-1.5">
                           <div className="flex items-center justify-between">
-                            <div>
-                              <div className="text-[11px] font-bold">Organic Mangoes</div>
-                              <div className="text-[10px] text-slate-500">₹120 / kg</div>
+                            <span className="text-[11px] font-black tracking-tight" style={{ color: primaryColorHex }}>
+                              Popular Categories
+                            </span>
+                            <span className="text-[9px] font-bold opacity-70" style={{ color: primaryColorHex }}>
+                              See All
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 overflow-x-hidden">
+                            {/* Active Category (Button color) */}
+                            <span
+                              className="px-2.5 py-1 rounded-full text-[10px] font-extrabold text-white shadow-xs flex-shrink-0"
+                              style={{ backgroundColor: secondaryColorHex }}
+                            >
+                              🥭 Fruits
+                            </span>
+
+                            {/* Inactive Categories (Border color & Text color) */}
+                            <span
+                              className="px-2.5 py-1 rounded-full text-[10px] font-bold flex-shrink-0"
+                              style={{
+                                border: `1.5px solid ${tertiaryColorHex}`,
+                                color: primaryColorHex,
+                                backgroundColor: "transparent"
+                              }}
+                            >
+                              🥦 Veggies
+                            </span>
+
+                            <span
+                              className="px-2.5 py-1 rounded-full text-[10px] font-bold flex-shrink-0"
+                              style={{
+                                border: `1.5px solid ${tertiaryColorHex}`,
+                                color: primaryColorHex,
+                                backgroundColor: "transparent"
+                              }}
+                            >
+                              🥛 Dairy
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Featured Product Card Example */}
+                        <div
+                          className="p-3 rounded-2xl bg-white dark:bg-slate-900/60 space-y-2 transition-all shadow-xs"
+                          style={{
+                            border: `2px solid ${tertiaryColorHex}`
+                          }}
+                        >
+                          {/* Image Placeholder with border */}
+                          <div
+                            className="h-16 rounded-xl bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-[10px] font-semibold"
+                            style={{
+                              border: `1px dashed ${tertiaryColorHex}`,
+                              color: primaryColorHex
+                            }}
+                          >
+                            📦 Product Image Preview
+                          </div>
+
+                          {/* Product Details (Text color) */}
+                          <div className="space-y-0.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black tracking-tight" style={{ color: primaryColorHex }}>
+                                Fresh Alphonso Mango
+                              </span>
+                              <span
+                                className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase"
+                                style={{
+                                  border: `1px solid ${tertiaryColorHex}`,
+                                  color: primaryColorHex
+                                }}
+                              >
+                                1 KG
+                              </span>
                             </div>
+                            <p className="text-[10px] opacity-75 font-medium line-clamp-1" style={{ color: primaryColorHex }}>
+                              Farm fresh, organically harvested sweet mangoes
+                            </p>
+                          </div>
+
+                          {/* Pricing & ADD Button */}
+                          <div
+                            className="pt-2 flex items-center justify-between"
+                            style={{ borderTop: `1px solid ${tertiaryColorHex}` }}
+                          >
+                            <div>
+                              <span className="text-xs font-black" style={{ color: primaryColorHex }}>
+                                ₹240
+                              </span>
+                              <span className="text-[9px] line-through text-slate-400 ml-1.5">
+                                ₹300
+                              </span>
+                            </div>
+
+                            {/* ADD Button (Button color) */}
                             <button
                               type="button"
-                              className="px-3 py-1 rounded-xl text-[10px] font-extrabold text-white shadow-xs"
-                              style={{ backgroundColor: primaryColorHex }}
+                              className="px-3.5 py-1 rounded-xl text-[10px] font-black text-white shadow-sm transition-transform active:scale-95"
+                              style={{ backgroundColor: secondaryColorHex }}
                             >
-                              ADD +
+                              + ADD
                             </button>
                           </div>
                         </div>
 
-                        {/* Checkout Action Button */}
-                        <div className="pt-2">
+                        {/* Bottom Sticky Action Button Bar */}
+                        <div
+                          className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900"
+                          style={{ border: `1.5px solid ${tertiaryColorHex}` }}
+                        >
+                          <div className="flex items-center justify-between mb-1.5 px-1">
+                            <span className="text-[10px] font-extrabold" style={{ color: primaryColorHex }}>
+                              Cart Total (2 Items)
+                            </span>
+                            <span className="text-[11px] font-black" style={{ color: primaryColorHex }}>
+                              ₹480
+                            </span>
+                          </div>
+
+                          {/* Checkout Button (Button color) */}
                           <div
-                            className="w-full py-2.5 rounded-xl text-xs font-extrabold text-white text-center shadow-md transition-colors duration-300"
-                            style={{ backgroundColor: primaryColorHex }}
+                            className="w-full py-2 rounded-xl text-center text-xs font-black text-white shadow-md cursor-pointer transition-transform active:scale-98"
+                            style={{ backgroundColor: secondaryColorHex }}
                           >
-                            View Cart • ₹360
+                            Proceed to Checkout →
                           </div>
                         </div>
                       </div>
