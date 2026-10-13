@@ -188,3 +188,30 @@ export interface CategoryItem {
   updatedAt?: string;
 }
 
+export interface Seller {
+  id: string; // Document ID = username
+  username: string;
+  fullName: string;
+  name?: string;
+  email: string;
+  phoneNumber: string;
+  phone?: string;
+  age: number;
+  image: string;
+  photoUrl?: string;
+  assignedStoreId?: string;
+  assignedStoreName?: string;
+  storeId?: string;
+  storeName?: string;
+  totalOrderAcceptances: number;
+  total_order_acceptances?: number;
+  phoneRingCount: number;
+  phone_ring_count?: number;
+  isApproved: boolean;
+  isStopped: boolean;
+  status?: 'approved' | 'pending' | 'stopped' | 'active';
+  createdAt?: string;
+  updatedAt?: string;
+  lastUpdated?: number;
+}
+
