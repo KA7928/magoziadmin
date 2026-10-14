@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Sellers collection (including sellerListVerified for seller app login verification)
+    match /sellers/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Coupons collection
+    match /coupons/{document=**} {
+      allow read, write: if true;
+    }
+
+    // Stores collection
+    match /stores/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Products collection
+    match /products/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Categories collection
+    match /categories/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Orders collection
+    match /orders/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // App Configuration & Theme
+    match /app_config/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Banners collection
+    match /banners/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Admin Management
+    match /admins/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Users collection
+    match /users/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

@@ -54,6 +54,7 @@ export default function SellersPage() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [stores, setStores] = useState<Superstore[]>([]);
   const [loading, setLoading] = useState(true);
+  const [permissionError, setPermissionError] = useState(false);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -170,6 +171,9 @@ export default function SellersPage() {
       }, (err) => {
         console.warn("Firestore sellers listener warning:", err);
         setLoading(false);
+        if (err.code === "permission-denied" || (err.message && err.message.toLowerCase().includes("permission"))) {
+          setPermissionError(true);
+        }
       });
 
       return () => unsub();
@@ -363,7 +367,12 @@ export default function SellersPage() {
       setEditingSeller(null);
     } catch (err: any) {
       console.error("Error saving seller:", err);
-      showNotification("error", err.message || "Failed to save seller to Firestore.");
+      if (err.code === "permission-denied" || (err.message && err.message.toLowerCase().includes("permission"))) {
+        setPermissionError(true);
+        showNotification("error", "Permission Denied: Firebase Firestore rules block writes to 'sellers'. Please update Firestore Rules.");
+      } else {
+        showNotification("error", err.message || "Failed to save seller to Firestore.");
+      }
     } finally {
       setSavingSeller(false);
     }
@@ -524,6 +533,39 @@ export default function SellersPage() {
               >
                 <X size={14} />
               </button>
+            </div>
+          )}
+
+          {/* Permission Error Guidance Banner */}
+          {permissionError && (
+            <div className="p-5 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-950 dark:text-amber-100 text-xs shadow-sm space-y-3 animate-in fade-in">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <ShieldAlert size={22} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1.5">
+                    <h4 className="font-black text-sm text-amber-900 dark:text-amber-200">
+                      Permission Denied: Firebase Firestore Rules Require Updating
+                    </h4>
+                    <p className="text-xs text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
+                      Firestore is blocking read/write access to the <code className="font-mono font-bold bg-amber-500/20 px-1.5 py-0.5 rounded">sellers</code> collection because it has not been allowed in your Firebase Security Rules yet.
+                    </p>
+                    <div className="p-3 rounded-2xl bg-slate-900 text-slate-100 font-mono text-[11px] border border-slate-800">
+                      <p className="text-slate-400 text-[10px] mb-1 font-sans font-bold">// Add this inside match /databases/{'{'}database{'}'}/documents in Firebase Console:</p>
+                      <pre className="text-emerald-400">{`match /sellers/{document=**} {\n  allow read, write: if true;\n}\nmatch /coupons/{document=**} {\n  allow read, write: if true;\n}`}</pre>
+                    </div>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 pt-1">
+                      👉 Open <b>Firebase Console → Firestore Database → Rules</b>, paste the rule above, and click <b>Publish</b>. Once published, reload this page and the sellers document will be created immediately!
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPermissionError(false)}
+                  className="p-1.5 rounded-xl hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 transition flex-shrink-0"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
           )}
 
