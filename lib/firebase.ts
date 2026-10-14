@@ -24,6 +24,8 @@ import {
   orderBy, 
   where,
   serverTimestamp,
+  arrayUnion,
+  arrayRemove,
   Firestore 
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, FirebaseStorage } from "firebase/storage";
@@ -111,6 +113,8 @@ export {
   orderBy,
   where,
   serverTimestamp,
+  arrayUnion,
+  arrayRemove,
   ref,
   uploadBytes,
   getDownloadURL,

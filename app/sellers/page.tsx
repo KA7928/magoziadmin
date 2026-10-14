@@ -14,7 +14,10 @@ import {
   deleteDoc, 
   ref, 
   uploadBytes, 
-  getDownloadURL 
+  getDownloadURL,
+  arrayUnion,
+  arrayRemove,
+  getDoc
 } from "@/lib/firebase";
 import { 
   UserCheck, 
@@ -91,7 +94,15 @@ export default function SellersPage() {
   useEffect(() => {
     try {
       const unsub = onSnapshot(collection(db, "sellers"), (snap) => {
-        const list: Seller[] = snap.docs.map((d) => {
+        // Exclude internal verification document "sellerListVerified" so it never appears on the website
+        const sellerDocs = snap.docs.filter(
+          (d) => d.id !== "sellerListVerified" && d.id.toLowerCase() !== "sellerlistverified"
+        );
+        const verifiedDoc = snap.docs.find(
+          (d) => d.id === "sellerListVerified" || d.id.toLowerCase() === "sellerlistverified"
+        );
+
+        const list: Seller[] = sellerDocs.map((d) => {
           const data = d.data();
           const docId = d.id;
           const username = data.username || docId;
@@ -130,6 +141,32 @@ export default function SellersPage() {
 
         setSellers(list);
         setLoading(false);
+
+        // Keep "sellerListVerified" document in sync with the array of all valid seller emails
+        const storedEmails: string[] = verifiedDoc?.data()?.emailsOfSeller || [];
+
+        const currentActiveEmails = Array.from(
+          new Set(
+            list
+              .map((s) => s.email?.trim().toLowerCase())
+              .filter((em): em is string => Boolean(em && em.length > 0))
+          )
+        );
+
+        const isOutOfSync =
+          !verifiedDoc ||
+          currentActiveEmails.length !== storedEmails.length ||
+          currentActiveEmails.some((em) => !storedEmails.includes(em));
+
+        if (isOutOfSync) {
+          setDoc(
+            doc(db, "sellers", "sellerListVerified"),
+            {
+              emailsOfSeller: currentActiveEmails,
+            },
+            { merge: true }
+          ).catch((e) => console.warn("Notice syncing sellerListVerified:", e));
+        }
       }, (err) => {
         console.warn("Firestore sellers listener warning:", err);
         setLoading(false);
@@ -241,6 +278,11 @@ export default function SellersPage() {
       return;
     }
 
+    if (cleanUsername === "sellerlistverified" || cleanUsername === "seller_list_verified") {
+      showNotification("error", "Username 'sellerListVerified' is a reserved verification ID. Please choose another username.");
+      return;
+    }
+
     if (!formFullName.trim()) {
       showNotification("error", "Seller full name is required.");
       return;
@@ -290,6 +332,30 @@ export default function SellersPage() {
       // If editing and username changed, remove the old document ID
       if (editingSeller && editingSeller.username !== cleanUsername) {
         await deleteDoc(doc(db, "sellers", editingSeller.username));
+      }
+
+      // Sync seller email into "sellerListVerified" -> "emailsOfSeller" array
+      const cleanEmail = formEmail.trim().toLowerCase();
+      const oldEmail = editingSeller?.email ? editingSeller.email.trim().toLowerCase() : "";
+
+      if (oldEmail && oldEmail !== cleanEmail) {
+        await setDoc(
+          doc(db, "sellers", "sellerListVerified"),
+          {
+            emailsOfSeller: arrayRemove(oldEmail),
+          },
+          { merge: true }
+        ).catch((e) => console.warn("Error removing old email from sellerListVerified:", e));
+      }
+
+      if (cleanEmail) {
+        await setDoc(
+          doc(db, "sellers", "sellerListVerified"),
+          {
+            emailsOfSeller: arrayUnion(cleanEmail),
+          },
+          { merge: true }
+        ).catch((e) => console.warn("Error adding email to sellerListVerified:", e));
       }
 
       showNotification("success", `Seller @${cleanUsername} saved successfully in Firestore ("sellers" collection)!`);
@@ -368,6 +434,19 @@ export default function SellersPage() {
 
     try {
       await deleteDoc(doc(db, "sellers", deleteConfirmSeller.username));
+
+      // Remove seller's email from "sellerListVerified" -> "emailsOfSeller" array
+      if (deleteConfirmSeller.email && deleteConfirmSeller.email.trim()) {
+        const emailToRemove = deleteConfirmSeller.email.trim().toLowerCase();
+        await setDoc(
+          doc(db, "sellers", "sellerListVerified"),
+          {
+            emailsOfSeller: arrayRemove(emailToRemove),
+          },
+          { merge: true }
+        ).catch((e) => console.warn("Error removing email from sellerListVerified:", e));
+      }
+
       showNotification("success", `Seller @${deleteConfirmSeller.username} permanently deleted from Firestore.`);
       setDeleteConfirmSeller(null);
     } catch (err: any) {
@@ -380,6 +459,9 @@ export default function SellersPage() {
 
   // Filtered Sellers Computation
   const filteredSellers = sellers.filter((seller) => {
+    if (seller.id === "sellerListVerified" || seller.username.toLowerCase() === "sellerlistverified") {
+      return false;
+    }
     const q = searchQuery.toLowerCase().trim();
     const matchQuery = 
       !q || 
