@@ -175,6 +175,7 @@ export interface Superstore {
   distanceKm?: string | number;
   lastUpdated?: number;
   updatedAt?: string;
+  sellerOfStoreEMAIL?: string[];
 }
 
 export interface CategoryItem {

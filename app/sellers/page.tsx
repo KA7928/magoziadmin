@@ -195,6 +195,7 @@ export default function SellersPage() {
             location: data.location || data.address || "",
             imageUrl: data.imageUrl || data.image || "",
             isOpen: Boolean(data.isOpen ?? true),
+            sellerOfStoreEMAIL: Array.isArray(data.sellerOfStoreEMAIL) ? data.sellerOfStoreEMAIL : [],
           };
         });
         setStores(list);
@@ -207,6 +208,55 @@ export default function SellersPage() {
       console.warn("Error subscribing to stores in Firestore:", e);
     }
   }, []);
+
+  // 3. Realtime Auto-Sync: Ensure every store in `stores` collection has `sellerOfStoreEMAIL` field with assigned sellers' emails
+  useEffect(() => {
+    if (stores.length === 0) return;
+
+    const syncStoresSellerEmails = async () => {
+      for (const store of stores) {
+        // Collect all unique seller emails assigned to this store
+        const assignedSellerEmails = Array.from(
+          new Set(
+            sellers
+              .filter(
+                (s) =>
+                  (s.assignedStoreId === store.id || s.storeId === store.id) &&
+                  s.email &&
+                  s.email.trim()
+              )
+              .map((s) => s.email.trim().toLowerCase())
+          )
+        );
+
+        const currentStoreEmails: string[] = Array.isArray(store.sellerOfStoreEMAIL)
+          ? store.sellerOfStoreEMAIL.map((e) => e.trim().toLowerCase())
+          : [];
+
+        // Check if out of sync or field missing
+        const isOutOfSync =
+          store.sellerOfStoreEMAIL === undefined ||
+          assignedSellerEmails.length !== currentStoreEmails.length ||
+          assignedSellerEmails.some((e) => !currentStoreEmails.includes(e));
+
+        if (isOutOfSync) {
+          try {
+            await setDoc(
+              doc(db, "stores", store.id),
+              {
+                sellerOfStoreEMAIL: assignedSellerEmails,
+              },
+              { merge: true }
+            );
+          } catch (err) {
+            console.warn(`Notice updating sellerOfStoreEMAIL for store ${store.id}:`, err);
+          }
+        }
+      }
+    };
+
+    syncStoresSellerEmails();
+  }, [sellers, stores]);
 
   // Open Modal for Create
   const handleOpenCreateModal = () => {
@@ -362,6 +412,35 @@ export default function SellersPage() {
         ).catch((e) => console.warn("Error adding email to sellerListVerified:", e));
       }
 
+      // Sync seller email into assigned store's "sellerOfStoreEMAIL" array
+      const oldStoreId = editingSeller?.assignedStoreId || editingSeller?.storeId || "";
+      const newStoreId = formAssignedStoreId;
+
+      // If store or email changed, remove old email from previous store
+      if (oldStoreId && (oldStoreId !== newStoreId || (oldEmail && oldEmail !== cleanEmail))) {
+        const emailToRemove = oldEmail || cleanEmail;
+        if (emailToRemove) {
+          await setDoc(
+            doc(db, "stores", oldStoreId),
+            {
+              sellerOfStoreEMAIL: arrayRemove(emailToRemove),
+            },
+            { merge: true }
+          ).catch((e) => console.warn(`Error removing seller email from store ${oldStoreId}:`, e));
+        }
+      }
+
+      // Add current seller email to assigned store's sellerOfStoreEMAIL array
+      if (newStoreId && cleanEmail) {
+        await setDoc(
+          doc(db, "stores", newStoreId),
+          {
+            sellerOfStoreEMAIL: arrayUnion(cleanEmail),
+          },
+          { merge: true }
+        ).catch((e) => console.warn(`Error adding seller email to store ${newStoreId}:`, e));
+      }
+
       showNotification("success", `Seller @${cleanUsername} saved successfully in Firestore ("sellers" collection)!`);
       setModalOpen(false);
       setEditingSeller(null);
@@ -454,6 +533,18 @@ export default function SellersPage() {
           },
           { merge: true }
         ).catch((e) => console.warn("Error removing email from sellerListVerified:", e));
+
+        // Also remove seller email from assigned store's "sellerOfStoreEMAIL" array
+        const storeIdToRemove = deleteConfirmSeller.assignedStoreId || deleteConfirmSeller.storeId || "";
+        if (storeIdToRemove) {
+          await setDoc(
+            doc(db, "stores", storeIdToRemove),
+            {
+              sellerOfStoreEMAIL: arrayRemove(emailToRemove),
+            },
+            { merge: true }
+          ).catch((e) => console.warn(`Error removing email from store ${storeIdToRemove}:`, e));
+        }
       }
 
       showNotification("success", `Seller @${deleteConfirmSeller.username} permanently deleted from Firestore.`);
