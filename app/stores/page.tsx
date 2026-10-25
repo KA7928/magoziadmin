@@ -126,6 +126,7 @@ export default function StoresPage() {
             lastUpdated: data.lastUpdated,
             updatedAt: data.updatedAt,
             sellerOfStoreEMAIL: Array.isArray(data.sellerOfStoreEMAIL) ? data.sellerOfStoreEMAIL : [],
+            sellerOfStorePHONE: Array.isArray(data.sellerOfStorePHONE) ? data.sellerOfStorePHONE : [],
           } as Superstore;
         });
 
@@ -305,6 +306,9 @@ export default function StoresPage() {
       updatedAt: new Date().toISOString(),
       sellerOfStoreEMAIL: editingStoreId
         ? (stores.find((s) => s.id === editingStoreId)?.sellerOfStoreEMAIL || [])
+        : [],
+      sellerOfStorePHONE: editingStoreId
+        ? (stores.find((s) => s.id === editingStoreId)?.sellerOfStorePHONE || [])
         : [],
       ...(editingStoreId ? {} : { createdAt: new Date().toISOString() })
     };
@@ -615,39 +619,72 @@ export default function StoresPage() {
                           </div>
                         )}
 
-                        {/* Assigned Store Sellers (sellerOfStoreEMAIL) */}
-                        <div className="bg-purple-50/70 dark:bg-purple-950/40 rounded-xl p-2.5 border border-purple-200/70 dark:border-purple-800/50 space-y-1.5">
+                        {/* Assigned Store Sellers (sellerOfStoreEMAIL & sellerOfStorePHONE) */}
+                        <div className="bg-purple-50/70 dark:bg-purple-950/40 rounded-xl p-2.5 border border-purple-200/70 dark:border-purple-800/50 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-extrabold uppercase text-purple-900 dark:text-purple-300 tracking-wider flex items-center gap-1.5">
                               <Users size={12} className="text-purple-600 dark:text-purple-400" />
                               <span>Assigned Sellers</span>
                               <span className="px-1.5 py-0.2 rounded-full bg-purple-200 dark:bg-purple-800 text-[10px] font-mono font-bold text-purple-900 dark:text-purple-100">
-                                {store.sellerOfStoreEMAIL?.length || 0}
+                                {Math.max(store.sellerOfStoreEMAIL?.length || 0, store.sellerOfStorePHONE?.length || 0)}
                               </span>
                             </span>
                             <span className="text-[9px] font-mono font-bold text-purple-600 dark:text-purple-400">
-                              sellerOfStoreEMAIL
+                              sellerOfStoreEMAIL & PHONE
                             </span>
                           </div>
-                          {store.sellerOfStoreEMAIL && store.sellerOfStoreEMAIL.length > 0 ? (
-                            <div className="flex flex-col gap-1 pt-0.5">
-                              {store.sellerOfStoreEMAIL.map((emailStr, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-purple-200/60 dark:border-purple-800/40 text-[11px] font-mono text-purple-950 dark:text-purple-200 shadow-xs"
-                                >
-                                  <span className="w-4 h-4 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-300 flex items-center justify-center text-[10px] font-black flex-shrink-0">
-                                    {idx + 1}
-                                  </span>
-                                  <span className="truncate">{emailStr}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-[11px] text-slate-400 italic block">
-                              No seller email assigned yet
+
+                          {/* Emails */}
+                          <div className="space-y-1">
+                            <span className="text-[9px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                              Emails (`sellerOfStoreEMAIL`):
                             </span>
-                          )}
+                            {store.sellerOfStoreEMAIL && store.sellerOfStoreEMAIL.length > 0 ? (
+                              <div className="flex flex-col gap-1">
+                                {store.sellerOfStoreEMAIL.map((emailStr, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-purple-200/60 dark:border-purple-800/40 text-[11px] font-mono text-purple-950 dark:text-purple-200 shadow-xs"
+                                  >
+                                    <span className="w-4 h-4 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-300 flex items-center justify-center text-[10px] font-black flex-shrink-0">
+                                      {idx + 1}
+                                    </span>
+                                    <span className="truncate">{emailStr}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 italic block">
+                                No seller email assigned
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Phone Numbers */}
+                          <div className="space-y-1 pt-1 border-t border-purple-200/50 dark:border-purple-900/40">
+                            <span className="text-[9px] font-extrabold uppercase text-slate-400 block tracking-wider">
+                              Phone Numbers (`sellerOfStorePHONE`):
+                            </span>
+                            {store.sellerOfStorePHONE && store.sellerOfStorePHONE.length > 0 ? (
+                              <div className="flex flex-col gap-1">
+                                {store.sellerOfStorePHONE.map((phoneStr, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-purple-200/60 dark:border-purple-800/40 text-[11px] font-mono text-emerald-700 dark:text-emerald-300 shadow-xs"
+                                  >
+                                    <span className="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center text-[10px] font-black flex-shrink-0">
+                                      {idx + 1}
+                                    </span>
+                                    <span className="truncate">{phoneStr}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 italic block">
+                                No seller phone assigned
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

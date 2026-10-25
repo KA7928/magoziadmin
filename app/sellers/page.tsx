@@ -196,6 +196,7 @@ export default function SellersPage() {
             imageUrl: data.imageUrl || data.image || "",
             isOpen: Boolean(data.isOpen ?? true),
             sellerOfStoreEMAIL: Array.isArray(data.sellerOfStoreEMAIL) ? data.sellerOfStoreEMAIL : [],
+            sellerOfStorePHONE: Array.isArray(data.sellerOfStorePHONE) ? data.sellerOfStorePHONE : [],
           };
         });
         setStores(list);
@@ -209,23 +210,32 @@ export default function SellersPage() {
     }
   }, []);
 
-  // 3. Realtime Auto-Sync: Ensure every store in `stores` collection has `sellerOfStoreEMAIL` field with assigned sellers' emails
+  // 3. Realtime Auto-Sync: Ensure every store in `stores` collection has `sellerOfStoreEMAIL` and `sellerOfStorePHONE`
   useEffect(() => {
     if (stores.length === 0) return;
 
-    const syncStoresSellerEmails = async () => {
+    const syncStoresSellerData = async () => {
       for (const store of stores) {
+        // Collect assigned sellers for this store
+        const storeSellers = sellers.filter(
+          (s) => (s.assignedStoreId === store.id || s.storeId === store.id)
+        );
+
         // Collect all unique seller emails assigned to this store
         const assignedSellerEmails = Array.from(
           new Set(
-            sellers
-              .filter(
-                (s) =>
-                  (s.assignedStoreId === store.id || s.storeId === store.id) &&
-                  s.email &&
-                  s.email.trim()
-              )
-              .map((s) => s.email.trim().toLowerCase())
+            storeSellers
+              .map((s) => s.email?.trim().toLowerCase() || "")
+              .filter(Boolean)
+          )
+        );
+
+        // Collect all unique seller phone numbers assigned to this store
+        const assignedSellerPhones = Array.from(
+          new Set(
+            storeSellers
+              .map((s) => (s.phoneNumber || s.phone || "").trim())
+              .filter(Boolean)
           )
         );
 
@@ -233,29 +243,39 @@ export default function SellersPage() {
           ? store.sellerOfStoreEMAIL.map((e) => e.trim().toLowerCase())
           : [];
 
+        const currentStorePhones: string[] = Array.isArray(store.sellerOfStorePHONE)
+          ? store.sellerOfStorePHONE.map((p) => p.trim())
+          : [];
+
         // Check if out of sync or field missing
-        const isOutOfSync =
+        const isEmailsOutOfSync =
           store.sellerOfStoreEMAIL === undefined ||
           assignedSellerEmails.length !== currentStoreEmails.length ||
           assignedSellerEmails.some((e) => !currentStoreEmails.includes(e));
 
-        if (isOutOfSync) {
+        const isPhonesOutOfSync =
+          store.sellerOfStorePHONE === undefined ||
+          assignedSellerPhones.length !== currentStorePhones.length ||
+          assignedSellerPhones.some((p) => !currentStorePhones.includes(p));
+
+        if (isEmailsOutOfSync || isPhonesOutOfSync) {
           try {
             await setDoc(
               doc(db, "stores", store.id),
               {
                 sellerOfStoreEMAIL: assignedSellerEmails,
+                sellerOfStorePHONE: assignedSellerPhones,
               },
               { merge: true }
             );
           } catch (err) {
-            console.warn(`Notice updating sellerOfStoreEMAIL for store ${store.id}:`, err);
+            console.warn(`Notice updating sellerOfStoreEMAIL/sellerOfStorePHONE for store ${store.id}:`, err);
           }
         }
       }
     };
 
-    syncStoresSellerEmails();
+    syncStoresSellerData();
   }, [sellers, stores]);
 
   // Open Modal for Create
@@ -412,33 +432,48 @@ export default function SellersPage() {
         ).catch((e) => console.warn("Error adding email to sellerListVerified:", e));
       }
 
-      // Sync seller email into assigned store's "sellerOfStoreEMAIL" array
+      // Sync seller email & phone into assigned store's "sellerOfStoreEMAIL" and "sellerOfStorePHONE" arrays
       const oldStoreId = editingSeller?.assignedStoreId || editingSeller?.storeId || "";
       const newStoreId = formAssignedStoreId;
+      const cleanPhone = formPhoneNumber.trim();
+      const oldPhone = editingSeller?.phoneNumber ? editingSeller.phoneNumber.trim() : (editingSeller?.phone ? editingSeller.phone.trim() : "");
 
-      // If store or email changed, remove old email from previous store
-      if (oldStoreId && (oldStoreId !== newStoreId || (oldEmail && oldEmail !== cleanEmail))) {
+      // If store, email, or phone changed, remove old info from previous store
+      if (oldStoreId && (oldStoreId !== newStoreId || (oldEmail && oldEmail !== cleanEmail) || (oldPhone && oldPhone !== cleanPhone))) {
+        const storeOldUpdates: any = {};
         const emailToRemove = oldEmail || cleanEmail;
+        const phoneToRemove = oldPhone || cleanPhone;
         if (emailToRemove) {
+          storeOldUpdates.sellerOfStoreEMAIL = arrayRemove(emailToRemove);
+        }
+        if (phoneToRemove) {
+          storeOldUpdates.sellerOfStorePHONE = arrayRemove(phoneToRemove);
+        }
+        if (Object.keys(storeOldUpdates).length > 0) {
           await setDoc(
             doc(db, "stores", oldStoreId),
-            {
-              sellerOfStoreEMAIL: arrayRemove(emailToRemove),
-            },
+            storeOldUpdates,
             { merge: true }
-          ).catch((e) => console.warn(`Error removing seller email from store ${oldStoreId}:`, e));
+          ).catch((e) => console.warn(`Error removing seller contact from store ${oldStoreId}:`, e));
         }
       }
 
-      // Add current seller email to assigned store's sellerOfStoreEMAIL array
-      if (newStoreId && cleanEmail) {
-        await setDoc(
-          doc(db, "stores", newStoreId),
-          {
-            sellerOfStoreEMAIL: arrayUnion(cleanEmail),
-          },
-          { merge: true }
-        ).catch((e) => console.warn(`Error adding seller email to store ${newStoreId}:`, e));
+      // Add current seller email & phone to assigned store's arrays
+      if (newStoreId) {
+        const storeNewUpdates: any = {};
+        if (cleanEmail) {
+          storeNewUpdates.sellerOfStoreEMAIL = arrayUnion(cleanEmail);
+        }
+        if (cleanPhone) {
+          storeNewUpdates.sellerOfStorePHONE = arrayUnion(cleanPhone);
+        }
+        if (Object.keys(storeNewUpdates).length > 0) {
+          await setDoc(
+            doc(db, "stores", newStoreId),
+            storeNewUpdates,
+            { merge: true }
+          ).catch((e) => console.warn(`Error adding seller contact to store ${newStoreId}:`, e));
+        }
       }
 
       showNotification("success", `Seller @${cleanUsername} saved successfully in Firestore ("sellers" collection)!`);
@@ -534,16 +569,21 @@ export default function SellersPage() {
           { merge: true }
         ).catch((e) => console.warn("Error removing email from sellerListVerified:", e));
 
-        // Also remove seller email from assigned store's "sellerOfStoreEMAIL" array
+        // Also remove seller email & phone from assigned store's arrays
         const storeIdToRemove = deleteConfirmSeller.assignedStoreId || deleteConfirmSeller.storeId || "";
+        const phoneToRemove = (deleteConfirmSeller.phoneNumber || deleteConfirmSeller.phone || "").trim();
         if (storeIdToRemove) {
+          const storeDeleteUpdates: any = {
+            sellerOfStoreEMAIL: arrayRemove(emailToRemove),
+          };
+          if (phoneToRemove) {
+            storeDeleteUpdates.sellerOfStorePHONE = arrayRemove(phoneToRemove);
+          }
           await setDoc(
             doc(db, "stores", storeIdToRemove),
-            {
-              sellerOfStoreEMAIL: arrayRemove(emailToRemove),
-            },
+            storeDeleteUpdates,
             { merge: true }
-          ).catch((e) => console.warn(`Error removing email from store ${storeIdToRemove}:`, e));
+          ).catch((e) => console.warn(`Error removing seller contact from store ${storeIdToRemove}:`, e));
         }
       }
 

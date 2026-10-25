@@ -176,6 +176,7 @@ export interface Superstore {
   lastUpdated?: number;
   updatedAt?: string;
   sellerOfStoreEMAIL?: string[];
+  sellerOfStorePHONE?: string[];
 }
 
 export interface CategoryItem {
